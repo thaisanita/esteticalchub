@@ -1,0 +1,18 @@
+/* Container que centraliza e afasta das bordas */
+.agenda-page-container {
+  width: 95% !important;
+  max-width: 600px !important; /* Limita o tamanho para ser compacto */
+  margin: 0 auto !important;   /* Centraliza no meio da tela */
+  padding-top: 80px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+}
+
+/* Garante que o título também centralize */
+.agenda-titulo-central {
+  text-align: center !important;
+  width: 100% !important;
+  margin-bottom: 20px !important;
+  font-family: 'Inter', sans-serif;
+}
