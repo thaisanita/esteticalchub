@@ -6,26 +6,46 @@ const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap');
-  .assistente-wrapper { margin: 2rem auto; max-width: 720px; font-family: 'DM Sans', sans-serif; }
+  
+  .assistente-wrapper { 
+    margin: 2rem auto; 
+    max-width: 720px; 
+    font-family: 'DM Sans', sans-serif;
+    padding: 0 20px; /* Adiciona espaçamento nas laterais para não grudar na borda */
+  }
+
   .assistente-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.2rem; }
+  
   .assistente-avatar { 
     width: 42px; height: 42px; border-radius: 50%; 
     background: linear-gradient(135deg, #a78bfa, #c4b5fd); 
     display: flex; align-items: center; justify-content: center; 
     font-size: 18px; flex-shrink: 0; box-shadow: 0 2px 12px rgba(167, 139, 250, 0.3); 
   }
+
   .assistente-titulo { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 300; color: #4c1d95; margin: 0; }
   .assistente-subtitulo { font-size: 0.75rem; color: #7c3aed; margin: 0; }
-  .assistente-chat { background: #fdfaff; border: 1px solid #ddd6fe; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(124, 58, 237, 0.08); }
+  
+  .assistente-chat { 
+    background: #fdfaff; 
+    border: 1px solid #ddd6fe; 
+    border-radius: 16px; 
+    overflow: hidden; 
+    box-shadow: 0 4px 24px rgba(124, 58, 237, 0.08); 
+  }
+
   .chat-mensagens { height: 340px; overflow-y: auto; padding: 1.2rem; display: flex; flex-direction: column; gap: 12px; }
   .mensagem { display: flex; gap: 8px; }
   .mensagem.usuario { flex-direction: row-reverse; }
+  
   .mensagem-balao { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 0.875rem; line-height: 1.55; }
   .mensagem.ia .mensagem-balao { background: white; border: 1px solid #ede9fe; color: #1e1b4b; }
   .mensagem.usuario .mensagem-balao { background: #4c1d95; color: white; }
+  
   .chat-input-area { display: flex; gap: 8px; padding: 1rem 1.2rem; border-top: 1px solid #ede9fe; background: white; }
   .chat-input { flex: 1; border: 1px solid #ddd6fe; border-radius: 24px; padding: 9px 16px; outline: none; background: #fdfaff; }
   .chat-send-btn { width: 38px; height: 38px; border-radius: 50%; background: #7c3aed; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  
   .sugestao-btn { border: 1px solid #ddd6fe; border-radius: 20px; padding: 5px 12px; font-size: 0.75rem; color: #6d28d9; cursor: pointer; background: white; margin: 2px; transition: 0.2s; }
   .sugestao-btn:hover { background: #f5f3ff; border-color: #a78bfa; }
 `;
@@ -76,10 +96,11 @@ export default function AssistenteIA({ onClose }) {
     setCarregando(true);
 
     try {
-      // Usando a variável agendamentos para criar contexto para a IA
-      const contexto = `Você é uma assistente de estética. O usuário possui ${agendamentos.length} agendamentos cadastrados.`;
+      const contexto = `Você é uma assistente de estética. O usuário possui ${agendamentos.length} agendamentos cadastrados. Responda em Português do Brasil.`;
       
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+      // URL ATUALIZADA PARA CORRIGIR O ERRO 404
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+      
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,12 +109,14 @@ export default function AssistenteIA({ onClose }) {
         })
       });
 
+      if (!response.ok) throw new Error('Falha na resposta da API');
+
       const data = await response.json();
       const resposta = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       setMensagens(p => [...p, { tipo: 'ia', texto: resposta || 'Não consegui processar sua resposta.' }]);
     } catch (err) {
       console.error(err);
-      setMensagens(p => [...p, { tipo: 'ia', texto: 'Ops, tive um erro ao conectar com a IA.' }]);
+      setMensagens(p => [...p, { tipo: 'ia', texto: 'Ops, tive um erro ao conectar com a IA. Verifique sua chave no arquivo .env.' }]);
     } finally {
       setCarregando(false);
     }
