@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '../supabase'; // IMPORTAÇÃO ADICIONADA
+import { supabase } from '../supabase';
+import AssistenteIA from './AssistenteIA';
 
 const NavbarLateral = () => {
   const navigate = useNavigate();
@@ -9,21 +10,25 @@ const NavbarLateral = () => {
 
   const [nomeNegocio, setNomeNegocio] = useState('Meu Négocio');
   const [aberto, setAberto] = useState(false);
+  const [iaAberta, setIaAberta] = useState(false);
 
   const idioma = localStorage.getItem('config_idioma') || 'Português (PT)';
 
   const textos = {
     'Português (PT)': {
       agenda: 'Agenda', procedimentos: 'Procedimentos',
-      porcentagem: 'Porcentagem', relatorios: 'Relatórios e Ganhos', configuracoes: 'Configurações', sair: 'Sair'
+      porcentagem: 'Porcentagem', relatorios: 'Relatórios e Ganhos',
+      configuracoes: 'Configurações', assistente: 'Assistente IA', sair: 'Sair'
     },
     'English (US)': {
       agenda: 'Schedule', procedimentos: 'Procedures',
-      porcentagem: 'Percentage', relatorios: 'Reports & Earnings', configuracoes: 'Settings', sair: 'Logout'
+      porcentagem: 'Percentage', relatorios: 'Reports & Earnings',
+      configuracoes: 'Settings', assistente: 'AI Assistant', sair: 'Logout'
     },
     'Español (ES)': {
       agenda: 'Agenda', procedimentos: 'Procedimientos',
-      porcentagem: 'Porcentaje', relatorios: 'Informes y Ganancias', configuracoes: 'Configuraciones', sair: 'Salir'
+      porcentagem: 'Porcentaje', relatorios: 'Informes y Ganancias',
+      configuracoes: 'Configuraciones', assistente: 'Asistente IA', sair: 'Salir'
     }
   }[idioma] || {};
 
@@ -37,26 +42,18 @@ const NavbarLateral = () => {
     setAberto(false);
   };
 
-  // FUNÇÃO DE LOGOUT ATUALIZADA (SEM MUDAR O DESIGN)
   const handleLogout = async () => {
     try {
-      // Encerra a sessão no Supabase
       await supabase.auth.signOut();
-      
-      // Limpa os dados de autenticação e idioma
       localStorage.clear();
-      
-      // Força o redirecionamento limpando o estado do sistema
-      window.location.href = '/'; 
+      window.location.href = '/';
     } catch (error) {
       console.error("Erro ao sair:", error);
-      // Fallback caso o signOut falhe
       localStorage.clear();
       window.location.href = '/';
     }
   };
 
-  // SEUS ESTILOS MODERNOS (MANTIDOS 100% IGUAIS)
   const sidebarStyle = {
     position: 'fixed',
     left: 0,
@@ -92,10 +89,28 @@ const NavbarLateral = () => {
     width: '100%'
   });
 
+  const iaButtonStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '15px',
+    padding: '14px 18px',
+    borderRadius: '16px',
+    border: 'none',
+    background: iaAberta ? '#f0f0ff' : 'transparent',
+    color: iaAberta ? '#4f46e5' : '#64748b',
+    fontSize: '16px',
+    fontWeight: iaAberta ? '700' : '500',
+    textAlign: 'left',
+    cursor: 'pointer',
+    transition: '0.3s',
+    marginBottom: '8px',
+    width: '100%'
+  };
+
   return (
     <>
-      {/* Botão Flutuante (MANTIDO) */}
-      <button 
+      {/* Botão Flutuante */}
+      <button
         onClick={() => setAberto(!aberto)}
         style={{
           position: 'fixed', top: '20px', left: '20px', zIndex: 1001,
@@ -108,48 +123,53 @@ const NavbarLateral = () => {
         {aberto ? '✕' : '☰'}
       </button>
 
-      {/* Barra Lateral (MANTIDA) */}
+      {/* Barra Lateral */}
       <div style={sidebarStyle}>
         <div style={{ padding: '20px 0 40px 10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '28px' }}>✨</span>
           <span style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>{nomeNegocio}</span>
         </div>
-        
+
         <nav style={{ flex: 1 }}>
           <button style={navItemStyle('/')} onClick={() => irPara('/')}>
-            <span style={{fontSize: '20px'}}>📅</span> {textos.agenda}
+            <span style={{ fontSize: '20px' }}>📅</span> {textos.agenda}
           </button>
 
           <button style={navItemStyle('/procedimentos')} onClick={() => irPara('/procedimentos')}>
-            <span style={{fontSize: '20px'}}>📋</span> {textos.procedimentos}
+            <span style={{ fontSize: '20px' }}>📋</span> {textos.procedimentos}
           </button>
 
           <button style={navItemStyle('/porcentagem')} onClick={() => irPara('/porcentagem')}>
-            <span style={{fontSize: '20px'}}>💰</span> {textos.porcentagem}
+            <span style={{ fontSize: '20px' }}>💰</span> {textos.porcentagem}
           </button>
 
           <button style={navItemStyle('/relatorios')} onClick={() => irPara('/relatorios')}>
-            <span style={{fontSize: '20px'}}>📈</span> {textos.relatorios}
+            <span style={{ fontSize: '20px' }}>📈</span> {textos.relatorios}
+          </button>
+
+          {/* Botão Assistente IA */}
+          <button style={iaButtonStyle} onClick={() => { setIaAberta(!iaAberta); setAberto(false); }}>
+            <span style={{ fontSize: '20px' }}>🤖</span> {textos.assistente}
           </button>
         </nav>
 
         <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
           <button style={navItemStyle('/configuracoes')} onClick={() => irPara('/configuracoes')}>
-            <span style={{fontSize: '20px'}}>⚙️</span> {textos.configuracoes}
+            <span style={{ fontSize: '20px' }}>⚙️</span> {textos.configuracoes}
           </button>
 
-          <button 
-            style={{ ...navItemStyle('/sair'), color: '#ef4444', background: 'transparent' }} 
+          <button
+            style={{ ...navItemStyle('/sair'), color: '#ef4444', background: 'transparent' }}
             onClick={handleLogout}
           >
-            <span style={{fontSize: '20px'}}>🚪</span> {textos.sair}
+            <span style={{ fontSize: '20px' }}>🚪</span> {textos.sair}
           </button>
         </div>
       </div>
 
-      {/* Fundo escurecido (MANTIDO) */}
+      {/* Fundo escurecido */}
       {aberto && (
-        <div 
+        <div
           onClick={() => setAberto(false)}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)',
@@ -157,6 +177,9 @@ const NavbarLateral = () => {
           }}
         />
       )}
+
+      {/* Assistente IA renderizado aqui, controlado pelo estado iaAberta */}
+      {iaAberta && <AssistenteIA onClose={() => setIaAberta(false)} />}
     </>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../supabase';
+import PropTypes from 'prop-types';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -66,18 +67,9 @@ const styles = `
     scroll-behavior: smooth;
   }
 
-  .chat-mensagens::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  .chat-mensagens::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .chat-mensagens::-webkit-scrollbar-thumb {
-    background: #e0cdb8;
-    border-radius: 4px;
-  }
+  .chat-mensagens::-webkit-scrollbar { width: 4px; }
+  .chat-mensagens::-webkit-scrollbar-track { background: transparent; }
+  .chat-mensagens::-webkit-scrollbar-thumb { background: #e0cdb8; border-radius: 4px; }
 
   .mensagem {
     display: flex;
@@ -90,9 +82,7 @@ const styles = `
     to { opacity: 1; transform: translateY(0); }
   }
 
-  .mensagem.usuario {
-    flex-direction: row-reverse;
-  }
+  .mensagem.usuario { flex-direction: row-reverse; }
 
   .mensagem-icone {
     width: 28px;
@@ -106,9 +96,7 @@ const styles = `
     margin-top: 2px;
   }
 
-  .mensagem-icone.ia {
-    background: linear-gradient(135deg, #c9a882, #e8d5b7);
-  }
+  .mensagem-icone.ia { background: linear-gradient(135deg, #c9a882, #e8d5b7); }
 
   .mensagem-icone.user {
     background: #3d2c1e;
@@ -207,13 +195,8 @@ const styles = `
     transition: border-color 0.2s;
   }
 
-  .chat-input:focus {
-    border-color: #c9a882;
-  }
-
-  .chat-input::placeholder {
-    color: #b8a090;
-  }
+  .chat-input:focus { border-color: #c9a882; }
+  .chat-input::placeholder { color: #b8a090; }
 
   .chat-send-btn {
     width: 38px;
@@ -235,9 +218,16 @@ const styles = `
     box-shadow: 0 4px 12px rgba(160,112,64,0.3);
   }
 
-  .chat-send-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  .chat-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .erro-chave {
+    background: #fff3f3;
+    border: 1px solid #ffcdd2;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    color: #c62828;
+    margin: 0 1.2rem 1rem;
   }
 `;
 
@@ -253,11 +243,12 @@ const mensagemBoasVindas = {
   texto: 'Olá! 💅 Sou sua assistente virtual. Posso te ajudar a ver seus agendamentos, dias livres, comissões e muito mais. Como posso te ajudar hoje?'
 };
 
-export default function AssistenteIA() {
+export default function AssistenteIA({ onClose }) {
   const [mensagens, setMensagens] = useState([mensagemBoasVindas]);
   const [input, setInput] = useState('');
   const [carregando, setCarregando] = useState(false);
   const [agendamentos, setAgendamentos] = useState([]);
+  const [erroChave, setErroChave] = useState(false);
   const fimRef = useRef(null);
 
   useEffect(() => {
@@ -268,6 +259,9 @@ export default function AssistenteIA() {
   }, []);
 
   useEffect(() => {
+    if (!GEMINI_API_KEY) {
+      setErroChave(true);
+    }
     carregarDados();
   }, []);
 
@@ -303,7 +297,6 @@ export default function AssistenteIA() {
     }
 
     const diasLivres = proximosDias.filter(d => d.livre).map(d => d.data);
-
     const mesAtual = hoje.substring(0, 7);
     const agendamentosMes = agendamentos.filter(a => a.data?.startsWith(mesAtual));
 
@@ -315,16 +308,20 @@ export default function AssistenteIA() {
 
     return `
 Você é uma assistente virtual gentil e profissional para um app de agenda de estética.
-Responda sempre em português, de forma amigável e concisa.
+Responda SEMPRE em português brasileiro, de forma amigável, clara e direta.
+Pode responder qualquer pergunta da usuária, não apenas sobre a agenda.
+Se a pergunta for sobre a agenda, use os dados abaixo. Se for uma pergunta geral, responda normalmente.
 
-DADOS ATUAIS:
+DADOS DA AGENDA:
 - Data de hoje: ${hoje}
 - Agendamentos hoje: ${agendamentosHoje.length} cliente(s)
-${agendamentosHoje.map(a => `  • ${a.nome_cliente || a.cliente || 'Cliente'} às ${a.horario || a.hora || '?'} - ${a.procedimento || a.servico || 'Serviço'}`).join('\n')}
+${agendamentosHoje.length > 0
+  ? agendamentosHoje.map(a => `  • ${a.nome_cliente || a.cliente || 'Cliente'} às ${a.horario || a.hora || '?'} - ${a.procedimento || a.servico || 'Serviço'}`).join('\n')
+  : '  • Nenhum agendamento hoje'}
 - Dias livres nos próximos 7 dias: ${diasLivres.length > 0 ? diasLivres.join(', ') : 'Nenhum dia livre'}
 - Total de agendamentos este mês: ${agendamentosMes.length}
 - Estimativa de comissão do mês: R$ ${comissaoTotal.toFixed(2)}
-- Total de clientes cadastrados: ${agendamentos.length}
+- Total de registros cadastrados: ${agendamentos.length}
     `.trim();
   };
 
@@ -336,30 +333,56 @@ ${agendamentosHoje.map(a => `  • ${a.nome_cliente || a.cliente || 'Cliente'} �
     setMensagens(prev => [...prev, { tipo: 'usuario', texto: msg }]);
     setCarregando(true);
 
+    if (!GEMINI_API_KEY) {
+      setMensagens(prev => [...prev, {
+        tipo: 'ia',
+        texto: '⚠️ A chave da API (VITE_GEMINI_API_KEY) não está configurada no ficheiro .env. Adiciona-a para eu poder responder!'
+      }]);
+      setCarregando(false);
+      return;
+    }
+
     try {
       const contexto = construirContexto();
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: 'user',
-                parts: [{ text: `${contexto}\n\nPergunta da usuária: ${msg}` }]
-              }
-            ],
-            generationConfig: { maxOutputTokens: 400, temperature: 0.7 }
-          })
-        }
-      );
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: contexto }]
+          },
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: msg }]
+            }
+          ],
+          generationConfig: {
+            maxOutputTokens: 500,
+            temperature: 0.7
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const erroDetalhe = await response.json();
+        throw new Error(`Status ${response.status}: ${erroDetalhe?.error?.message || 'Erro desconhecido'}`);
+      }
 
       const data = await response.json();
-      const resposta = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Não consegui entender. Pode reformular?';
+      const resposta = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!resposta) throw new Error('Resposta vazia');
+
       setMensagens(prev => [...prev, { tipo: 'ia', texto: resposta }]);
-    } catch {
-      setMensagens(prev => [...prev, { tipo: 'ia', texto: 'Ops! Tive um problema ao responder. Tente novamente 💕' }]);
+
+    } catch (erro) {
+      setMensagens(prev => [...prev, {
+        tipo: 'ia',
+        texto: `Ops! Tive um problema ao responder. 💕\n\nDetalhe: ${erro.message}`
+      }]);
     } finally {
       setCarregando(false);
     }
@@ -376,11 +399,32 @@ ${agendamentosHoje.map(a => `  • ${a.nome_cliente || a.cliente || 'Cliente'} �
     <div className="assistente-wrapper">
       <div className="assistente-header">
         <div className="assistente-avatar">✨</div>
-        <div>
+        <div style={{ flex: 1 }}>
           <p className="assistente-titulo">Assistente IA</p>
           <p className="assistente-subtitulo">Sua agenda inteligente</p>
         </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '18px',
+              cursor: 'pointer',
+              color: '#a08060',
+              padding: '4px 8px'
+            }}
+          >
+            ✕
+          </button>
+        )}
       </div>
+
+      {erroChave && (
+        <div className="erro-chave">
+          ⚠️ <strong>VITE_GEMINI_API_KEY</strong> não encontrada no .env — a IA não vai funcionar sem ela.
+        </div>
+      )}
 
       <div className="assistente-chat">
         <div className="chat-mensagens">
@@ -389,7 +433,7 @@ ${agendamentosHoje.map(a => `  • ${a.nome_cliente || a.cliente || 'Cliente'} �
               <div className={`mensagem-icone ${m.tipo === 'ia' ? 'ia' : 'user'}`}>
                 {m.tipo === 'ia' ? '✨' : 'EU'}
               </div>
-              <div className="mensagem-balao">{m.texto}</div>
+              <div className="mensagem-balao" style={{ whiteSpace: 'pre-wrap' }}>{m.texto}</div>
             </div>
           ))}
           {carregando && (
@@ -424,7 +468,11 @@ ${agendamentosHoje.map(a => `  • ${a.nome_cliente || a.cliente || 'Cliente'} �
             placeholder="Pergunte sobre sua agenda..."
             disabled={carregando}
           />
-          <button className="chat-send-btn" onClick={() => enviarMensagem()} disabled={carregando || !input.trim()}>
+          <button
+            className="chat-send-btn"
+            onClick={() => enviarMensagem()}
+            disabled={carregando || !input.trim()}
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="22" y1="2" x2="11" y2="13" />
               <polygon points="22 2 15 22 11 13 2 9 22 2" />
@@ -435,3 +483,8 @@ ${agendamentosHoje.map(a => `  • ${a.nome_cliente || a.cliente || 'Cliente'} �
     </div>
   );
 }
+
+// ESTA É A LINHA QUE RESOLVE O ERRO DO ESLINT:
+AssistenteIA.propTypes = {
+  onClose: PropTypes.func,
+};
