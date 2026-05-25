@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabase';
-import AssistenteIA from './AssistenteIA';
 
 const NavbarLateral = () => {
   const navigate = useNavigate();
@@ -10,7 +9,6 @@ const NavbarLateral = () => {
 
   const [nomeNegocio, setNomeNegocio] = useState('Meu Négocio');
   const [aberto, setAberto] = useState(false);
-  const [iaAberta, setIaAberta] = useState(false);
 
   const idioma = localStorage.getItem('config_idioma') || 'Português (PT)';
 
@@ -18,17 +16,17 @@ const NavbarLateral = () => {
     'Português (PT)': {
       agenda: 'Agenda', procedimentos: 'Procedimentos',
       porcentagem: 'Porcentagem', relatorios: 'Relatórios e Ganhos',
-      configuracoes: 'Configurações', assistente: 'Assistente IA', sair: 'Sair'
+      configuracoes: 'Configurações', sair: 'Sair'
     },
     'English (US)': {
       agenda: 'Schedule', procedimentos: 'Procedures',
       porcentagem: 'Percentage', relatorios: 'Reports & Earnings',
-      configuracoes: 'Settings', assistente: 'AI Assistant', sair: 'Logout'
+      configuracoes: 'Settings', sair: 'Logout'
     },
     'Español (ES)': {
       agenda: 'Agenda', procedimentos: 'Procedimientos',
       porcentagem: 'Porcentaje', relatorios: 'Informes y Ganancias',
-      configuracoes: 'Configuraciones', assistente: 'Asistente IA', sair: 'Salir'
+      configuracoes: 'Configuraciones', sair: 'Salir'
     }
   }[idioma] || {};
 
@@ -89,24 +87,6 @@ const NavbarLateral = () => {
     width: '100%'
   });
 
-  const iaButtonStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '15px',
-    padding: '14px 18px',
-    borderRadius: '16px',
-    border: 'none',
-    background: iaAberta ? '#f0f0ff' : 'transparent',
-    color: iaAberta ? '#4f46e5' : '#64748b',
-    fontSize: '16px',
-    fontWeight: iaAberta ? '700' : '500',
-    textAlign: 'left',
-    cursor: 'pointer',
-    transition: '0.3s',
-    marginBottom: '8px',
-    width: '100%'
-  };
-
   return (
     <>
       {/* Botão Flutuante */}
@@ -146,11 +126,6 @@ const NavbarLateral = () => {
           <button style={navItemStyle('/relatorios')} onClick={() => irPara('/relatorios')}>
             <span style={{ fontSize: '20px' }}>📈</span> {textos.relatorios}
           </button>
-
-          {/* Botão Assistente IA */}
-          <button style={iaButtonStyle} onClick={() => { setIaAberta(!iaAberta); setAberto(false); }}>
-            <span style={{ fontSize: '20px' }}>🤖</span> {textos.assistente}
-          </button>
         </nav>
 
         <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
@@ -177,9 +152,6 @@ const NavbarLateral = () => {
           }}
         />
       )}
-
-      {/* Assistente IA renderizado aqui, controlado pelo estado iaAberta */}
-      {iaAberta && <AssistenteIA onClose={() => setIaAberta(false)} />}
     </>
   );
 };
