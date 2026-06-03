@@ -7,27 +7,27 @@ const Privacidade = () => {
   const sections = [
     {
       number: '01',
-      title: '1. Coleta de Dados',
-      content: 'O EstetiCalcHub coleta apenas as informações necessárias para a gestão da sua clínica, como e-mail e nome do negócio, fornecidos voluntariamente via cadastro direto ou Google Auth.'
+      title: '1. Recolha de Dados',
+      content: 'O EstetiCalcHub recolhe apenas as informações estritamente necessárias para a gestão do seu negócio, como e-mail e nome da clínica, fornecidos voluntariamente através do registo direto ou via Google Auth.'
     },
     {
       number: '02',
-      title: '2. Uso das Informações',
-      content: 'Seus dados e os dados de suas clientes são utilizados exclusivamente para o funcionamento da agenda e relatórios financeiros. Não compartilhamos dados com terceiros.'
+      title: '2. Utilização e Salvaguarda dos Dados',
+      content: 'Os seus dados e os dados de agendamentos introduzidos na plataforma são utilizados exclusivamente para o funcionamento da agenda e geração automática de relatórios financeiros. O EstetiCalcHub atua como mero processador destes dados e garante que não partilha, vende ou cede qualquer informação a terceiros.'
     },
     {
       number: '03',
       title: '3. Segurança (Google & Supabase)',
       content: (
         <>
-          Utilizamos a infraestrutura do <strong>Supabase</strong> e autenticação do <strong>Google</strong> para garantir que as senhas e informações sensíveis sejam criptografadas e protegidas contra acessos não autorizados.
+          Utilizamos a infraestrutura tecnológica do <strong>Supabase</strong> e a autenticação segura da <strong>Google</strong> para garantir que as credenciais e todas as informações sensíveis sejam encriptadas e protegidas contra acessos não autorizados.
         </>
       )
     },
     {
       number: '04',
-      title: '4. Seus Direitos',
-      content: 'A qualquer momento, o usuário pode solicitar a exclusão de sua conta e de todos os dados armazenados em nossa base através das configurações do sistema.'
+      title: '4. Os Seus Direitos (RGPD)',
+      content: 'Em conformidade com o RGPD, o utilizador tem total controlo sobre os seus dados. A qualquer momento, poderá solicitar ou realizar a eliminação definitiva da sua conta e de todos os registos associados através das definições do sistema. Para qualquer questão, contacte-nos em: suporte.esteticalchub@gmail.com'
     }
   ];
 

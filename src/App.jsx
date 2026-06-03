@@ -10,8 +10,9 @@ import Porcentagem from './pages/Porcentagem';
 import Config from './pages/Config'; 
 import Login from './pages/Login'; 
 import Privacidade from './pages/Privacidade';
-import ResetPassword from './pages/ResetPassword'; // ← NOVO
+import ResetPassword from './pages/ResetPassword'; 
 import NavbarLateral from './components/NavbarLateral';
+import Footer from './pages/Footer';
 
 export default function App() {
   const [agendamentos, setAgendamentos] = useState([]);
@@ -43,7 +44,6 @@ export default function App() {
     verificarSessao();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Quando o Supabase detecta recuperação de senha, NÃO faz login automático
       if (event === 'PASSWORD_RECOVERY') {
         setLogado(false);
         setCarregando(false);
@@ -77,7 +77,8 @@ export default function App() {
         <Routes>
           {/* ROTAS PÚBLICAS — acessíveis sem login */}
           <Route path="/privacidade" element={<Privacidade />} />
-          <Route path="/reset-password" element={<ResetPassword />} /> {/* ← NOVO */}
+          <Route path="/termos-de-uso" element={<Privacidade />} /> {/* ← ADICIONADO AQUI PARA NÃO DAR ERRO NO BUILD */}
+          <Route path="/reset-password" element={<ResetPassword />} /> 
 
           {/* LÓGICA DE LOGIN / APP */}
           <Route 
@@ -88,16 +89,20 @@ export default function App() {
               ) : (
                 <div className="site-wrapper" style={{ display: 'flex' }}>
                   <NavbarLateral />
-                  <main className="main-content" style={{ flex: 1 }}>
-                    <Routes>
-                      <Route path="/" element={<Agenda agendamentos={agendamentos} setAgendamentos={atualizarAgendamentos} />} />
-                      <Route path="/novo-agendamento" element={<NovoAgendamento setAgendamentos={atualizarAgendamentos} />} />
-                      <Route path="/relatorios" element={<Relatorios agendamentos={agendamentos} />} />
-                      <Route path="/procedimentos" element={<Procedimentos />} />
-                      <Route path="/porcentagem" element={<Porcentagem />} />
-                      <Route path="/configuracoes" element={<Config />} />
-                      <Route path="*" element={<Agenda agendamentos={agendamentos} setAgendamentos={atualizarAgendamentos} />} />
-                    </Routes>
+                  <main className="main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                    <div style={{ flex: 1 }}>
+                      <Routes>
+                        <Route path="/" element={<Agenda agendamentos={agendamentos} setAgendamentos={atualizarAgendamentos} />} />
+                        <Route path="/novo-agendamento" element={<NovoAgendamento setAgendamentos={atualizarAgendamentos} />} />
+                        <Route path="/relatorios" element={<Relatorios agendamentos={agendamentos} />} />
+                        <Route path="/procedimentos" element={<Procedimentos />} />
+                        <Route path="/porcentagem" element={<Porcentagem />} />
+                        <Route path="/configuracoes" element={<Config />} />
+                        <Route path="*" element={<Agenda agendamentos={agendamentos} setAgendamentos={atualizarAgendamentos} />} />
+                      </Routes>
+                    </div>
+                    
+                    <Footer /> 
                   </main>
                 </div>
               )
