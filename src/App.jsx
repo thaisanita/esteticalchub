@@ -10,6 +10,7 @@ import Porcentagem from './pages/Porcentagem';
 import Config from './pages/Config'; 
 import Login from './pages/Login'; 
 import Privacidade from './pages/Privacidade';
+import Termos from './pages/Termos'; // 1. IMPORTA O TEU NOVO FICHEIRO DE TERMOS AQUI
 import ResetPassword from './pages/ResetPassword'; 
 import NavbarLateral from './components/NavbarLateral';
 import Footer from './pages/Footer';
@@ -77,7 +78,10 @@ export default function App() {
         <Routes>
           {/* ROTAS PÚBLICAS — acessíveis sem login */}
           <Route path="/privacidade" element={<Privacidade />} />
-          <Route path="/termos-de-uso" element={<Privacidade />} /> {/* ← ADICIONADO AQUI PARA NÃO DAR ERRO NO BUILD */}
+          
+          {/* 2. ALTERADO AQUI: Agora aponta para o componente <Termos /> */}
+          <Route path="/termos-de-uso" element={<Termos />} /> 
+          
           <Route path="/reset-password" element={<ResetPassword />} /> 
 
           {/* LÓGICA DE LOGIN / APP */}

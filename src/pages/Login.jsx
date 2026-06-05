@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase'; 
+import Footer from './Footer'; // Garantindo a importação do rodapé novo
 
 const EyeIcon = ({ visible }) => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -23,7 +23,6 @@ const EyeIcon = ({ visible }) => (
 EyeIcon.propTypes = { visible: PropTypes.bool.isRequired };
 
 const Login = ({ onLogin }) => {
-  const navigate = useNavigate();
   const [isRegistro, setIsRegistro] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
@@ -357,7 +356,7 @@ const Login = ({ onLogin }) => {
             <em style={{ color: '#6c5ce7', fontStyle: 'italic' }}>Clínica de Estética.</em>
           </h1>
           <p style={styles.heroSub}>
-            Organize agendamentos, clientes e finanças em um só lugar. 
+            Organize agendamentos, clients e finanças em um só lugar. 
             Acesse de onde estiver com total segurança.
           </p>
           <div style={{ marginTop: '36px' }}>
@@ -373,7 +372,6 @@ const Login = ({ onLogin }) => {
 
         {/* Card */}
         <section style={styles.loginCard} className="login-card">
-
           {isForgotPassword ? (
             <>
               <span className="card-badge">Recuperar Acesso</span>
@@ -485,22 +483,8 @@ const Login = ({ onLogin }) => {
         </section>
       </div>
 
-      {/* Footer */}
-      <footer style={styles.footer}>
-        <div style={styles.footerLinks}>
-          <span
-            onClick={() => navigate('/privacidade')}
-            style={{ cursor: 'pointer', color: '#6c5ce7', fontWeight: '600' }}
-          >
-            Política de Privacidade
-          </span>
-          {' • '}
-          <span style={{ cursor: 'pointer' }}>Termos</span>
-          {' • '}
-          <span style={{ cursor: 'pointer' }}>Suporte</span>
-        </div>
-        <p>© 2026 EstetiCalcHub — Sistema de Gestão Profissional</p>
-      </footer>
+      {/* O componente de Rodapé Reutilizável */}
+      <Footer />
     </div>
   );
 };
@@ -606,20 +590,5 @@ const styles = {
     border: '1px solid #b2dfdb',
     fontFamily: "'DM Sans', sans-serif",
     lineHeight: '1.6',
-  },
-  footer: {
-    textAlign: 'center',
-    padding: '28px',
-    color: '#b2bec3',
-    fontSize: '12px',
-    fontFamily: "'DM Sans', sans-serif",
-    borderTop: '1px solid #ede8ff',
-  },
-  footerLinks: {
-    marginBottom: '8px',
-    display: 'flex',
-    gap: '12px',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  }
 };
