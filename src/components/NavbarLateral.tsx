@@ -15,6 +15,7 @@ import {
   ChevronDown,
   CalendarDays,
   CalendarPlus,
+  Target,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ interface Textos {
   porcentagem: string;
   relatorios: string;
   custos: string;
+  custosFixos: string;
   configuracoes: string;
   sair: string;
 }
@@ -47,17 +49,17 @@ const TEXTOS_POR_IDIOMA: Record<string, Textos> = {
   'Português (PT)': {
     agenda: 'Agenda', procedimentos: 'Procedimentos',
     porcentagem: 'Porcentagem', relatorios: 'Relatórios e Ganhos',
-    custos: 'Custos e Estoque', configuracoes: 'Configurações', sair: 'Sair',
+    custos: 'Custos e Estoque', custosFixos: 'Custos Fixos', configuracoes: 'Configurações', sair: 'Sair',
   },
   'English (US)': {
     agenda: 'Schedule', procedimentos: 'Procedures',
     porcentagem: 'Percentage', relatorios: 'Reports & Earnings',
-    custos: 'Costs & Inventory', configuracoes: 'Settings', sair: 'Logout',
+    custos: 'Costs & Inventory', custosFixos: 'Fixed Costs', configuracoes: 'Settings', sair: 'Logout',
   },
   'Español (ES)': {
     agenda: 'Agenda', procedimentos: 'Procedimientos',
     porcentagem: 'Porcentaje', relatorios: 'Informes y Ganancias',
-    custos: 'Costos y Inventario', configuracoes: 'Configuración', sair: 'Salir',
+    custos: 'Costos y Inventario', custosFixos: 'Costos Fijos', configuracoes: 'Configuración', sair: 'Salir',
   },
 };
 
@@ -122,6 +124,7 @@ const NavbarLateral = () => {
     { rota: '/porcentagem', texto: textos.porcentagem, Icone: Wallet },
     { rota: '/relatorios', texto: textos.relatorios, Icone: TrendingUp },
     { rota: '/custos', texto: textos.custos, Icone: Receipt },
+    { rota: '/custos-fixos', texto: textos.custosFixos, Icone: Target },
   ];
 
   const itemClasses = (isAtivo: boolean) =>
