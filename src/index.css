@@ -1,18 +1,44 @@
-/* Container que centraliza e afasta das bordas */
-.agenda-page-container {
-  width: 95% !important;
-  max-width: 600px !important; /* Limita o tamanho para ser compacto */
-  margin: 0 auto !important;   /* Centraliza no meio da tela */
-  padding-top: 80px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 20px !important;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* Garante que o título também centralize */
-.agenda-titulo-central {
-  text-align: center !important;
-  width: 100% !important;
-  margin-bottom: 20px !important;
-  font-family: 'Inter', sans-serif;
+@layer base {
+  :root {
+    /* Fundo geral da página: Cinza Grafite Médio */
+    --background: 222 16% 20%;         /* #2A2F3D - Meio termo equilibrado */
+    --foreground: 210 20% 98%;         /* Texto claro para contraste perfeito */
+
+    /* Sidebar */
+    --sidebar: 222 18% 16%;            /* #212530 - Um tom levemente mais denso */
+    
+    /* Cards, Calendário e Caixas */
+    --card: 222 16% 25%;               /* #343A4B - Card destacado e suave */
+    --card-foreground: 210 20% 98%;
+    
+    /* Bordas e neutros */
+    --border: 222 12% 32%;             /* Linhas sutis */
+    --muted: 222 14% 28%;
+    --muted-foreground: 215 15% 75%;
+
+    /* Destaques (Roxo) */
+    --primary: 262 83% 68%;            /* Roxo vibrante acentuado */
+    --primary-hover: 262 83% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Status */
+    --success: 160 84% 39%;
+    --warning: 38 92% 50%;
+    --danger: 0 84% 60%;
+    --ring: 262 83% 68%;
+    --radius: 1rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body, #root, main, [class*="min-h-screen"] {
+    background-color: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+  }
 }
