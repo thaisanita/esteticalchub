@@ -52,6 +52,7 @@ export default function Clientes() {
     Record<string, { primeiraVisita: string | null; ultimaVisita: string | null; procedimentos: string[] }>
   >({});
   const [busca, setBusca] = useState('');
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [importando, setImportando] = useState(false);
 
@@ -190,6 +191,37 @@ export default function Clientes() {
     if (!error) carregarDados();
   };
 
+  const alternarSelecao = (id: string) => {
+    setSelecionadas((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
+      return novo;
+    });
+  };
+
+  const alternarSelecaoTodas = () => {
+    if (selecionadas.size === clientesCompletas.length) {
+      setSelecionadas(new Set());
+    } else {
+      setSelecionadas(new Set(clientesCompletas.map((c) => c.id)));
+    }
+  };
+
+  const handleExcluirSelecionadas = async () => {
+    const quantidade = selecionadas.size;
+    if (quantidade === 0) return;
+    if (!window.confirm(`Excluir ${quantidade} cliente${quantidade > 1 ? 's' : ''} selecionada${quantidade > 1 ? 's' : ''}? O histórico de agendamentos delas não é apagado.`)) return;
+
+    const { error } = await supabase.from('clientes').delete().in('id', Array.from(selecionadas));
+    if (!error) {
+      setSelecionadas(new Set());
+      carregarDados();
+    } else {
+      alert('Erro ao excluir clientes: ' + getErrorMessage(error));
+    }
+  };
+
   const importarClientesExistentes = async () => {
     setImportando(true);
     try {
@@ -286,14 +318,22 @@ export default function Clientes() {
       )}
 
       {/* Busca */}
-      <div className="relative max-w-sm">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Procurar cliente pelo nome..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          className="pl-9"
-        />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Procurar cliente pelo nome..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        {selecionadas.size > 0 && (
+          <Button variant="outline" onClick={handleExcluirSelecionadas} className="gap-1.5 border-rose-500/30 text-rose-500 hover:bg-rose-500/10">
+            <Trash2 size={14} />
+            Excluir {selecionadas.size} selecionada{selecionadas.size > 1 ? 's' : ''}
+          </Button>
+        )}
       </div>
 
       {/* Tabela */}
@@ -306,6 +346,14 @@ export default function Clientes() {
           <table className="w-full min-w-[900px] border-collapse text-sm">
             <thead>
               <tr className="bg-gradient-to-r from-primary to-primary-hover text-primary-foreground">
+                <th className="px-4 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={clientesCompletas.length > 0 && selecionadas.size === clientesCompletas.length}
+                    onChange={alternarSelecaoTodas}
+                    className="h-4 w-4 accent-white"
+                  />
+                </th>
                 <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider">Nome</th>
                 <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider">Telefone</th>
                 <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider">1º Atendimento</th>
@@ -336,6 +384,14 @@ export default function Clientes() {
                     key={c.id}
                     className={i % 2 === 0 ? 'bg-card' : 'bg-background/40'}
                   >
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selecionadas.has(c.id)}
+                        onChange={() => alternarSelecao(c.id)}
+                        className="h-4 w-4 accent-primary"
+                      />
+                    </td>
                     <td className="px-4 py-3 font-semibold text-foreground whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
