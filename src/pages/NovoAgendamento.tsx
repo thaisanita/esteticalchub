@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabase';
-import { getErrorMessage } from '@/lib/utils';
+import { getErrorMessage, parseMoeda } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -207,7 +207,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
         return;
       }
 
-      const valorFormatado = parseFloat(preco.replace(',', '.')) || 0;
+      const valorFormatado = parseMoeda(preco);
 
       // Resolve a cliente: usa a selecionada, ou encontra por nome igual, ou cria uma nova.
       // Assim, mesmo digitando o nome à mão, o agendamento fica sempre ligado por ID.

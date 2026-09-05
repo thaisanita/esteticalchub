@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { parseMoeda } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -122,7 +123,7 @@ export default function CustosFixos() {
       {
         nome: nome.trim(),
         categoria,
-        valor_mensal: parseFloat(valorMensal.replace(',', '.')) || 0,
+        valor_mensal: parseMoeda(valorMensal),
       },
     ]);
 

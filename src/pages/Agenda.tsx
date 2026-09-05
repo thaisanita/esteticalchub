@@ -38,11 +38,44 @@ const Agenda = () => {
   const [dataSelecionada, setDataSelecionada] = useState<string>(getLocalDateString());
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(false);
-  const [metaAtendimentos, setMetaAtendimentos] = useState<number>(() => {
-    return Number(localStorage.getItem('meta_atendimentos_mes')) || 30;
-  });
+  const [metaAtendimentos, setMetaAtendimentos] = useState<number>(30);
 
   const navigate = useNavigate();
+
+  const hoje = new Date();
+  const anoAtual = hoje.getFullYear();
+  const mesAtual = hoje.getMonth() + 1; // 1 a 12
+
+  const carregarMeta = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('metas_mensais')
+      .select('meta')
+      .eq('usuario_id', user.id)
+      .eq('ano', anoAtual)
+      .eq('mes', mesAtual)
+      .maybeSingle();
+
+    if (data) {
+      setMetaAtendimentos(data.meta);
+    } else {
+      // Ainda não existe meta para este mês — cria já com o valor padrão,
+      // para este mês ficar registado desde o início (e não só quando editado).
+      const { data: novaMeta } = await supabase
+        .from('metas_mensais')
+        .insert([{ ano: anoAtual, mes: mesAtual, meta: 30 }])
+        .select('meta')
+        .single();
+      if (novaMeta) setMetaAtendimentos(novaMeta.meta);
+    }
+  }, [anoAtual, mesAtual]);
+
+  useEffect(() => {
+    carregarMeta();
+  }, [carregarMeta]);
+
 
   const carregarAgendamentos = useCallback(async () => {
     setLoading(true);
@@ -177,10 +210,18 @@ const Agenda = () => {
     navigate(`/novo-agendamento?edit=${agendamento.id}`);
   };
 
-  const handleMetaChange = (valor: number) => {
+  const handleMetaChange = async (valor: number) => {
     const novaMeta = valor > 0 ? valor : 1;
     setMetaAtendimentos(novaMeta);
-    localStorage.setItem('meta_atendimentos_mes', String(novaMeta));
+
+    const { error } = await supabase
+      .from('metas_mensais')
+      .upsert(
+        { ano: anoAtual, mes: mesAtual, meta: novaMeta },
+        { onConflict: 'usuario_id,ano,mes' }
+      );
+
+    if (error) console.error('Erro ao salvar meta do mês:', error.message);
   };
 
   const manipularSelecaoDia = (data: string) => {
@@ -205,7 +246,9 @@ const Agenda = () => {
   }, [agendamentos, metaAtendimentos]);
 
   const agendamentosDoDia = useMemo(() => {
-    return agendamentos.filter((ag) => ag.data === dataSelecionada);
+    return agendamentos
+      .filter((ag) => ag.data === dataSelecionada)
+      .sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
   }, [agendamentos, dataSelecionada]);
 
   return (

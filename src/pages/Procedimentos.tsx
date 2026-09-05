@@ -52,7 +52,8 @@ const Procedimentos = () => {
     if (error) {
       console.error('Erro ao buscar atendimentos:', error.message);
     } else {
-      setAgendamentos(data || []);
+      const ordenados = [...(data || [])].sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+      setAgendamentos(ordenados);
     }
     setLoading(false);
   }, [dataSelecionada]);
