@@ -14,6 +14,7 @@ import Porcentagem from './pages/Porcentagem';
 import Relatorios from './pages/Relatorios';
 import Custos from './pages/Custos';
 import Clientes from './pages/Clientes';
+import Prontuario from './pages/Prontuario';
 import Pagamentos from './pages/Pagamentos';
 import Config from './pages/Config';
 import AuthCallback from './pages/AuthCallback';
@@ -127,6 +128,7 @@ export default function App() {
           <Route path="/relatorios" element={<Relatorios />} />
           <Route path="/custos" element={<Custos />} />
           <Route path="/clientes" element={<Clientes />} />
+          <Route path="/prontuario/:clienteId" element={<Prontuario />} />
           <Route path="/pagamentos" element={<Pagamentos />} />
           <Route path="/configuracoes" element={<Config />} />
           <Route path="/config" element={<Navigate to="/configuracoes" replace />} />

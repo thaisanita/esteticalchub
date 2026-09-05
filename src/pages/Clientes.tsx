@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,7 @@ import {
   Trash2,
   Pencil,
   RefreshCw,
+  FileHeart,
   X,
 } from 'lucide-react';
 
@@ -44,6 +46,7 @@ function formatarDataCurta(dataISO: string | null): string {
 }
 
 export default function Clientes() {
+  const navigate = useNavigate();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [historicoPorCliente, setHistoricoPorCliente] = useState<
     Record<string, { primeiraVisita: string | null; ultimaVisita: string | null; procedimentos: string[] }>
@@ -357,6 +360,9 @@ export default function Clientes() {
                       {c.notas || '—'}
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <button onClick={() => navigate(`/prontuario/${c.id}`)} title="Prontuário" className="text-muted-foreground hover:text-primary transition-colors mr-3">
+                        <FileHeart size={15} />
+                      </button>
                       <button onClick={() => handleEditar(c)} title="Editar" className="text-muted-foreground hover:text-primary transition-colors mr-3">
                         <Pencil size={15} />
                       </button>
