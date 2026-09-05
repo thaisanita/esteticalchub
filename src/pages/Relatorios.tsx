@@ -9,15 +9,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Printer, Trash2, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { parseMoeda } from '@/lib/utils';
+import { Printer, Trash2, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, FileText, Banknote, CreditCard, Smartphone, Landmark } from 'lucide-react';
+import { parseMoeda, cn } from '@/lib/utils';
 
 interface AgendamentoRel {
+  id?: string | number;
+  cliente?: string;
+  procedimento?: string;
   data?: string;
   ponto_atendimento?: string;
   pontoAtendimento?: string;
   valor?: number | string;
   preco?: number | string;
+  pago?: boolean;
+  forma_pagamento?: string | null;
 }
 
 interface Fechamento {
@@ -31,14 +36,48 @@ interface Fechamento {
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 const Relatorios = () => {
+  const [abaRelatorio, setAbaRelatorio] = useState<'anual' | 'mensal'>('mensal');
   const [agendamentos, setAgendamentos] = useState<AgendamentoRel[]>([]);
   const [fechamentos, setFechamentos] = useState<Fechamento[]>([]);
   const [filtroLocal, setFiltroLocal] = useState('TODOS');
   const [loading, setLoading] = useState(true);
 
+  const hoje = new Date();
+  const [mesRelatorio, setMesRelatorio] = useState(String(hoje.getMonth() + 1).padStart(2, '0'));
+  const [anoRelatorio, setAnoRelatorio] = useState(String(hoje.getFullYear()));
+  const [custosFixosMes, setCustosFixosMes] = useState(0);
+  const [custosVariaveisMes, setCustosVariaveisMes] = useState(0);
+
   useEffect(() => {
     fetchDados();
   }, []);
+
+  useEffect(() => {
+    const buscarDespesasDoMes = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const prefixo = `${anoRelatorio}-${mesRelatorio}`;
+
+      const { data: fixos } = await supabase
+        .from('custos_fixos')
+        .select('valor_mensal, ativo')
+        .eq('usuario_id', user.id);
+      const totalFixos = (fixos || [])
+        .filter((c) => c.ativo)
+        .reduce((acc, c) => acc + parseMoeda(c.valor_mensal), 0);
+      setCustosFixosMes(totalFixos);
+
+      const { data: variaveis } = await supabase
+        .from('se_custos')
+        .select('valor, data_vencimento, data_pagamento')
+        .eq('usuario_id', user.id);
+      const totalVariaveis = (variaveis || [])
+        .filter((c) => (c.data_vencimento || c.data_pagamento || '').startsWith(prefixo))
+        .reduce((acc, c) => acc + parseMoeda(c.valor), 0);
+      setCustosVariaveisMes(totalVariaveis);
+    };
+    buscarDespesasDoMes();
+  }, [mesRelatorio, anoRelatorio]);
 
   const fetchDados = async () => {
     setLoading(true);
@@ -131,6 +170,36 @@ const Relatorios = () => {
     return { chartData, brutoTotalAno, lucroRealAcumulado, brutoTotalFechado, variacao };
   }, [agendamentos, fechamentos, filtroLocal]);
 
+  const relatorioMensal = useMemo(() => {
+    const prefixo = `${anoRelatorio}-${mesRelatorio}`;
+    const atendimentos = agendamentos
+      .filter((ag) => {
+        if (!ag.data || !ag.data.startsWith(prefixo)) return false;
+        const localAg = ag.ponto_atendimento || ag.pontoAtendimento;
+        return filtroLocal === 'TODOS' || localAg === filtroLocal;
+      })
+      .sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+
+    const totalFaturado = atendimentos.reduce((acc, ag) => acc + parseMoeda(ag.valor ?? ag.preco ?? 0), 0);
+
+    const porForma: Record<string, number> = { dinheiro: 0, cartao: 0, mbway: 0, transferencia: 0, nao_registado: 0 };
+    atendimentos.forEach((ag) => {
+      const valor = parseMoeda(ag.valor ?? ag.preco ?? 0);
+      const chave = ag.pago && ag.forma_pagamento ? ag.forma_pagamento : 'nao_registado';
+      porForma[chave] = (porForma[chave] || 0) + valor;
+    });
+
+    const totalDespesas = custosFixosMes + custosVariaveisMes;
+
+    return {
+      atendimentos,
+      totalFaturado,
+      porForma,
+      totalDespesas,
+      lucroEstimado: totalFaturado - totalDespesas,
+    };
+  }, [agendamentos, filtroLocal, mesRelatorio, anoRelatorio, custosFixosMes, custosVariaveisMes]);
+
   if (loading) {
     return (
       <div className="flex justify-center py-16 text-sm text-muted-foreground">Carregando...</div>
@@ -148,12 +217,166 @@ const Relatorios = () => {
     <div>
       <style>{`
         @media print {
-          body * { visibility: hidden; }
-          .secao-impressao, .secao-impressao * { visibility: visible; }
           .no-print { display: none !important; }
         }
       `}</style>
 
+      {/* Seletor de abas */}
+      <div className="no-print mb-6 flex gap-2 border-b border-border">
+        <button
+          onClick={() => setAbaRelatorio('mensal')}
+          className={cn(
+            'flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors',
+            abaRelatorio === 'mensal'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          )}
+        >
+          <FileText size={15} /> Relatório Mensal
+        </button>
+        <button
+          onClick={() => setAbaRelatorio('anual')}
+          className={cn(
+            'flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors',
+            abaRelatorio === 'anual'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          )}
+        >
+          <TrendingUp size={15} /> Dashboard Anual
+        </button>
+      </div>
+
+      {abaRelatorio === 'mensal' && (
+        <div>
+          <div className="no-print mb-6 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="font-display relative pb-3.5 text-[32px] font-semibold text-foreground">
+                Relatório Mensal
+              </h2>
+              <div className="-mt-3 h-0.5 w-14 bg-gradient-to-r from-primary to-primary-hover" />
+            </div>
+            <div className="flex gap-2.5">
+              <Select value={mesRelatorio} onValueChange={setMesRelatorio}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MESES.map((m, i) => (
+                    <SelectItem key={m} value={String(i + 1).padStart(2, '0')}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={anoRelatorio} onValueChange={setAnoRelatorio}>
+                <SelectTrigger className="w-[90px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2025">2025</SelectItem>
+                  <SelectItem value="2026">2026</SelectItem>
+                  <SelectItem value="2027">2027</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button onClick={() => window.print()} variant="outline" className="gap-2">
+                <Printer size={14} />
+                Imprimir
+              </Button>
+            </div>
+          </div>
+
+          <div className="print:block">
+            <h3 className="hidden font-display text-2xl font-bold text-foreground print:block print:mb-4">
+              Relatório de {MESES[parseInt(mesRelatorio, 10) - 1]} de {anoRelatorio}
+            </h3>
+
+            {/* Cartões-resumo */}
+            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/20 print:border print:shadow-none">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Faturado</p>
+                <p className="font-display text-xl font-bold text-foreground">€ {relatorioMensal.totalFaturado.toFixed(2)}</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/20 print:border print:shadow-none">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Despesas</p>
+                <p className="font-display text-xl font-bold text-foreground">€ {relatorioMensal.totalDespesas.toFixed(2)}</p>
+              </div>
+              <div className="rounded-2xl border border-success/25 bg-success/5 p-5 print:border print:shadow-none">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-success">Lucro Estimado</p>
+                <p className="font-display text-xl font-bold text-success">€ {relatorioMensal.lucroEstimado.toFixed(2)}</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/20 print:border print:shadow-none">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Atendimentos</p>
+                <p className="font-display text-xl font-bold text-foreground">{relatorioMensal.atendimentos.length}</p>
+              </div>
+            </div>
+
+            {/* Formas de pagamento */}
+            <div className="mb-6 rounded-2xl border border-border bg-card p-6 shadow-lg shadow-black/20 print:border print:shadow-none">
+              <h3 className="mb-4 text-sm font-bold text-foreground">Recebido por Forma de Pagamento</h3>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                {[
+                  { chave: 'dinheiro', label: 'Dinheiro', Icone: Banknote },
+                  { chave: 'cartao', label: 'Cartão', Icone: CreditCard },
+                  { chave: 'mbway', label: 'MBWay', Icone: Smartphone },
+                  { chave: 'transferencia', label: 'Transferência', Icone: Landmark },
+                  { chave: 'nao_registado', label: 'Não registado', Icone: FileText },
+                ].map(({ chave, label, Icone }) => (
+                  <div key={chave} className="rounded-xl border border-border p-3 text-center">
+                    <Icone size={16} className="mx-auto mb-1.5 text-primary" />
+                    <p className="text-[10px] text-muted-foreground">{label}</p>
+                    <p className="text-sm font-bold text-foreground">€ {(relatorioMensal.porForma[chave] || 0).toFixed(2)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Ficha de atendimentos do mês — pronta para registar nas Finanças */}
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-lg shadow-black/20 print:border print:shadow-none">
+              <h3 className="mb-4 text-sm font-bold text-foreground">
+                Atendimentos de {MESES[parseInt(mesRelatorio, 10) - 1]}
+              </h3>
+              <div className="max-h-[400px] overflow-y-auto rounded-xl border border-border print:max-h-none print:overflow-visible">
+                <table className="w-full border-collapse text-[13px]">
+                  <thead className="sticky top-0 bg-card print:static">
+                    <tr className="border-b border-border text-left">
+                      <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Data</th>
+                      <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Cliente</th>
+                      <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Procedimento</th>
+                      <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pagamento</th>
+                      <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {relatorioMensal.atendimentos.map((ag, i) => (
+                      <tr key={ag.id ?? i} className="border-b border-border last:border-none">
+                        <td className="px-4 py-3 text-foreground">{ag.data}</td>
+                        <td className="px-4 py-3 text-foreground">{ag.cliente || '—'}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{ag.procedimento || '—'}</td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {ag.pago && ag.forma_pagamento
+                            ? { dinheiro: 'Dinheiro', cartao: 'Cartão', mbway: 'MBWay', transferencia: 'Transferência' }[ag.forma_pagamento] || ag.forma_pagamento
+                            : 'Não registado'}
+                        </td>
+                        <td className="px-4 py-3 text-right font-semibold text-foreground">
+                          € {parseMoeda(ag.valor ?? ag.preco ?? 0).toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                    {relatorioMensal.atendimentos.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-10 text-center text-xs text-muted-foreground">
+                          Nenhum atendimento neste mês.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {abaRelatorio === 'anual' && (
       <div className="no-print">
         {/* Header */}
         <div className="mb-7 flex flex-wrap items-end justify-between gap-3">
@@ -181,7 +404,6 @@ const Relatorios = () => {
               Imprimir
             </Button>
           </div>
-        </div>
 
         {/* KPI Cards */}
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -364,6 +586,8 @@ const Relatorios = () => {
           </table>
         </div>
       </div>
+      </div>
+      )}
     </div>
   );
 };

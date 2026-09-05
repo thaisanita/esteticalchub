@@ -23,6 +23,7 @@ interface Agendamento {
 
 interface CalendarProps {
   onDaySelect: (data: string) => void;
+  onMonthChange?: (data: Date) => void;
   agendamentos?: Agendamento[];
 }
 
@@ -34,7 +35,7 @@ const getLocalDateString = (date = new Date()) => {
   return `${ano}-${mes}-${dia}`;
 };
 
-const Calendar = ({ onDaySelect, agendamentos = [] }: CalendarProps) => {
+const Calendar = ({ onDaySelect, onMonthChange, agendamentos = [] }: CalendarProps) => {
   const navigate = useNavigate();
   const todayStr = useMemo(() => getLocalDateString(), []);
   
@@ -43,10 +44,16 @@ const Calendar = ({ onDaySelect, agendamentos = [] }: CalendarProps) => {
   const [filtroLocal, setFiltroLocal] = useState('Todos');
   const [porcentagem, setPorcentagem] = useState(0);
 
-  const handlePrevMonth = () =>
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  const handleNextMonth = () =>
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  const handlePrevMonth = () => {
+    const novaData = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    setCurrentDate(novaData);
+    onMonthChange?.(novaData);
+  };
+  const handleNextMonth = () => {
+    const novaData = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+    setCurrentDate(novaData);
+    onMonthChange?.(novaData);
+  };
 
   const locaisDisponiveis = useMemo(() => {
     const pontos = agendamentos

@@ -42,9 +42,9 @@ const Agenda = () => {
 
   const navigate = useNavigate();
 
-  const hoje = new Date();
-  const anoAtual = hoje.getFullYear();
-  const mesAtual = hoje.getMonth() + 1; // 1 a 12
+  const [mesExibido, setMesExibido] = useState<Date>(new Date());
+  const anoAtual = mesExibido.getFullYear();
+  const mesAtual = mesExibido.getMonth() + 1; // 1 a 12
 
   const carregarMeta = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -229,9 +229,7 @@ const Agenda = () => {
   };
 
   const estatisticasMes = useMemo(() => {
-    const hoje = new Date();
-    const anoAtual = hoje.getFullYear();
-    const mesAtualStr = String(hoje.getMonth() + 1).padStart(2, '0');
+    const mesAtualStr = String(mesAtual).padStart(2, '0');
     const prefixoMesAtual = `${anoAtual}-${mesAtualStr}`;
 
     const atendimentosDoMes = agendamentos.filter((ag) => {
@@ -243,7 +241,7 @@ const Agenda = () => {
     const porcentagem = Math.min(Math.round((realizados / metaAtendimentos) * 100), 100);
 
     return { realizados, porcentagem };
-  }, [agendamentos, metaAtendimentos]);
+  }, [agendamentos, metaAtendimentos, anoAtual, mesAtual]);
 
   const agendamentosDoDia = useMemo(() => {
     return agendamentos
@@ -284,7 +282,7 @@ const Agenda = () => {
 
       {/* Coluna Esquerda: Calendário */}
       <div className="rounded-2xl border border-border bg-card p-7 shadow-lg shadow-black/20">
-        <Calendar onDaySelect={manipularSelecaoDia} agendamentos={agendamentos} />
+        <Calendar onDaySelect={manipularSelecaoDia} onMonthChange={setMesExibido} agendamentos={agendamentos} />
       </div>
 
       {/* Coluna Direita: Lista de Agendamentos */}
@@ -308,7 +306,9 @@ const Agenda = () => {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-foreground">Meta de Atendimentos</h3>
-                <p className="text-[11px] text-muted-foreground">Progresso do mês atual</p>
+                <p className="text-[11px] text-muted-foreground capitalize">
+                  {mesExibido.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
+                </p>
               </div>
             </div>
 
