@@ -4,21 +4,21 @@
 
 @layer base {
   :root {
-    /* Fundo geral da página: Cinza Grafite Médio */
-    --background: 222 16% 20%;         /* #2A2F3D - Meio termo equilibrado */
+    /* Fundo geral da página: cinza-arroxeado, mais claro e menos "preto" */
+    --background: 258 20% 24%;         /* Antes 222 16% 20% (mais escuro e neutro) */
     --foreground: 210 20% 98%;         /* Texto claro para contraste perfeito */
 
     /* Sidebar */
-    --sidebar: 222 18% 16%;            /* #212530 - Um tom levemente mais denso */
-    
+    --sidebar: 258 22% 18%;            /* Levemente mais densa que o fundo */
+
     /* Cards, Calendário e Caixas */
-    --card: 222 16% 25%;               /* #343A4B - Card destacado e suave */
+    --card: 258 20% 30%;               /* Mais claro e destacado do fundo, tom arroxeado */
     --card-foreground: 210 20% 98%;
-    
+
     /* Bordas e neutros */
-    --border: 222 12% 32%;             /* Linhas sutis */
-    --muted: 222 14% 28%;
-    --muted-foreground: 215 15% 75%;
+    --border: 258 15% 39%;             /* Linhas sutis, mais visíveis no fundo mais claro */
+    --muted: 258 16% 34%;
+    --muted-foreground: 250 12% 80%;
 
     /* Destaques (Roxo) */
     --primary: 262 83% 68%;            /* Roxo vibrante acentuado */
