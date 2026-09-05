@@ -34,6 +34,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   const idParaEditar = searchParams.get('edit');
 
   const [cliente, setCliente] = useState('');
+  const [clienteId, setClienteId] = useState<string | null>(null);
   const [telefoneCliente, setTelefoneCliente] = useState('');
   const [emailCliente, setEmailCliente] = useState('');
   const [procedimento, setProcedimento] = useState('');
@@ -52,6 +53,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   const [sugestoesCliente, setSugestoesCliente] = useState<string[]>([]);
   const [sugestoesProcedimento, setSugestoesProcedimento] = useState<string[]>([]);
   const [sugestoesPonto, setSugestoesPonto] = useState<string[]>([]);
+  const [clientesDb, setClientesDb] = useState<{ id: string; nome: string; telefone: string | null; email: string | null }[]>([]);
 
   // Atualiza a hora de fim automaticamente ao alterar o início
   const handleHoraInicioChange = (novaHoraInicio: string) => {
@@ -67,7 +69,27 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     setSugestoesCliente(JSON.parse(localStorage.getItem('hist_clientes') || '[]'));
     setSugestoesProcedimento(JSON.parse(localStorage.getItem('hist_procedimentos') || '[]'));
     setSugestoesPonto(JSON.parse(localStorage.getItem('hist_pontos') || '[]'));
+
+    supabase
+      .from('clientes')
+      .select('id, nome, telefone, email')
+      .order('nome', { ascending: true })
+      .then(({ data }) => setClientesDb(data || []));
   }, []);
+
+  // Sugestões de clientes reais (tabela clientes), com fallback para o histórico local
+  // enquanto a lista de clientes ainda está vazia (ex: antes da primeira importação).
+  const sugestoesClienteFiltradas = cliente.trim()
+    ? clientesDb.filter((c) => c.nome.toLowerCase().includes(cliente.trim().toLowerCase())).slice(0, 5)
+    : [];
+
+  const selecionarClienteExistente = (c: { id: string; nome: string; telefone: string | null; email: string | null }) => {
+    setCliente(c.nome);
+    setClienteId(c.id);
+    if (c.telefone) setTelefoneCliente(c.telefone);
+    if (c.email) setEmailCliente(c.email);
+  };
+
 
   const salvarHistorico = (chave: string, valor: string) => {
     if (!valor.trim()) return;
@@ -88,6 +110,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
 
           if (data && !error) {
             setCliente(data.cliente || '');
+            setClienteId(data.cliente_id || null);
             setTelefoneCliente(data.telefone_cliente || '');
             setEmailCliente(data.email_cliente || '');
             setProcedimento(data.procedimento || '');
@@ -186,8 +209,35 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
 
       const valorFormatado = parseFloat(preco.replace(',', '.')) || 0;
 
+      // Resolve a cliente: usa a selecionada, ou encontra por nome igual, ou cria uma nova.
+      // Assim, mesmo digitando o nome à mão, o agendamento fica sempre ligado por ID.
+      let clienteIdFinal = clienteId;
+      if (!clienteIdFinal && cliente.trim()) {
+        const { data: existente } = await supabase
+          .from('clientes')
+          .select('id')
+          .ilike('nome', cliente.trim())
+          .maybeSingle();
+
+        if (existente) {
+          clienteIdFinal = existente.id;
+        } else {
+          const { data: novaCliente, error: erroNovaCliente } = await supabase
+            .from('clientes')
+            .insert([{
+              nome: cliente.trim(),
+              telefone: telefoneCliente.trim() || null,
+              email: emailCliente.trim() || null,
+            }])
+            .select('id')
+            .single();
+          if (!erroNovaCliente) clienteIdFinal = novaCliente.id;
+        }
+      }
+
       const dadosParaEnviar = {
         cliente: cliente.trim(),
+        cliente_id: clienteIdFinal,
         telefone_cliente: telefoneCliente.trim(),
         email_cliente: emailCliente.trim(),
         procedimento: procedimento.trim(),
@@ -323,11 +373,29 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
               type="text"
               required
               value={cliente}
-              onChange={(e) => setCliente(e.target.value)}
+              onChange={(e) => {
+                setCliente(e.target.value);
+                setClienteId(null);
+              }}
               placeholder="Digite o nome completo"
               className="h-10 bg-background/50 border-border"
             />
-            {sugestoesCliente.length > 0 && !cliente && (
+            {sugestoesClienteFiltradas.length > 0 && !clienteId && (
+              <div className="flex flex-col gap-1 mt-1.5 rounded-lg border border-border bg-card overflow-hidden">
+                {sugestoesClienteFiltradas.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => selecionarClienteExistente(c)}
+                    className="flex items-center justify-between px-3 py-2 text-left text-[13px] hover:bg-primary/5 transition-colors"
+                  >
+                    <span className="text-foreground font-medium">{c.nome}</span>
+                    {c.telefone && <span className="text-[11px] text-muted-foreground">{c.telefone}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+            {sugestoesClienteFiltradas.length === 0 && sugestoesCliente.length > 0 && !cliente && (
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {sugestoesCliente.map((item, idx) => (
                   <button

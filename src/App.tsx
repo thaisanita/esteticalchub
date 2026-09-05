@@ -12,6 +12,7 @@ import Porcentagem from './pages/Porcentagem';
 import Relatorios from './pages/Relatorios';
 import CustosEstoque from './pages/CustosEstoque';
 import CustosFixos from './pages/CustosFixos';
+import Clientes from './pages/Clientes';
 import Pagamentos from './pages/Pagamentos';
 import Config from './pages/Config';
 import AuthCallback from './pages/AuthCallback';
@@ -104,6 +105,7 @@ export default function App() {
           <Route path="/relatorios" element={<Relatorios />} />
           <Route path="/custos" element={<CustosEstoque />} />
           <Route path="/custos-fixos" element={<CustosFixos />} />
+          <Route path="/clientes" element={<Clientes />} />
           <Route path="/pagamentos" element={<Pagamentos />} />
           <Route path="/configuracoes" element={<Config />} />
           <Route path="/config" element={<Navigate to="/configuracoes" replace />} />

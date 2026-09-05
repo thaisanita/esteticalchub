@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Euro, PiggyBank, Trophy, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ const getLocalDateString = (date = new Date()) => {
 };
 
 const Calendar = ({ onDaySelect, agendamentos = [] }: CalendarProps) => {
+  const navigate = useNavigate();
   const todayStr = useMemo(() => getLocalDateString(), []);
   
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -78,21 +80,6 @@ const Calendar = ({ onDaySelect, agendamentos = [] }: CalendarProps) => {
 
     return { bruto, liquido };
   }, [agendamentos, currentDate, filtroLocal, porcentagem]);
-
-  const top5 = useMemo(() => {
-    const contagem: Record<string, { nome: string; visitas: number }> = {};
-    agendamentos.forEach((ag) => {
-      const nome = ag.cliente;
-      if (!nome) return;
-      if (!contagem[nome]) contagem[nome] = { nome, visitas: 0 };
-      contagem[nome].visitas += 1;
-    });
-
-    return Object.values(contagem)
-      .filter((c) => c.visitas >= 4)
-      .sort((a, b) => b.visitas - a.visitas)
-      .slice(0, 5);
-  }, [agendamentos]);
 
   const formatarNomeCurto = (nome: string) => {
     if (!nome) return '';
@@ -261,30 +248,14 @@ const Calendar = ({ onDaySelect, agendamentos = [] }: CalendarProps) => {
         {renderDays()}
       </div>
 
-      {/* Ranking */}
-      {top5.length > 0 && (
-        <div className="mt-4 rounded-xl border border-border p-4">
-          <details>
-            <summary className="flex cursor-pointer items-center gap-1.5 text-[12px] font-bold uppercase tracking-wide text-muted-foreground">
-              <Trophy size={14} className="text-amber-500" />
-              Clientes que mais marcam
-            </summary>
-            <div className="mt-3 flex flex-col gap-2">
-              {top5.map((c, i) => (
-                <div
-                  key={i}
-                  className="flex justify-between border-b border-border py-2 text-[13px]"
-                >
-                  <span className="text-foreground">
-                    {i + 1}º {c.nome}
-                  </span>
-                  <span className="tabular-nums text-primary">{c.visitas} atendimentos</span>
-                </div>
-              ))}
-            </div>
-          </details>
-        </div>
-      )}
+      {/* Atalho para a página de Clientes (substituiu o ranking escondido que existia aqui) */}
+      <button
+        onClick={() => navigate('/clientes')}
+        className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-border p-3 text-[12px] font-bold uppercase tracking-wide text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
+      >
+        <Trophy size={14} className="text-amber-500" />
+        Ver clientes que mais marcam
+      </button>
     </div>
   );
 };

@@ -19,6 +19,7 @@ export interface TextosNavbar {
   relatorios: string;
   custos: string;
   custosFixos: string;
+  clientes: string;
   configuracoes: string;
   sair: string;
 }
@@ -27,17 +28,17 @@ export const textosNavbar: Record<Idioma, TextosNavbar> = {
   'Português (PT)': {
     agenda: 'Agenda', procedimentos: 'Procedimentos',
     porcentagem: 'Porcentagem', relatorios: 'Relatórios e Ganhos',
-    custos: 'Custos e Estoque', custosFixos: 'Custos Fixos', configuracoes: 'Configurações', sair: 'Sair',
+    custos: 'Custos e Estoque', custosFixos: 'Custos Fixos', clientes: 'Clientes', configuracoes: 'Configurações', sair: 'Sair',
   },
   'English (US)': {
     agenda: 'Schedule', procedimentos: 'Procedures',
     porcentagem: 'Percentage', relatorios: 'Reports & Earnings',
-    custos: 'Costs & Inventory', custosFixos: 'Fixed Costs', configuracoes: 'Settings', sair: 'Logout',
+    custos: 'Costs & Inventory', custosFixos: 'Fixed Costs', clientes: 'Clients', configuracoes: 'Settings', sair: 'Logout',
   },
   'Español (ES)': {
     agenda: 'Agenda', procedimentos: 'Procedimientos',
     porcentagem: 'Porcentaje', relatorios: 'Informes y Ganancias',
-    custos: 'Costos y Inventario', custosFixos: 'Costos Fijos', configuracoes: 'Configuración', sair: 'Salir',
+    custos: 'Costos y Inventario', custosFixos: 'Costos Fijos', clientes: 'Clientes', configuracoes: 'Configuración', sair: 'Salir',
   },
 };
 
