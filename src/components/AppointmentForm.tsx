@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Sparkles, Bell } from 'lucide-react';
+import { getErrorMessage } from '@/lib/utils';
 
 interface Procedure {
   id: string | number;
@@ -74,8 +75,8 @@ const AppointmentForm = ({ initialDate }: AppointmentFormProps) => {
 
         if (error) throw error;
         setProcedures(data || []);
-      } catch (error: any) {
-        console.error('Erro ao carregar lista de procedimentos:', error.message);
+      } catch (error) {
+        console.error('Erro ao carregar lista de procedimentos:', getErrorMessage(error));
       }
     };
 
@@ -180,8 +181,8 @@ const AppointmentForm = ({ initialDate }: AppointmentFormProps) => {
     try {
       await saveAppointment(dataToSave);
       navigate('/agenda');
-    } catch (error: any) {
-      alert(`Erro ao salvar: ${error.message}`);
+    } catch (error) {
+      alert(`Erro ao salvar: ${getErrorMessage(error)}`);
       setFormData((prev) => ({ ...prev, loading: false }));
     }
   };

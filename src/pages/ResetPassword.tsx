@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { getErrorMessage } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -71,8 +72,8 @@ const ResetPassword = () => {
 
       setMensagem('Senha redefinida com sucesso! Redirecionando...');
       setTimeout(() => navigate('/'), 2500);
-    } catch (err: any) {
-      setErro('Erro ao redefinir: ' + err.message);
+    } catch (err) {
+      setErro('Erro ao redefinir: ' + getErrorMessage(err));
     } finally {
       setCarregando(false);
     }

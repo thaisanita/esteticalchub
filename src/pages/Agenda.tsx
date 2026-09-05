@@ -4,8 +4,16 @@ import { Plus, Target, CheckCircle2, RefreshCw } from 'lucide-react';
 import Calendar from '../components/Calendar';
 import ListaAgendamentos from '../components/ListaAgendamentos';
 import { supabase } from '../supabase';
+import { getErrorMessage } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+
+interface GoogleCalendarEvent {
+  id: string;
+  summary?: string;
+  description?: string;
+  start?: { dateTime?: string; date?: string };
+}
 
 interface Agendamento {
   id?: string | number;
@@ -84,7 +92,7 @@ const Agenda = () => {
 
           if (res.ok) {
             const googleData = await res.json();
-            const eventosGoogle: Agendamento[] = (googleData.items || []).map((evt: any) => {
+            const eventosGoogle: Agendamento[] = (googleData.items || []).map((evt: GoogleCalendarEvent) => {
               const dataInicio = evt.start?.dateTime || evt.start?.date || '';
               const dataFormatada = dataInicio.split('T')[0];
               const horaFormatada = evt.start?.dateTime
@@ -154,8 +162,8 @@ const Agenda = () => {
 
       // Remove localmente sem precisar dar F5
       setAgendamentos((prev) => prev.filter((ag) => ag.id !== id));
-    } catch (err: any) {
-      alert(`Erro ao excluir: ${err.message}`);
+    } catch (err) {
+      alert(`Erro ao excluir: ${getErrorMessage(err)}`);
     }
   };
 

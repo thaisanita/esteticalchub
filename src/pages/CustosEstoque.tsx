@@ -169,7 +169,7 @@ export default function CustosEstoque() {
       } else {
         alert('Erro ao salvar despesa: ' + error.message);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
     } finally {
       setSalvando(false);

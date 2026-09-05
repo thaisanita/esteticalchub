@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { getErrorMessage } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -20,7 +21,7 @@ import {
 } from 'lucide-react';
 
 interface NovoAgendamentoProps {
-  setAgendamentos?: (novosDados: any[]) => void;
+  setAgendamentos?: (novosDados: unknown[]) => void;
 }
 
 const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
@@ -157,21 +158,15 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
           .eq('status', 'pendente');
       }
 
-      console.log('🔔 Tentando agendar notificações na fila:', notificacoes);
-
       const { data: resultFila, error } = await supabase
         .from('fila_notificacoes')
         .insert(notificacoes)
         .select();
 
       if (error) {
-        console.error('❌ Erro ao agendar notificações:', error.message);
+        console.error('Erro ao agendar notificações:', error.message);
         alert(`Erro ao agendar notificação: ${error.message}`);
-      } else {
-        console.log('✅ Lembretes agendados com sucesso na fila_notificacoes!', resultFila);
       }
-    } else {
-      console.warn('⚠️ Nenhuma notificação agendada. Verifique se as opções de lembrete estão marcadas e se a data selecionada é futura.');
     }
   };
 
@@ -214,7 +209,6 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
           .eq('id', idParaEditar);
 
         if (error) throw error;
-        console.log('✅ Agendamento atualizado com sucesso:', agendamentoId);
       } else {
         const { data, error } = await supabase
           .from('agendamentos')
@@ -224,7 +218,6 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
 
         if (error) throw error;
         agendamentoId = data.id;
-        console.log('✅ Novo agendamento criado com sucesso ID:', agendamentoId);
       }
 
       if (agendamentoId) {
@@ -237,9 +230,9 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
       
       // Redireciona de volta para a lista de procedimentos na data do agendamento
       navigate(`/procedimentos?date=${dataAgendamento}`);
-    } catch (err: any) {
-      console.error('❌ Erro ao salvar agendamento:', err);
-      alert(`Erro ao salvar agendamento: ${err.message || 'Tente novamente.'}`);
+    } catch (err) {
+      console.error('Erro ao salvar agendamento:', err);
+      alert(`Erro ao salvar agendamento: ${getErrorMessage(err)}`);
     } finally {
       setSalvando(false);
     }

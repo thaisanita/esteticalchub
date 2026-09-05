@@ -23,6 +23,8 @@ import {
   Loader2,
   Save
 } from 'lucide-react';
+import { textosConfig, obterIdiomaAtual, type Idioma } from '@/lib/i18n';
+import { getErrorMessage } from '@/lib/utils';
 
 interface Usuario {
   email: string;
@@ -30,112 +32,11 @@ interface Usuario {
   photoURL?: string;
 }
 
-interface TextosConfig {
-  titulo: string;
-  subtitulo: string;
-  perfilStatus: string;
-  idiomaLabel: string;
-  idiomaSub: string;
-  whatsappLabel: string;
-  whatsappSub: string;
-  whatsappInputLabel: string;
-  whatsappPlaceholder: string;
-  statusConectado: string;
-  statusDesconectado: string;
-  statusConectadoSub: string;
-  statusDesconectadoSub: string;
-  btnSalvarNumero: string;
-  compartilhar: string;
-  compartilharSub: string;
-  agendaLabel: string;
-  agendaSub: string;
-  btnAgenda: string;
-  btnSalvar: string;
-  btnVoltar: string;
-  alerta: string;
-}
-
-const textosPorIdioma: Record<string, TextosConfig> = {
-  'Português (PT)': {
-    titulo: 'Configurações',
-    subtitulo: 'Personalize a sua experiência',
-    perfilStatus: 'Conectado',
-    idiomaLabel: 'Idioma',
-    idiomaSub: 'Selecione sua região',
-    whatsappLabel: 'WhatsApp de Envio de Mensagens',
-    whatsappSub: 'Cadastre o seu número para enviar os lembretes e confirmações automáticos',
-    whatsappInputLabel: 'Seu WhatsApp (com DDI e DDD)',
-    whatsappPlaceholder: '+351 912 345 678 ou +55 11 99999-9999',
-    statusConectado: 'WhatsApp Configurado',
-    statusDesconectado: 'Número não configurado',
-    statusConectadoSub: 'Seu número está pronto para enviar notificações para os clientes.',
-    statusDesconectadoSub: 'Insira e salve o seu número de WhatsApp abaixo.',
-    btnSalvarNumero: 'Salvar Número',
-    compartilhar: 'Compartilhar Link',
-    compartilharSub: 'Copiar URL do aplicativo',
-    agendaLabel: 'Sincronização de Agenda',
-    agendaSub: 'Conectar com Google Calendar / TimeTree',
-    btnAgenda: 'Conectar Google',
-    btnSalvar: 'Salvar Alterações',
-    btnVoltar: 'Voltar para Agenda',
-    alerta: 'Configurações salvas com sucesso!',
-  },
-  'English (US)': {
-    titulo: 'Settings',
-    subtitulo: 'Customize your experience',
-    perfilStatus: 'Connected',
-    idiomaLabel: 'Language',
-    idiomaSub: 'Select your region',
-    whatsappLabel: 'WhatsApp Messaging Number',
-    whatsappSub: 'Register your number to send automatic reminders and confirmations',
-    whatsappInputLabel: 'Your WhatsApp (with country and area code)',
-    whatsappPlaceholder: '+1 123 456 7890',
-    statusConectado: 'WhatsApp Configured',
-    statusDesconectado: 'Number not configured',
-    statusConectadoSub: 'Your number is ready to send notifications to clients.',
-    statusDesconectadoSub: 'Enter and save your WhatsApp number below.',
-    btnSalvarNumero: 'Save Number',
-    compartilhar: 'Share Link',
-    compartilharSub: 'Copy app URL',
-    agendaLabel: 'Calendar Sync',
-    agendaSub: 'Connect with Google Calendar / TimeTree',
-    btnAgenda: 'Connect Google',
-    btnSalvar: 'Save Changes',
-    btnVoltar: 'Back to Schedule',
-    alerta: 'Settings saved successfully!',
-  },
-  'Español (ES)': {
-    titulo: 'Configuraciones',
-    subtitulo: 'Personalice su experiencia',
-    perfilStatus: 'Conectado',
-    idiomaLabel: 'Idioma',
-    idiomaSub: 'Seleccione su región',
-    whatsappLabel: 'WhatsApp de Envío de Mensajes',
-    whatsappSub: 'Registre su número para enviar recordatorios y confirmaciones automáticas',
-    whatsappInputLabel: 'Su WhatsApp (con código de país y área)',
-    whatsappPlaceholder: '+34 612 345 678',
-    statusConectado: 'WhatsApp Configurado',
-    statusDesconectado: 'Número no configurado',
-    statusConectadoSub: 'Su número está listo para enviar notificaciones a los clientes.',
-    statusDesconectadoSub: 'Ingrese y guarde su número de WhatsApp a continuación.',
-    btnSalvarNumero: 'Guardar Número',
-    compartilhar: 'Compartir Enlace',
-    compartilharSub: 'Copiar URL de la aplicación',
-    agendaLabel: 'Sincronización de Agenda',
-    agendaSub: 'Conectar con Google Calendar / TimeTree',
-    btnAgenda: 'Conectar Google',
-    btnSalvar: 'Guardar Cambios',
-    btnVoltar: 'Volver a la Agenda',
-    alerta: '¡Configuraciones guardadas con éxito!',
-  },
-};
 
 export default function Config() {
   const navigate = useNavigate();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [idioma, setIdioma] = useState(
-    localStorage.getItem('config_idioma') || 'Português (PT)'
-  );
+  const [idioma, setIdioma] = useState<Idioma>(obterIdiomaAtual());
   const [googleConectado, setGoogleConectado] = useState(false);
 
   // Estados do WhatsApp
@@ -182,7 +83,7 @@ export default function Config() {
     carregarDadosUsuario();
   }, []);
 
-  const t = textosPorIdioma[idioma] || textosPorIdioma['Português (PT)'];
+  const t = textosConfig[idioma] || textosConfig['Português (PT)'];
 
   const conectarGoogleCalendar = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -228,8 +129,8 @@ export default function Config() {
 
       setWhatsappStatus('conectado');
       alert('Número salvo com sucesso!');
-    } catch (err: any) {
-      alert(`Erro ao salvar número: ${err.message || 'Erro desconhecido'}`);
+    } catch (err) {
+      alert(`Erro ao salvar número: ${getErrorMessage(err)}`);
     } finally {
       setSalvandoTelefone(false);
     }
@@ -353,7 +254,7 @@ export default function Config() {
             <div className="mt-0.5 text-xs text-muted-foreground">{t.idiomaSub}</div>
           </div>
         </div>
-        <Select value={idioma} onValueChange={setIdioma}>
+        <Select value={idioma} onValueChange={(valor) => setIdioma(valor as Idioma)}>
           <SelectTrigger className="w-[160px]">
             <SelectValue />
           </SelectTrigger>

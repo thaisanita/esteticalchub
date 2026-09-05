@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { getErrorMessage } from '@/lib/utils';
 import Footer from './Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -159,9 +160,9 @@ onLogin(true);
 
 }
 
-} catch (err: any) {
+} catch (err) {
 
-setErro(err.message);
+setErro(getErrorMessage(err));
 
 } finally {
 
@@ -197,9 +198,9 @@ if (error) throw error;
 
 setMensagem(`Email de redefinição enviado para ${email}.\nVerifique sua caixa de entrada e spam.`);
 
-} catch (err: any) {
+} catch (err) {
 
-setErro('Erro ao enviar email: ' + err.message);
+setErro('Erro ao enviar email: ' + getErrorMessage(err));
 
 } finally {
 
@@ -243,9 +244,9 @@ if (error) throw error;
 
 setMensagem('Email de confirmação reenviado! Verifique seu spam ou promoções.');
 
-} catch (err: any) {
+} catch (err) {
 
-setErro('Erro ao reenviar o email: ' + err.message);
+setErro('Erro ao reenviar o email: ' + getErrorMessage(err));
 
 } finally {
 

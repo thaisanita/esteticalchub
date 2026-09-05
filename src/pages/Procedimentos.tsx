@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
+import { textosProcedimentos, obterIdiomaAtual } from '@/lib/i18n';
 import { 
   Clock, 
   User, 
@@ -29,30 +30,6 @@ interface Atendimento {
   pontoAtendimento?: string;
 }
 
-const textosPorIdioma: Record<string, any> = {
-  'Português (PT)': {
-    titulo: 'Atendimentos do Dia', encontrado: 'agendamento', encontrados: 'agendamentos',
-    vazio: 'Nenhum agendamento para esta data.', faltou: 'Falta', editar: 'Editar', total: 'Total Faturado no Dia',
-    btnVoltar: 'Voltar à Agenda', btnNovo: 'Novo Agendamento',
-    confFalta: 'Confirmar falta? O valor deste atendimento será zerado.',
-    confExcluir: 'Tem certeza que deseja excluir este atendimento?', formatoData: 'pt-PT', selecione: 'Selecione uma data',
-  },
-  'English (US)': {
-    titulo: 'Appointments of the Day', encontrado: 'appointment', encontrados: 'appointments',
-    vazio: 'No appointments scheduled for this day.', faltou: 'No-show', editar: 'Edit', total: 'Total Daily Revenue',
-    btnVoltar: 'Back to Schedule', btnNovo: 'New Appointment',
-    confFalta: 'Mark as no-show? The amount for this service will be zeroed.',
-    confExcluir: 'Are you sure you want to delete this appointment?', formatoData: 'en-US', selecione: 'Select a date',
-  },
-  'Español (ES)': {
-    titulo: 'Citas del Día', encontrado: 'cita', encontrados: 'citas',
-    vazio: 'No hay citas para este día.', faltou: 'Faltó', editar: 'Editar', total: 'Total Realizado del Día',
-    btnVoltar: 'Volver a la Agenda', btnNovo: 'Nueva Cita',
-    confFalta: '¿Marcar como falta? El valor se ajustará a cero.',
-    confExcluir: '¿Está seguro de que desea eliminar esta cita?', formatoData: 'es-ES', selecione: 'Seleccione un día',
-  },
-};
-
 const Procedimentos = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -60,8 +37,8 @@ const Procedimentos = () => {
   const [loading, setLoading] = useState(true);
 
   const dataSelecionada = searchParams.get('date') || new Date().toISOString().split('T')[0];
-  const idioma = localStorage.getItem('config_idioma') || 'Português (PT)';
-  const textos = textosPorIdioma[idioma] || textosPorIdioma['Português (PT)'];
+  const idioma = obterIdiomaAtual();
+  const textos = textosProcedimentos[idioma] || textosProcedimentos['Português (PT)'];
 
   const buscarAtendimentos = useCallback(async () => {
     if (!dataSelecionada) return;

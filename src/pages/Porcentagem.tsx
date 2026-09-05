@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { cn, getErrorMessage } from '@/lib/utils';
 import {
   Calculator,
   CheckCircle2,
@@ -178,8 +178,8 @@ const Porcentagem = () => {
 
       setDiasJaSalvos((prev) => [...new Set([...prev, dataParaFechamento])]);
       setPontoSelecionado('');
-    } catch (error: any) {
-      alert('Erro ao salvar: ' + error.message);
+    } catch (error) {
+      alert('Erro ao salvar: ' + getErrorMessage(error));
     } finally {
       setLoading(false);
     }
