@@ -477,7 +477,7 @@ const Relatorios = () => {
               <p className="text-[11px] text-muted-foreground">Faturamento por mês, ano atual</p>
             </div>
           </div>
-          <div className="w-full" style={{ height: 240, minHeight: 240 }}>
+          <div className="w-full" style={{ height: 380, minHeight: 380 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={resumoDados.chartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
                 <defs>

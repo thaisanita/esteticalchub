@@ -57,6 +57,20 @@ const Porcentagem = () => {
   const [agendamentos, setAgendamentos] = useState<AgendamentoPorc[]>([]);
   const [pontoSelecionado, setPontoSelecionado] = useState('');
   const [taxaEspaco, setTaxaEspaco] = useState(25);
+
+  // Lembra a última taxa usada para cada espaço, para não escrever sempre à mão
+  useEffect(() => {
+    if (!pontoSelecionado) return;
+    const guardada = localStorage.getItem(`taxa_espaco_${pontoSelecionado}`);
+    if (guardada) setTaxaEspaco(Number(guardada));
+  }, [pontoSelecionado]);
+
+  const handleTaxaChange = (valor: number) => {
+    setTaxaEspaco(valor);
+    if (pontoSelecionado) {
+      localStorage.setItem(`taxa_espaco_${pontoSelecionado}`, String(valor));
+    }
+  };
   const [loading, setLoading] = useState(false);
   const [diasDisponiveis, setDiasDisponiveis] = useState<string[]>([]);
   const [diasJaSalvos, setDiasJaSalvos] = useState<string[]>([]);
@@ -205,10 +219,10 @@ const Porcentagem = () => {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground">
-            Fechamento de Repasse
+            Comissão por Espaço
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Calcule o rateio e consolide o seu lucro por espaço trabalhado
+            Divide o faturamento do dia entre o espaço parceiro e o teu lucro
           </p>
         </div>
 
@@ -351,12 +365,12 @@ const Porcentagem = () => {
         <div className="max-w-[140px] space-y-1.5">
           <label className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             <Percent size={13} className="text-primary" />
-            Taxa Espaço (%)
+            Comissão do Espaço (%)
           </label>
           <Input
             type="number"
             value={taxaEspaco}
-            onChange={(e) => setTaxaEspaco(Number(e.target.value))}
+            onChange={(e) => handleTaxaChange(Number(e.target.value))}
             className="h-10 border-border bg-background/50 text-center font-semibold"
           />
         </div>
@@ -394,15 +408,15 @@ const Porcentagem = () => {
         {/* Comissão Espaço */}
         <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/10">
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-danger">
+            <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Comissão Espaço
             </span>
-            <span className="rounded-full bg-danger/10 px-2 py-0.5 text-[11px] font-semibold text-danger">
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
               {taxaEspaco}%
             </span>
           </div>
           <div className="mt-4">
-            <div className="font-display text-2xl font-bold tabular-nums text-danger">
+            <div className="font-display text-2xl font-bold tabular-nums text-foreground">
               € {valorParaEspaco}
             </div>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -431,28 +445,6 @@ const Porcentagem = () => {
           </div>
         </div>
       </div>
-
-      {/* Indicador Proporcional */}
-      {totalBrutoLocal > 0 && (
-        <div className="space-y-3 rounded-2xl border border-border bg-card p-5">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Distribuição do faturamento</span>
-            <span className="font-medium text-foreground">
-              {taxaEspaco}% Espaço / {100 - taxaEspaco}% Seu
-            </span>
-          </div>
-          <div className="flex h-2 w-full overflow-hidden rounded-full border border-border bg-background">
-            <div
-              className="h-full bg-danger transition-all duration-300"
-              style={{ width: `${taxaEspaco}%` }}
-            />
-            <div
-              className="h-full bg-gradient-to-r from-primary to-primary-hover transition-all duration-300"
-              style={{ width: `${100 - taxaEspaco}%` }}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Botão de Ação */}
       <Button
