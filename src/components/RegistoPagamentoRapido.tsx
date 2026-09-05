@@ -7,9 +7,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { getErrorMessage, parseMoeda, cn } from '@/lib/utils';
-import { Banknote, CreditCard, Smartphone, Landmark, Check } from 'lucide-react';
+import { Banknote, CreditCard, Smartphone, Landmark, Check, Package } from 'lucide-react';
 
 export interface AgendamentoParaPagar {
   id: string | number;
@@ -41,6 +48,9 @@ export default function RegistoPagamentoRapido({ open, onOpenChange, onSuccess, 
   const [preco, setPreco] = useState('');
   const [formaPagamento, setFormaPagamento] = useState<string>('dinheiro');
   const [salvando, setSalvando] = useState(false);
+  const [produtos, setProdutos] = useState<{ id: string; nome: string; unidade_medida: string; quantidade_restante: number; quantidade_total: number }[]>([]);
+  const [produtoUsadoId, setProdutoUsadoId] = useState('');
+  const [quantidadeUsada, setQuantidadeUsada] = useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -52,6 +62,8 @@ export default function RegistoPagamentoRapido({ open, onOpenChange, onSuccess, 
       setPreco('');
     }
     setFormaPagamento('dinheiro');
+    setProdutoUsadoId('');
+    setQuantidadeUsada('');
 
     if (modoNovo) {
       supabase
@@ -59,6 +71,13 @@ export default function RegistoPagamentoRapido({ open, onOpenChange, onSuccess, 
         .select('id, nome')
         .order('nome', { ascending: true })
         .then(({ data }) => setClientesDb(data || []));
+    } else {
+      supabase
+        .from('produtos')
+        .select('id, nome, unidade_medida, quantidade_restante, quantidade_total')
+        .is('esgotado_em', null)
+        .order('nome', { ascending: true })
+        .then(({ data }) => setProdutos(data || []));
     }
   }, [open, agendamento, modoNovo]);
 
@@ -91,6 +110,30 @@ export default function RegistoPagamentoRapido({ open, onOpenChange, onSuccess, 
           })
           .eq('id', agendamento.id);
         if (error) throw error;
+
+        // Se foi indicado um produto usado, desconta do estoque
+        if (produtoUsadoId && quantidadeUsada) {
+          const qtdUsada = parseMoeda(quantidadeUsada);
+          const produto = produtos.find((p) => p.id === produtoUsadoId);
+
+          if (produto && qtdUsada > 0) {
+            const restante = Math.max(0, produto.quantidade_restante - qtdUsada);
+
+            await supabase.from('produto_usos').insert([{
+              produto_id: produtoUsadoId,
+              agendamento_id: agendamento.id,
+              quantidade_usada: qtdUsada,
+            }]);
+
+            await supabase
+              .from('produtos')
+              .update({
+                quantidade_restante: restante,
+                esgotado_em: restante <= 0 ? new Date().toISOString() : null,
+              })
+              .eq('id', produtoUsadoId);
+          }
+        }
       } else {
         // Modo: novo registo rápido (ex: cliente sem agendamento prévio)
         const agora = new Date();
@@ -195,6 +238,33 @@ export default function RegistoPagamentoRapido({ open, onOpenChange, onSuccess, 
               className="text-lg font-bold text-emerald-500"
             />
           </div>
+
+          {!modoNovo && produtos.length > 0 && (
+            <div className="space-y-1.5 rounded-xl border border-border p-3">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Package size={13} className="text-primary" /> Produto usado (opcional)
+              </label>
+              <Select value={produtoUsadoId} onValueChange={setProdutoUsadoId}>
+                <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                <SelectContent>
+                  {produtos.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nome} ({p.quantidade_restante}{p.unidade_medida} restantes)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {produtoUsadoId && (
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  value={quantidadeUsada}
+                  onChange={(e) => setQuantidadeUsada(e.target.value)}
+                  placeholder={`Quantidade usada (${produtos.find((p) => p.id === produtoUsadoId)?.unidade_medida || ''})`}
+                />
+              )}
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">

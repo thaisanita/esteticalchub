@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Target, Boxes } from 'lucide-react';
+import { Target, Boxes, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import CustosFixos from './CustosFixos';
 import CustosEstoque from './CustosEstoque';
+import Produtos from './Produtos';
 
-type Aba = 'fixos' | 'variaveis';
+type Aba = 'fixos' | 'variaveis' | 'produtos';
 
 export default function Custos() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const abaInicial: Aba = searchParams.get('aba') === 'variaveis' ? 'variaveis' : 'fixos';
+  const abaInicial: Aba = searchParams.get('aba') === 'variaveis' ? 'variaveis' : searchParams.get('aba') === 'produtos' ? 'produtos' : 'fixos';
   const [aba, setAba] = useState<Aba>(abaInicial);
 
   const mudarAba = (novaAba: Aba) => {
@@ -50,9 +51,20 @@ export default function Custos() {
         >
           <Boxes size={15} /> Variáveis e Estoque
         </button>
+        <button
+          onClick={() => mudarAba('produtos')}
+          className={cn(
+            'flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors',
+            aba === 'produtos'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          )}
+        >
+          <Package size={15} /> Produtos
+        </button>
       </div>
 
-      {aba === 'fixos' ? <CustosFixos /> : <CustosEstoque />}
+      {aba === 'fixos' ? <CustosFixos /> : aba === 'variaveis' ? <CustosEstoque /> : <Produtos />}
     </div>
   );
 }
