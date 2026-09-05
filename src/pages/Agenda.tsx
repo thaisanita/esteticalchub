@@ -295,6 +295,7 @@ const Agenda = () => {
             loading={loading}
             onDelete={handleDeletarAgendamento}
             onEdit={handleEditarAgendamento}
+            onPago={carregarAgendamentos}
           />
         </div>
 

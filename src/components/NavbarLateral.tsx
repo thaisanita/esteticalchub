@@ -16,6 +16,7 @@ import {
   CalendarDays,
   CalendarPlus,
   Users,
+  HandCoins,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -97,6 +98,7 @@ const NavbarLateral = () => {
     { rota: '/relatorios', texto: textos.relatorios, Icone: TrendingUp },
     { rota: '/custos', texto: textos.custos, Icone: Receipt },
     { rota: '/clientes', texto: textos.clientes, Icone: Users },
+    { rota: '/pagamentos', texto: textos.pagamentos, Icone: HandCoins },
   ];
 
   const itemClasses = (isAtivo: boolean) =>

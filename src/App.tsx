@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { Euro } from 'lucide-react';
 import { supabase } from './supabase';
+import RegistoPagamentoRapido from './components/RegistoPagamentoRapido';
 
 // Imports das páginas reais dentro da pasta src/pages
 import LandingPage from './pages/Landingpage';
@@ -39,12 +41,29 @@ function RotaLogin({
 
 // Layout que envolve todas as páginas privadas com o menu lateral
 function LayoutPrivado() {
+  const [pagamentoRapidoAberto, setPagamentoRapidoAberto] = useState(false);
+
   return (
     <div className="flex min-h-screen bg-background overflow-x-hidden">
       <NavbarLateral />
       <main className="min-w-0 flex-1 p-6 sm:p-8 md:ml-[260px]">
         <Outlet />
       </main>
+
+      {/* Botão flutuante: registar pagamento rápido de qualquer página */}
+      <button
+        onClick={() => setPagamentoRapidoAberto(true)}
+        title="Registar pagamento rápido"
+        className="fixed bottom-6 right-6 z-[900] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-hover text-primary-foreground shadow-lg shadow-primary/40 transition-transform hover:scale-105 active:scale-95"
+      >
+        <Euro size={22} />
+      </button>
+
+      <RegistoPagamentoRapido
+        open={pagamentoRapidoAberto}
+        onOpenChange={setPagamentoRapidoAberto}
+        onSuccess={() => setPagamentoRapidoAberto(false)}
+      />
     </div>
   );
 }

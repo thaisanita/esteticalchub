@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
-import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { parseMoeda } from '@/lib/utils';
+import RegistoPagamentoRapido, { type AgendamentoParaPagar } from './RegistoPagamentoRapido';
 
 interface Appointment {
   id?: string | number;
@@ -17,6 +18,7 @@ interface Appointment {
   procedure?: string;
   telefone?: string;
   origem?: 'supabase' | 'google';
+  pago?: boolean;
 }
 
 interface ListaAgendamentosProps {
@@ -24,6 +26,7 @@ interface ListaAgendamentosProps {
   loading: boolean;
   onDelete?: (id: string | number, origem?: string) => void;
   onEdit?: (appt: Appointment) => void;
+  onPago?: () => void;
 }
 
 const ListaAgendamentos = ({
@@ -31,7 +34,20 @@ const ListaAgendamentos = ({
   loading,
   onDelete,
   onEdit,
+  onPago,
 }: ListaAgendamentosProps) => {
+  const [pagamentoAberto, setPagamentoAberto] = useState(false);
+  const [agendamentoParaPagar, setAgendamentoParaPagar] = useState<AgendamentoParaPagar | null>(null);
+
+  const abrirPagamento = (appt: Appointment) => {
+    setAgendamentoParaPagar({
+      id: appt.id!,
+      cliente: appt.cliente || appt.clientName || 'Cliente',
+      preco: appt.valor ?? appt.price,
+    });
+    setPagamentoAberto(true);
+  };
+
   const totals = useMemo(() => {
     if (!appointments || appointments.length === 0) {
       return { totalRendimento: 0, totalCusto: 0, totalLucro: 0 };
@@ -170,6 +186,24 @@ const ListaAgendamentos = ({
                   € {valor.toFixed(2)}
                 </span>
 
+                {appt.origem !== 'google' && appt.id && (
+                  appt.pago ? (
+                    <span className="flex h-8 items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 text-xs font-semibold text-emerald-500">
+                      <CheckCircle2 size={13} /> Pago
+                    </span>
+                  ) : (
+                    <Button
+                      onClick={() => abrirPagamento(appt)}
+                      size="sm"
+                      className="h-8 gap-1.5 px-2.5 font-semibold"
+                      title="Marcar como pago"
+                    >
+                      <Euro size={14} />
+                      <span className="hidden text-xs sm:inline">Pago</span>
+                    </Button>
+                  )
+                )}
+
                 <Button
                   onClick={() => enviarLembreteWhatsApp(appt)}
                   size="sm"
@@ -211,6 +245,13 @@ const ListaAgendamentos = ({
           );
         })}
       </div>
+
+      <RegistoPagamentoRapido
+        open={pagamentoAberto}
+        onOpenChange={setPagamentoAberto}
+        agendamento={agendamentoParaPagar}
+        onSuccess={() => onPago?.()}
+      />
     </div>
   );
 };
