@@ -11,7 +11,6 @@ import {
   Settings,
   LogOut,
   Menu,
-  X,
   ChevronDown,
   CalendarDays,
   CalendarPlus,
@@ -19,7 +18,12 @@ import {
   HandCoins,
   type LucideIcon,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { textosNavbar, obterIdiomaAtual } from '@/lib/i18n';
 
@@ -42,6 +46,7 @@ const NavbarLateral = () => {
 
   const [nomeNegocio, setNomeNegocio] = useState('Meu Negócio');
   const [aberto, setAberto] = useState(false);
+  const [maisAberto, setMaisAberto] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   // Mantém o submenu aberto se estiver na tela de Dashboard ou Novo Agendamento
@@ -82,8 +87,6 @@ const NavbarLateral = () => {
     }
   };
 
-  const mostrarSidebar = !isMobile || aberto;
-
   const menuItems: MenuItem[] = [
     {
       texto: textos.agenda,
@@ -111,24 +114,9 @@ const NavbarLateral = () => {
 
   return (
     <>
-      {/* Botão Hambúrguer Mobile */}
-      {isMobile && (
-        <Button
-          onClick={() => setAberto(!aberto)}
-          size="icon"
-          className="fixed left-4 top-4 z-[1001] h-10 w-10 rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:opacity-90"
-        >
-          {aberto ? <X size={20} /> : <Menu size={20} />}
-        </Button>
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          'fixed left-0 top-0 z-[1000] flex h-screen w-[260px] flex-col border-r border-border bg-card/95 p-5 backdrop-blur-xl transition-transform duration-300 ease-in-out shadow-2xl shadow-black/10',
-          mostrarSidebar ? 'translate-x-0' : '-translate-x-full'
-        )}
-      >
+      {/* Sidebar — computador */}
+      {!isMobile && (
+        <aside className="fixed left-0 top-0 z-[1000] flex h-screen w-[260px] flex-col border-r border-border bg-card/95 p-5 backdrop-blur-xl shadow-2xl shadow-black/10">
         {/* Logótipo e Nome do Negócio (Clicável -> vai para Dashboard) */}
         <div
           onClick={() => irPara('/dashboard')}
@@ -250,13 +238,103 @@ const NavbarLateral = () => {
           </button>
         </div>
       </aside>
+      )}
 
-      {/* Overlay Escuro para Mobile */}
-      {isMobile && aberto && (
-        <div
-          onClick={() => setAberto(false)}
-          className="fixed inset-0 z-[999] bg-black/60 backdrop-blur-xs transition-opacity"
-        />
+      {/* Barra inferior — telemóvel */}
+      {isMobile && (
+        <>
+          <nav className="fixed bottom-0 left-0 right-0 z-[1000] flex items-center justify-around border-t border-border bg-card/95 px-2 py-2 backdrop-blur-xl shadow-2xl shadow-black/20">
+            <button
+              onClick={() => irPara('/dashboard')}
+              className={cn(
+                'flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[10px] font-medium',
+                location.pathname === '/dashboard' ? 'text-primary' : 'text-muted-foreground'
+              )}
+            >
+              <CalendarDays size={20} />
+              Agenda
+            </button>
+            <button
+              onClick={() => irPara('/clientes')}
+              className={cn(
+                'flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[10px] font-medium',
+                location.pathname === '/clientes' ? 'text-primary' : 'text-muted-foreground'
+              )}
+            >
+              <Users size={20} />
+              {textos.clientes}
+            </button>
+
+            {/* Botão central em destaque: Novo Agendamento */}
+            <button
+              onClick={() => irPara('/novo-agendamento')}
+              className="flex flex-col items-center gap-0.5 px-2"
+            >
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-hover text-primary-foreground shadow-lg shadow-primary/40 -mt-5">
+                <CalendarPlus size={20} />
+              </span>
+            </button>
+
+            <button
+              onClick={() => irPara('/custos')}
+              className={cn(
+                'flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[10px] font-medium',
+                location.pathname === '/custos' ? 'text-primary' : 'text-muted-foreground'
+              )}
+            >
+              <Receipt size={20} />
+              {textos.custos}
+            </button>
+            <button
+              onClick={() => setMaisAberto(true)}
+              className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[10px] font-medium text-muted-foreground"
+            >
+              <Menu size={20} />
+              Mais
+            </button>
+          </nav>
+
+          {/* Painel "Mais" — resto do menu */}
+          <Sheet open={maisAberto} onOpenChange={setMaisAberto}>
+            <SheetContent side="bottom" className="rounded-t-2xl p-5">
+              <SheetHeader>
+                <SheetTitle>Mais opções</SheetTitle>
+              </SheetHeader>
+              <div className="grid grid-cols-3 gap-3 pb-4 pt-2">
+                {[
+                  { rota: '/procedimentos', texto: textos.procedimentos, Icone: ClipboardList },
+                  { rota: '/porcentagem', texto: textos.porcentagem, Icone: Wallet },
+                  { rota: '/relatorios', texto: textos.relatorios, Icone: TrendingUp },
+                  { rota: '/pagamentos', texto: textos.pagamentos, Icone: HandCoins },
+                  { rota: '/configuracoes', texto: textos.configuracoes, Icone: Settings },
+                ].map(({ rota, texto, Icone }) => (
+                  <button
+                    key={rota}
+                    onClick={() => {
+                      irPara(rota);
+                      setMaisAberto(false);
+                    }}
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-border p-3 text-center text-xs font-medium text-foreground hover:border-primary/40 hover:text-primary transition-colors"
+                  >
+                    <Icone size={20} />
+                    {texto}
+                  </button>
+                ))}
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setMaisAberto(false);
+                    navigate('/login');
+                  }}
+                  className="flex flex-col items-center gap-1.5 rounded-xl border border-danger/20 p-3 text-center text-xs font-medium text-danger hover:bg-danger/10 transition-colors"
+                >
+                  <LogOut size={20} />
+                  {textos.sair}
+                </button>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </>
       )}
     </>
   );

@@ -31,6 +31,23 @@ export default {
           hover: "hsl(var(--primary-hover))",
           foreground: "hsl(var(--primary-foreground))",
         },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        input: "hsl(var(--input))",
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
         danger: "hsl(var(--danger))",
@@ -43,6 +60,7 @@ export default {
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"],
+        display: ["'Space Grotesk'", "Inter", "sans-serif"],
       },
     },
   },

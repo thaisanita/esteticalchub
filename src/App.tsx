@@ -21,6 +21,7 @@ import ConfirmacaoAtendimento from './pages/ConfirmacaoAtendimento';
 
 // Menu lateral das áreas privadas
 import NavbarLateral from './components/NavbarLateral';
+import TopBar from './components/TopBar';
 
 function RotaLogin({
   autenticado,
@@ -46,15 +47,18 @@ function LayoutPrivado() {
   return (
     <div className="flex min-h-screen bg-background overflow-x-hidden">
       <NavbarLateral />
-      <main className="min-w-0 flex-1 p-6 sm:p-8 md:ml-[260px]">
-        <Outlet />
+      <main className="min-w-0 flex-1 pb-24 md:pb-8 md:ml-[260px]">
+        <TopBar />
+        <div className="p-6 sm:p-8">
+          <Outlet />
+        </div>
       </main>
 
       {/* Botão flutuante: registar pagamento rápido de qualquer página */}
       <button
         onClick={() => setPagamentoRapidoAberto(true)}
         title="Registar pagamento rápido"
-        className="fixed bottom-6 right-6 z-[900] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-hover text-primary-foreground shadow-lg shadow-primary/40 transition-transform hover:scale-105 active:scale-95"
+        className="fixed bottom-20 right-5 z-[900] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-hover text-primary-foreground shadow-lg shadow-primary/40 transition-transform hover:scale-105 active:scale-95 md:bottom-6 md:right-6"
       >
         <Euro size={22} />
       </button>

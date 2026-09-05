@@ -25,6 +25,18 @@
     --primary-hover: 262 83% 60%;
     --primary-foreground: 0 0% 100%;
 
+    /* Superfícies flutuantes: menus, caixas de seleção, diálogos.
+       Antes não existiam — por isso ficavam transparentes ao abrir. */
+    --popover: 258 20% 27%;
+    --popover-foreground: 210 20% 98%;
+    --secondary: 258 14% 36%;
+    --secondary-foreground: 210 20% 98%;
+    --accent: 258 16% 34%;
+    --accent-foreground: 210 20% 98%;
+    --input: 258 14% 30%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
     /* Status */
     --success: 160 84% 39%;
     --warning: 38 92% 50%;
