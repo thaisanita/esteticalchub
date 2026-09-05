@@ -40,9 +40,9 @@ function RotaLogin({
 // Layout que envolve todas as páginas privadas com o menu lateral
 function LayoutPrivado() {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background overflow-x-hidden">
       <NavbarLateral />
-      <main className="flex-1 p-6 sm:p-8 md:ml-[260px]">
+      <main className="min-w-0 flex-1 p-6 sm:p-8 md:ml-[260px]">
         <Outlet />
       </main>
     </div>
