@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { parseMoeda } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -87,31 +88,10 @@ export default function CustosEstoque() {
       setCustos(dataCustos);
     }
 
-    // 2. Buscar Faturamento do Mês/Ano Selecionado
+    // 2. Faturamento do Mês/Ano Selecionado — soma de todos os agendamentos
+    // desse mês, fechados ou não (cada atendimento realizado é faturamento).
     const prefixoMesAno = `${anoSelecionado}-${mesSelecionado}`;
-    let totalCalculado = 0;
 
-    // Fechamentos
-    let queryFechamentos = supabase.from('fechamentos').select('faturamento_bruto, lucro_liquido, data_referencia, data');
-    if (user) {
-      queryFechamentos = queryFechamentos.or(`usuario_id.eq.${user.id},usuario_id.is.null`);
-    }
-
-    const { data: fechamentos } = await queryFechamentos;
-
-    if (fechamentos) {
-      const fechamentosDoMes = fechamentos.filter((f) => {
-        const d = f.data_referencia || f.data || '';
-        return d.startsWith(prefixoMesAno);
-      });
-
-      totalCalculado = fechamentosDoMes.reduce(
-        (acc, item) => acc + Number(item.faturamento_bruto || item.lucro_liquido || 0),
-        0
-      );
-    }
-
-    // Agendamentos
     let queryAgendamentos = supabase.from('agendamentos').select('valor, preco, data');
     if (user) {
       queryAgendamentos = queryAgendamentos.or(`usuario_id.eq.${user.id},usuario_id.is.null`);
@@ -119,18 +99,13 @@ export default function CustosEstoque() {
 
     const { data: agendamentos } = await queryAgendamentos;
 
+    let totalCalculado = 0;
     if (agendamentos) {
       const agendamentosDoMes = agendamentos.filter((a) => a.data && a.data.startsWith(prefixoMesAno));
-
-      const somaAgendamentos = agendamentosDoMes.reduce((acc, item) => {
-        const valRaw = item.valor ?? item.preco ?? 0;
-        const val = typeof valRaw === 'number' ? valRaw : parseFloat(String(valRaw).replace(',', '.')) || 0;
-        return acc + val;
-      }, 0);
-
-      if (somaAgendamentos > totalCalculado) {
-        totalCalculado = somaAgendamentos;
-      }
+      totalCalculado = agendamentosDoMes.reduce(
+        (acc, item) => acc + parseMoeda(item.valor ?? item.preco ?? 0),
+        0
+      );
     }
 
     setFaturamentoMes(totalCalculado);

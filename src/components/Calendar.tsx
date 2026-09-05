@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { cn, parseMoeda } from '@/lib/utils';
 
 interface Agendamento {
   id?: string | number;
@@ -75,7 +75,7 @@ const Calendar = ({ onDaySelect, agendamentos = [] }: CalendarProps) => {
       return bateData && bateLocal;
     });
 
-    const bruto = filtrados.reduce((acc, curr) => acc + (Number(curr.preco) || 0), 0);
+    const bruto = filtrados.reduce((acc, curr) => acc + parseMoeda(curr.preco), 0);
     const liquido = bruto * (Number(porcentagem) / 100);
 
     return { bruto, liquido };

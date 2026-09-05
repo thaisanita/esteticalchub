@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn, getErrorMessage } from '@/lib/utils';
+import { cn, getErrorMessage, parseMoeda } from '@/lib/utils';
 import {
   Calculator,
   CheckCircle2,
@@ -145,9 +145,7 @@ const Porcentagem = () => {
       .filter((ag) => (ag.ponto_atendimento || ag.pontoAtendimento) === pontoSelecionado)
       .reduce((sum, ag) => {
         const valorRaw = ag.valor ?? ag.preco ?? 0;
-        const valor = typeof valorRaw === 'number'
-          ? valorRaw
-          : parseFloat(String(valorRaw).replace(',', '.')) || 0;
+        const valor = parseMoeda(valorRaw);
         return sum + valor;
       }, 0);
   }, [pontoSelecionado, agendamentos]);

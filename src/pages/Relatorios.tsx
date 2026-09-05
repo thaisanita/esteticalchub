@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Printer, Trash2, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { parseMoeda } from '@/lib/utils';
 
 interface AgendamentoRel {
   data?: string;
@@ -51,7 +52,7 @@ const Relatorios = () => {
         supabase
           .from('fechamentos')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('usuario_id', user.id)
           .order('created_at', { ascending: false }),
       ]);
 
@@ -72,7 +73,7 @@ const Relatorios = () => {
         .from('fechamentos')
         .delete()
         .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('usuario_id', user.id);
       if (!error) setFechamentos((prev) => prev.filter((f) => f.id !== id));
     }
   };
@@ -89,6 +90,7 @@ const Relatorios = () => {
     const mesAtualIdx = new Date().getMonth();
     let brutoTotalAno = 0;
     let lucroRealAcumulado = 0;
+    let brutoTotalFechado = 0;
     const ganhosPorMes: Record<string, number> = {};
 
     agendamentos.forEach((ag) => {
@@ -99,11 +101,7 @@ const Relatorios = () => {
           const partes = dataStr.split('-');
           const mesAg = parseInt(partes[1], 10) - 1;
 
-          // CORRIGIDO: Parse seguro de número (suporta preco e valor)
-          const valorRaw = ag.valor ?? ag.preco ?? 0;
-          const valor = typeof valorRaw === 'number'
-            ? valorRaw
-            : parseFloat(String(valorRaw).replace(',', '.')) || 0;
+          const valor = parseMoeda(ag.valor ?? ag.preco ?? 0);
 
           if (mesAg >= 0 && mesAg < 12) {
             ganhosPorMes[MESES[mesAg]] = (ganhosPorMes[MESES[mesAg]] || 0) + valor;
@@ -117,7 +115,8 @@ const Relatorios = () => {
       const dataF = f.data_referencia || f.data;
       if (dataF && dataF.startsWith(anoAtual.toString())) {
         if (filtroLocal === 'TODOS' || f.local === filtroLocal) {
-          lucroRealAcumulado += parseFloat(String(f.lucro_liquido || 0));
+          lucroRealAcumulado += parseMoeda(f.lucro_liquido || 0);
+          brutoTotalFechado += parseMoeda(f.faturamento_bruto || 0);
         }
       }
     });
@@ -129,7 +128,7 @@ const Relatorios = () => {
     const variacao =
       ganhoMesAnterior > 0 ? ((ganhoMesAtual - ganhoMesAnterior) / ganhoMesAnterior) * 100 : 0;
 
-    return { chartData, brutoTotalAno, lucroRealAcumulado, variacao };
+    return { chartData, brutoTotalAno, lucroRealAcumulado, brutoTotalFechado, variacao };
   }, [agendamentos, fechamentos, filtroLocal]);
 
   if (loading) {
@@ -138,9 +137,11 @@ const Relatorios = () => {
     );
   }
 
+  // Margem calculada só sobre os dias já fechados (mesma base do lucro),
+  // para não dividir lucro de uma fração pelo faturamento do ano inteiro.
   const margemLucro =
-    resumoDados.brutoTotalAno > 0
-      ? (resumoDados.lucroRealAcumulado / resumoDados.brutoTotalAno) * 100
+    resumoDados.brutoTotalFechado > 0
+      ? (resumoDados.lucroRealAcumulado / resumoDados.brutoTotalFechado) * 100
       : 0;
 
   return (
@@ -235,10 +236,13 @@ const Relatorios = () => {
               </div>
             </div>
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Margem de Lucro
+              Margem de Lucro (dias fechados)
             </p>
             <p className="font-display text-[28px] font-bold text-foreground">
               {margemLucro.toFixed(1)}%
+            </p>
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              Calculada só sobre os dias já fechados na página de Comissão
             </p>
           </div>
         </div>

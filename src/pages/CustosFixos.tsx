@@ -69,26 +69,10 @@ export default function CustosFixos() {
       console.error('Erro ao buscar custos fixos:', erroCustos.message);
     }
 
-    // 2. Faturamento do mês atual (mesma lógica usada em Custos e Estoque)
+    // 2. Faturamento do mês atual — soma de todos os agendamentos do mês,
+    // fechados ou não (cada atendimento realizado é faturamento).
     const hoje = new Date();
     const prefixoMesAno = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
-    let totalCalculado = 0;
-
-    let queryFechamentos = supabase
-      .from('fechamentos')
-      .select('faturamento_bruto, lucro_liquido, data_referencia, data');
-    if (user) {
-      queryFechamentos = queryFechamentos.or(`usuario_id.eq.${user.id},usuario_id.is.null`);
-    }
-    const { data: fechamentos } = await queryFechamentos;
-
-    if (fechamentos) {
-      const doMes = fechamentos.filter((f) => (f.data_referencia || f.data || '').startsWith(prefixoMesAno));
-      totalCalculado = doMes.reduce(
-        (acc, item) => acc + Number(item.faturamento_bruto || item.lucro_liquido || 0),
-        0
-      );
-    }
 
     let queryAgendamentos = supabase.from('agendamentos').select('valor, preco, data');
     if (user) {
@@ -96,14 +80,10 @@ export default function CustosFixos() {
     }
     const { data: agendamentos } = await queryAgendamentos;
 
+    let totalCalculado = 0;
     if (agendamentos) {
       const doMes = agendamentos.filter((a) => a.data && a.data.startsWith(prefixoMesAno));
-      const soma = doMes.reduce((acc, item) => {
-        const raw = item.valor ?? item.preco ?? 0;
-        const val = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(',', '.')) || 0;
-        return acc + val;
-      }, 0);
-      if (soma > totalCalculado) totalCalculado = soma;
+      totalCalculado = doMes.reduce((acc, item) => acc + parseMoeda(item.valor ?? item.preco ?? 0), 0);
     }
 
     setFaturamentoMes(totalCalculado);

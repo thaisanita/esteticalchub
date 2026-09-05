@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { textosProcedimentos, obterIdiomaAtual } from '@/lib/i18n';
+import { parseMoeda } from '@/lib/utils';
 import { 
   Clock, 
   User, 
@@ -86,8 +87,7 @@ const Procedimentos = () => {
   };
 
   const totalFaturado = agendamentos.reduce((acc, item) => {
-    const valorRaw = item.preco ?? item.valor ?? '0';
-    const valor = parseFloat(String(valorRaw).replace(',', '.'));
+    const valor = parseMoeda(item.preco ?? item.valor ?? 0);
     return acc + (valor || 0);
   }, 0);
 
@@ -145,7 +145,7 @@ const Procedimentos = () => {
         )}
 
         {agendamentos.map((item) => {
-          const valorNum = parseFloat(String(item.preco ?? item.valor ?? '0').replace(',', '.'));
+          const valorNum = parseMoeda(item.preco ?? item.valor ?? 0);
           const isFalta = valorNum === 0;
           const localAtendimento = item.ponto_atendimento || item.pontoAtendimento;
 

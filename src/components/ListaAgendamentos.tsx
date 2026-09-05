@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { parseMoeda } from '@/lib/utils';
 
 interface Appointment {
   id?: string | number;
@@ -41,10 +42,8 @@ const ListaAgendamentos = ({
         const precoRaw = appt.valor ?? appt.price ?? 0;
         const percentRaw = appt.percent_produto ?? appt.productPercent ?? 0;
 
-        const preco =
-          typeof precoRaw === 'string' ? parseFloat(precoRaw.replace(',', '.')) : Number(precoRaw);
-        const percent =
-          typeof percentRaw === 'string' ? parseFloat(percentRaw.replace(',', '.')) : Number(percentRaw);
+        const preco = parseMoeda(precoRaw);
+        const percent = parseMoeda(percentRaw);
 
         const custoProduto = preco * (percent / 100);
 
@@ -132,7 +131,7 @@ const ListaAgendamentos = ({
       {/* Lista de Atendimentos */}
       <div className="flex flex-col gap-2.5">
         {appointments.map((appt, index) => {
-          const valor = parseFloat(String(appt.valor ?? appt.price ?? 0).replace(',', '.'));
+          const valor = parseMoeda(appt.valor ?? appt.price ?? 0);
           const cliente = appt.cliente || appt.clientName || 'Cliente';
           const procedimento = appt.procedimento || appt.procedure;
           const hora = appt.hora || appt.time;
