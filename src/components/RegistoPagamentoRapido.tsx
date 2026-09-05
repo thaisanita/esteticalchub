@@ -16,13 +16,14 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { getErrorMessage, parseMoeda, cn } from '@/lib/utils';
-import { Banknote, CreditCard, Smartphone, Landmark, Check, Package } from 'lucide-react';
+import { Banknote, CreditCard, Smartphone, Landmark, Check, Package, FileHeart } from 'lucide-react';
 
 export interface AgendamentoParaPagar {
   id: string | number;
   cliente: string;
   preco?: number | string;
   valor?: number | string;
+  clienteId?: string;
 }
 
 interface Props {
@@ -219,9 +220,20 @@ export default function RegistoPagamentoRapido({ open, onOpenChange, onSuccess, 
               )}
             </div>
           ) : (
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Cliente</p>
-              <p className="text-base font-semibold text-foreground">{cliente}</p>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Cliente</p>
+                <p className="text-base font-semibold text-foreground">{cliente}</p>
+              </div>
+              {agendamento?.clienteId && (
+                <button
+                  type="button"
+                  onClick={() => window.open(`/prontuario/${agendamento.clienteId}`, '_blank')}
+                  className="shrink-0 flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
+                >
+                  <FileHeart size={13} /> Prontuário
+                </button>
+              )}
             </div>
           )}
 

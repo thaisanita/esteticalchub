@@ -17,7 +17,8 @@ import {
   History,
   Phone,
   Mail,
-  Bell
+  Bell,
+  FileHeart
 } from 'lucide-react';
 
 interface NovoAgendamentoProps {
@@ -35,6 +36,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
 
   const [cliente, setCliente] = useState('');
   const [clienteId, setClienteId] = useState<string | null>(null);
+  const [temProntuario, setTemProntuario] = useState<boolean | null>(null);
   const [telefoneCliente, setTelefoneCliente] = useState('');
   const [emailCliente, setEmailCliente] = useState('');
   const [procedimento, setProcedimento] = useState('');
@@ -89,6 +91,20 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     if (c.telefone) setTelefoneCliente(c.telefone);
     if (c.email) setEmailCliente(c.email);
   };
+
+  // Verifica se a cliente selecionada já tem ficha de prontuário preenchida
+  useEffect(() => {
+    if (!clienteId) {
+      setTemProntuario(null);
+      return;
+    }
+    supabase
+      .from('prontuarios')
+      .select('id')
+      .eq('cliente_id', clienteId)
+      .maybeSingle()
+      .then(({ data }) => setTemProntuario(!!data));
+  }, [clienteId]);
 
 
   const salvarHistorico = (chave: string, valor: string) => {
@@ -410,6 +426,27 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
               </div>
             )}
           </div>
+
+          {clienteId && temProntuario === false && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+              <p className="text-xs text-amber-500 font-medium">
+                Esta cliente ainda não tem ficha de anamnese. Preenche antes do atendimento.
+              </p>
+              <button
+                type="button"
+                onClick={() => window.open(`/prontuario/${clienteId}`, '_blank')}
+                className="shrink-0 rounded-lg border border-amber-500/40 px-3 py-1.5 text-xs font-semibold text-amber-500 hover:bg-amber-500/10 transition-colors"
+              >
+                Preencher Ficha
+              </button>
+            </div>
+          )}
+          {clienteId && temProntuario === true && (
+            <div className="flex items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/5 px-4 py-2.5">
+              <FileHeart size={14} className="text-emerald-500 shrink-0" />
+              <p className="text-xs text-emerald-500 font-medium">Ficha de anamnese já preenchida.</p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">

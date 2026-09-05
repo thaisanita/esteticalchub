@@ -19,6 +19,7 @@ interface Appointment {
   telefone?: string;
   origem?: 'supabase' | 'google';
   pago?: boolean;
+  cliente_id?: string;
 }
 
 interface ListaAgendamentosProps {
@@ -44,6 +45,7 @@ const ListaAgendamentos = ({
       id: appt.id!,
       cliente: appt.cliente || appt.clientName || 'Cliente',
       preco: appt.valor ?? appt.price,
+      clienteId: appt.cliente_id,
     });
     setPagamentoAberto(true);
   };
