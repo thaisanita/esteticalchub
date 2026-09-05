@@ -10,8 +10,7 @@ import NovoAgendamento from './pages/NovoAgendamento';
 import Procedimentos from './pages/Procedimentos';
 import Porcentagem from './pages/Porcentagem';
 import Relatorios from './pages/Relatorios';
-import CustosEstoque from './pages/CustosEstoque';
-import CustosFixos from './pages/CustosFixos';
+import Custos from './pages/Custos';
 import Clientes from './pages/Clientes';
 import Pagamentos from './pages/Pagamentos';
 import Config from './pages/Config';
@@ -103,8 +102,7 @@ export default function App() {
           <Route path="/procedimentos" element={<Procedimentos />} />
           <Route path="/porcentagem" element={<Porcentagem />} />
           <Route path="/relatorios" element={<Relatorios />} />
-          <Route path="/custos" element={<CustosEstoque />} />
-          <Route path="/custos-fixos" element={<CustosFixos />} />
+          <Route path="/custos" element={<Custos />} />
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/pagamentos" element={<Pagamentos />} />
           <Route path="/configuracoes" element={<Config />} />

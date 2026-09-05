@@ -247,18 +247,9 @@ export default function CustosEstoque() {
   );
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
       {/* Cabeçalho com Seleção de Mês e Ano */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground">
-            Custos, Estoque & Reserva
-          </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Controle de despesas, insumos, segurança social e previsões financeiras
-          </p>
-        </div>
-
+      <div className="flex flex-wrap items-center justify-end gap-3">
         {/* Seletores de Mês e Ano */}
         <div className="flex items-center gap-2">
           <Select value={mesSelecionado} onValueChange={setMesSelecionado}>

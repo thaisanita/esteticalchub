@@ -15,7 +15,6 @@ import {
   ChevronDown,
   CalendarDays,
   CalendarPlus,
-  Target,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -97,7 +96,6 @@ const NavbarLateral = () => {
     { rota: '/porcentagem', texto: textos.porcentagem, Icone: Wallet },
     { rota: '/relatorios', texto: textos.relatorios, Icone: TrendingUp },
     { rota: '/custos', texto: textos.custos, Icone: Receipt },
-    { rota: '/custos-fixos', texto: textos.custosFixos, Icone: Target },
     { rota: '/clientes', texto: textos.clientes, Icone: Users },
   ];
 

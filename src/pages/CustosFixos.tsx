@@ -168,16 +168,7 @@ export default function CustosFixos() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground">
-          Custos Fixos e Ponto de Equilíbrio
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Tudo o que a empresa paga todos os meses, para saber quanto precisa faturar antes de haver lucro.
-        </p>
-      </div>
-
+    <div className="space-y-6">
       {/* Cartão de Ponto de Equilíbrio */}
       <div className="rounded-2xl border border-border bg-card p-6 shadow-lg shadow-black/10 space-y-4">
         <div className="flex items-center gap-3">
