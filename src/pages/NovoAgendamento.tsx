@@ -49,6 +49,17 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   // Configurações de Notificação
   const [lembrete1Dia, setLembrete1Dia] = useState(true);
   const [lembrete1Hora, setLembrete1Hora] = useState(true);
+  const [canalNotificacao, setCanalNotificacao] = useState<'whatsapp' | 'email'>('whatsapp');
+
+  // Se o canal escolhido ficar sem contacto (ex: apagou o telefone), muda
+  // automaticamente para o outro canal, se este tiver contacto preenchido.
+  useEffect(() => {
+    if (canalNotificacao === 'whatsapp' && !telefoneCliente.trim() && emailCliente.trim()) {
+      setCanalNotificacao('email');
+    } else if (canalNotificacao === 'email' && !emailCliente.trim() && telefoneCliente.trim()) {
+      setCanalNotificacao('whatsapp');
+    }
+  }, [telefoneCliente, emailCliente, canalNotificacao]);
 
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -218,7 +229,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
           agendamento_id: agendamentoId,
           usuario_id: userId,
           tipo_destino: 'cliente',
-          canal: telefoneCliente ? 'whatsapp' : 'email',
+          canal: canalNotificacao,
           antecedencia: '1_dia',
           data_disparo: data1Dia.toISOString(),
           status: 'pendente'
@@ -234,7 +245,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
           agendamento_id: agendamentoId,
           usuario_id: userId,
           tipo_destino: 'cliente',
-          canal: telefoneCliente ? 'whatsapp' : 'email',
+          canal: canalNotificacao,
           antecedencia: '1_hora',
           data_disparo: data1Hora.toISOString(),
           status: 'pendente'
@@ -626,6 +637,40 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
             <Bell size={13} className="text-primary" />
             Lembretes Automáticos de Atendimento
           </label>
+
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Receber por</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={!telefoneCliente.trim()}
+                onClick={() => setCanalNotificacao('whatsapp')}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                  canalNotificacao === 'whatsapp'
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:border-primary/30'
+                }`}
+              >
+                <Phone size={14} /> WhatsApp
+              </button>
+              <button
+                type="button"
+                disabled={!emailCliente.trim()}
+                onClick={() => setCanalNotificacao('email')}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                  canalNotificacao === 'email'
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:border-primary/30'
+                }`}
+              >
+                <Mail size={14} /> Email
+              </button>
+            </div>
+            {!telefoneCliente.trim() && !emailCliente.trim() && (
+              <p className="text-[11px] text-amber-500">Preenche o WhatsApp ou o email da cliente acima para poderes enviar lembretes.</p>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <label className="flex items-center gap-2 text-sm font-medium cursor-pointer bg-background/50 border border-border p-3 rounded-xl hover:bg-primary/5 transition-colors">
               <input
