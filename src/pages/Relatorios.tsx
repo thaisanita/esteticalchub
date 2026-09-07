@@ -104,6 +104,18 @@ const Relatorios = () => {
     }
   };
 
+  const handleExcluirAtendimento = async (id: string | number | undefined) => {
+    if (!id) return;
+    if (!window.confirm('Excluir este atendimento? Esta ação não pode ser desfeita.')) return;
+
+    const { error } = await supabase.from('agendamentos').delete().eq('id', id);
+    if (!error) {
+      setAgendamentos((prev) => prev.filter((ag) => ag.id !== id));
+    } else {
+      alert('Erro ao excluir atendimento: ' + error.message);
+    }
+  };
+
   const excluirFechamento = async (id: string | number) => {
     if (window.confirm('Deseja remover este registro?')) {
       const { data: { user } } = await supabase.auth.getUser();
@@ -337,6 +349,7 @@ const Relatorios = () => {
                       <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Procedimento</th>
                       <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pagamento</th>
                       <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Valor</th>
+                      <th className="no-print px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -353,11 +366,20 @@ const Relatorios = () => {
                         <td className="px-4 py-3 text-right font-semibold text-foreground">
                           € {parseMoeda(ag.valor ?? ag.preco ?? 0).toFixed(2)}
                         </td>
+                        <td className="no-print px-4 py-3 text-center">
+                          <button
+                            onClick={() => handleExcluirAtendimento(ag.id)}
+                            title="Excluir atendimento"
+                            className="text-muted-foreground hover:text-rose-500 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                     {relatorioMensal.atendimentos.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-4 py-10 text-center text-xs text-muted-foreground">
+                        <td colSpan={6} className="px-4 py-10 text-center text-xs text-muted-foreground">
                           Nenhum atendimento neste mês.
                         </td>
                       </tr>
