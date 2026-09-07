@@ -45,15 +45,22 @@ export const ConfirmacaoAtendimento = () => {
           .rpc('obter_agendamento_por_token', { p_token: token })
           .maybeSingle();
 
-        if (error || !data) {
+        // A função RPC não tem tipos gerados automaticamente, por isso
+        // dizemos ao TypeScript qual é o formato esperado da resposta.
+        const agendamentoData = data as Pick<
+          AgendamentoInfo,
+          'id' | 'cliente' | 'procedimento' | 'data' | 'hora' | 'ponto_atendimento' | 'status_confirmacao'
+        > | null;
+
+        if (error || !agendamentoData) {
           setErro('Agendamento não encontrado ou o link expirou.');
         } else {
           setAgendamento({
-            ...data,
-            criador_nome: data.ponto_atendimento || 'Gabinete'
+            ...agendamentoData,
+            criador_nome: agendamentoData.ponto_atendimento || 'Gabinete'
           });
-          if (data.status_confirmacao && data.status_confirmacao !== 'pendente') {
-            setResposta(data.status_confirmacao);
+          if (agendamentoData.status_confirmacao && agendamentoData.status_confirmacao !== 'pendente') {
+            setResposta(agendamentoData.status_confirmacao);
           }
         }
       } catch (e) {
