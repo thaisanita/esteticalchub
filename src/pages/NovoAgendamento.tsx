@@ -18,7 +18,8 @@ import {
   Phone,
   Mail,
   Bell,
-  FileHeart
+  FileHeart,
+  Wand2
 } from 'lucide-react';
 
 interface NovoAgendamentoProps {
@@ -55,7 +56,9 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   const [sugestoesCliente, setSugestoesCliente] = useState<string[]>([]);
   const [sugestoesProcedimento, setSugestoesProcedimento] = useState<string[]>([]);
   const [sugestoesPonto, setSugestoesPonto] = useState<string[]>([]);
+  const [sugestaoInteligente, setSugestaoInteligente] = useState<{ preco: number; duracaoMin: number } | null>(null);
   const [clientesDb, setClientesDb] = useState<{ id: string; nome: string; telefone: string | null; email: string | null }[]>([]);
+
 
   // Atualiza a hora de fim automaticamente ao alterar o início
   const handleHoraInicioChange = (novaHoraInicio: string) => {
@@ -91,6 +94,57 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     if (c.telefone) setTelefoneCliente(c.telefone);
     if (c.email) setEmailCliente(c.email);
   };
+
+  // Sugestão inteligente: procura o último atendimento com o mesmo
+  // procedimento e sugere o valor e a duração usados da última vez.
+  useEffect(() => {
+    if (!procedimento.trim() || idParaEditar) {
+      setSugestaoInteligente(null);
+      return;
+    }
+    const atraso = setTimeout(async () => {
+      const { data } = await supabase
+        .from('agendamentos')
+        .select('preco, valor, hora, hora_fim')
+        .ilike('procedimento', procedimento.trim())
+        .order('data', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!data) {
+        setSugestaoInteligente(null);
+        return;
+      }
+
+      const valorSugerido = parseMoeda(data.valor ?? data.preco ?? 0);
+      let duracaoMin = 60;
+      if (data.hora && data.hora_fim) {
+        const [h1, m1] = data.hora.split(':').map(Number);
+        const [h2, m2] = data.hora_fim.split(':').map(Number);
+        duracaoMin = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (duracaoMin <= 0) duracaoMin += 24 * 60;
+      }
+
+      if (valorSugerido > 0) {
+        setSugestaoInteligente({ preco: valorSugerido, duracaoMin });
+      } else {
+        setSugestaoInteligente(null);
+      }
+    }, 500);
+
+    return () => clearTimeout(atraso);
+  }, [procedimento, idParaEditar]);
+
+  const aplicarSugestaoInteligente = () => {
+    if (!sugestaoInteligente) return;
+    setPreco(String(sugestaoInteligente.preco));
+    const [h, m] = horaInicio.split(':').map(Number);
+    const totalMin = h * 60 + m + sugestaoInteligente.duracaoMin;
+    const novaHoraFim = `${String(Math.floor(totalMin / 60) % 24).padStart(2, '0')}:${String(totalMin % 60).padStart(2, '0')}`;
+    setHoraFim(novaHoraFim);
+    setSugestaoInteligente(null);
+  };
+
 
   // Verifica se a cliente selecionada já tem ficha de prontuário preenchida
   useEffect(() => {
@@ -330,7 +384,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
       </div>
 
       <form onSubmit={manipularSalvar} className="space-y-4">
-        {/* Bloco 1: Data e Local */}
+        {/* Bloco 1: Quando, Onde e Quem */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/10 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -376,10 +430,8 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
               )}
             </div>
           </div>
-        </div>
 
-        {/* Bloco 2: Cliente e Contatos */}
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/10 space-y-4">
+          <div className="border-t border-border pt-4 space-y-4">
           <div className="space-y-1.5">
             <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               <User size={13} className="text-primary" />
@@ -505,10 +557,24 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
                 ))}
               </div>
             )}
+            {sugestaoInteligente && (
+              <button
+                type="button"
+                onClick={aplicarSugestaoInteligente}
+                className="mt-1.5 flex w-full items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-left transition-colors hover:bg-primary/10"
+              >
+                <span className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                  <Wand2 size={13} />
+                  Sugestão: € {sugestaoInteligente.preco.toFixed(2)} · {sugestaoInteligente.duracaoMin}min (última vez)
+                </span>
+                <span className="shrink-0 text-[10px] font-bold uppercase text-primary">Aplicar</span>
+              </button>
+            )}
+          </div>
           </div>
         </div>
 
-        {/* Bloco 3: Horários e Preço */}
+        {/* Bloco 2: Horário, Valor e Lembretes */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/10 space-y-4">
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
@@ -554,10 +620,8 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
               />
             </div>
           </div>
-        </div>
 
-        {/* Bloco 4: Notificações Lembretes */}
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/10 space-y-3">
+          <div className="border-t border-border pt-4 space-y-3">
           <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <Bell size={13} className="text-primary" />
             Lembretes Automáticos de Atendimento
@@ -582,6 +646,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
               />
               <span>1 Hora antes do evento</span>
             </label>
+          </div>
           </div>
         </div>
 
