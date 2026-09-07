@@ -19,7 +19,9 @@ import {
   Mail,
   Bell,
   FileHeart,
-  Wand2
+  Wand2,
+  Package,
+  Target
 } from 'lucide-react';
 
 interface NovoAgendamentoProps {
@@ -35,7 +37,8 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   );
   const idParaEditar = searchParams.get('edit');
 
-  const [cliente, setCliente] = useState('');
+  const [nomeCliente, setNomeCliente] = useState('');
+  const [apelidoCliente, setApelidoCliente] = useState('');
   const [clienteId, setClienteId] = useState<string | null>(null);
   const [temProntuario, setTemProntuario] = useState<boolean | null>(null);
   const [telefoneCliente, setTelefoneCliente] = useState('');
@@ -68,7 +71,15 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   const [sugestoesProcedimento, setSugestoesProcedimento] = useState<string[]>([]);
   const [sugestoesPonto, setSugestoesPonto] = useState<string[]>([]);
   const [sugestaoInteligente, setSugestaoInteligente] = useState<{ preco: number; duracaoMin: number } | null>(null);
+  const [historicoProcedimento, setHistoricoProcedimento] = useState<{ vezes: number; produtos: { nome: string; vezes: number }[] } | null>(null);
+  const [custosFixosMes, setCustosFixosMes] = useState<number | null>(null);
+  const [faturamentoMesAtual, setFaturamentoMesAtual] = useState<number>(0);
   const [clientesDb, setClientesDb] = useState<{ id: string; nome: string; telefone: string | null; email: string | null }[]>([]);
+
+  // Nome completo, combinado a partir dos dois campos, usado para guardar
+  // e comparar com o resto do site (Clientes, Prontuário, etc. continuam a
+  // guardar um único campo "nome").
+  const cliente = `${nomeCliente} ${apelidoCliente}`.trim();
 
 
   // Atualiza a hora de fim automaticamente ao alterar o início
@@ -99,8 +110,15 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     ? clientesDb.filter((c) => c.nome.toLowerCase().includes(cliente.trim().toLowerCase())).slice(0, 5)
     : [];
 
+  // Divide um nome completo em Nome + Apelido, para preencher os dois campos
+  const preencherNomeCompleto = (nomeCompleto: string) => {
+    const partes = nomeCompleto.trim().split(/\s+/);
+    setNomeCliente(partes[0] || '');
+    setApelidoCliente(partes.slice(1).join(' '));
+  };
+
   const selecionarClienteExistente = (c: { id: string; nome: string; telefone: string | null; email: string | null }) => {
-    setCliente(c.nome);
+    preencherNomeCompleto(c.nome);
     setClienteId(c.id);
     if (c.telefone) setTelefoneCliente(c.telefone);
     if (c.email) setEmailCliente(c.email);
@@ -146,6 +164,74 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     return () => clearTimeout(atraso);
   }, [procedimento, idParaEditar]);
 
+  // Histórico de estoque: quantas vezes já fez este procedimento, e quais
+  // produtos foram usados nessas vezes (liga Procedimento ao Estoque).
+  useEffect(() => {
+    if (!procedimento.trim()) {
+      setHistoricoProcedimento(null);
+      return;
+    }
+    const atraso = setTimeout(async () => {
+      const { data: agendamentosDoProcedimento } = await supabase
+        .from('agendamentos')
+        .select('id')
+        .ilike('procedimento', procedimento.trim());
+
+      const vezes = agendamentosDoProcedimento?.length || 0;
+      if (vezes === 0) {
+        setHistoricoProcedimento(null);
+        return;
+      }
+
+      const ids = agendamentosDoProcedimento!.map((a) => a.id);
+      const { data: usos } = await supabase
+        .from('produto_usos')
+        .select('produto_id, produtos(nome)')
+        .in('agendamento_id', ids);
+
+      const contagem: Record<string, number> = {};
+      (usos || []).forEach((u: any) => {
+        const nomeProduto = u.produtos?.nome || 'Produto';
+        contagem[nomeProduto] = (contagem[nomeProduto] || 0) + 1;
+      });
+
+      setHistoricoProcedimento({
+        vezes,
+        produtos: Object.entries(contagem).map(([nome, vezes]) => ({ nome, vezes })),
+      });
+    }, 500);
+
+    return () => clearTimeout(atraso);
+  }, [procedimento]);
+
+  // Ponto de equilíbrio: quanto já foi faturado este mês, e quanto falta
+  // para cobrir os custos fixos (renda, contas, etc.)
+  useEffect(() => {
+    const buscarPontoEquilibrio = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: fixos } = await supabase
+        .from('custos_fixos')
+        .select('valor_mensal, ativo')
+        .eq('usuario_id', user.id);
+      const totalFixos = (fixos || []).filter((c) => c.ativo).reduce((acc, c) => acc + parseMoeda(c.valor_mensal), 0);
+      setCustosFixosMes(totalFixos);
+
+      const hoje = new Date();
+      const prefixoMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+      const { data: agendamentosDoMes } = await supabase
+        .from('agendamentos')
+        .select('valor, preco, data')
+        .eq('usuario_id', user.id);
+      const totalFaturado = (agendamentosDoMes || [])
+        .filter((a) => a.data && a.data.startsWith(prefixoMes))
+        .reduce((acc, a) => acc + parseMoeda(a.valor ?? a.preco ?? 0), 0);
+      setFaturamentoMesAtual(totalFaturado);
+    };
+    buscarPontoEquilibrio();
+  }, []);
+
   const aplicarSugestaoInteligente = () => {
     if (!sugestaoInteligente) return;
     setPreco(String(sugestaoInteligente.preco));
@@ -190,7 +276,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
             .single();
 
           if (data && !error) {
-            setCliente(data.cliente || '');
+            preencherNomeCompleto(data.cliente || '');
             setClienteId(data.cliente_id || null);
             setTelefoneCliente(data.telefone_cliente || '');
             setEmailCliente(data.email_cliente || '');
@@ -446,17 +532,31 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
           <div className="space-y-1.5">
             <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               <User size={13} className="text-primary" />
-              Nome da Cliente
+              Nome*
             </label>
             <Input
               type="text"
               required
-              value={cliente}
+              value={nomeCliente}
               onChange={(e) => {
-                setCliente(e.target.value);
+                setNomeCliente(e.target.value);
                 setClienteId(null);
               }}
-              placeholder="Digite o nome completo"
+              placeholder="Nome"
+              className="h-10 bg-background/50 border-border"
+            />
+            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pt-2">
+              Apelido*
+            </label>
+            <Input
+              type="text"
+              required
+              value={apelidoCliente}
+              onChange={(e) => {
+                setApelidoCliente(e.target.value);
+                setClienteId(null);
+              }}
+              placeholder="Apelido"
               className="h-10 bg-background/50 border-border"
             />
             {sugestoesClienteFiltradas.length > 0 && !clienteId && (
@@ -480,7 +580,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => setCliente(item)}
+                    onClick={() => preencherNomeCompleto(item)}
                     className="text-[10px] font-medium bg-background hover:bg-primary/10 hover:text-primary text-muted-foreground px-2 py-0.5 rounded-md border border-border transition-colors"
                   >
                     {item}
@@ -581,6 +681,19 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
                 <span className="shrink-0 text-[10px] font-bold uppercase text-primary">Aplicar</span>
               </button>
             )}
+            {historicoProcedimento && (
+              <div className="mt-1.5 rounded-xl border border-border bg-background/50 px-3 py-2">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                  <Package size={13} className="text-primary" />
+                  Já fizeste este procedimento {historicoProcedimento.vezes}x
+                </p>
+                {historicoProcedimento.produtos.length > 0 && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Produtos usados: {historicoProcedimento.produtos.map((p) => `${p.nome} (${p.vezes}x)`).join(', ')}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           </div>
         </div>
@@ -631,6 +744,30 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
               />
             </div>
           </div>
+
+          {custosFixosMes !== null && custosFixosMes > 0 && (() => {
+            const valorAtendimento = parseMoeda(preco) || 0;
+            const percentualAntes = Math.min((faturamentoMesAtual / custosFixosMes) * 100, 100);
+            const percentualDepois = Math.min(((faturamentoMesAtual + valorAtendimento) / custosFixosMes) * 100, 100);
+            return (
+              <div className="rounded-xl border border-border bg-background/50 p-3 space-y-1.5">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                  <Target size={13} className="text-primary" />
+                  Este atendimento ajuda a cobrir os custos fixos do mês
+                </p>
+                <div className="h-2 w-full rounded-full bg-muted overflow-hidden border border-border">
+                  <div
+                    className="h-full bg-primary transition-all"
+                    style={{ width: `${valorAtendimento > 0 ? percentualDepois : percentualAntes}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Já cobriste {percentualAntes.toFixed(0)}% dos custos fixos este mês
+                  {valorAtendimento > 0 && ` — com este atendimento, sobe para ${percentualDepois.toFixed(0)}%`}
+                </p>
+              </div>
+            );
+          })()}
 
           <div className="border-t border-border pt-4 space-y-3">
           <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
