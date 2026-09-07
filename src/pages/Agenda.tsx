@@ -109,10 +109,7 @@ const Agenda = () => {
         }
       }
 
-      const providerToken = session?.provider_token || localStorage.getItem('google_access_token');
-      if (session?.provider_token) {
-        localStorage.setItem('google_access_token', session.provider_token);
-      }
+      const providerToken = session?.provider_token;
 
       if (providerToken) {
         try {

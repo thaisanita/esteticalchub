@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabase';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -12,26 +13,12 @@ export default function AuthCallback() {
     processadoRef.current = true;
 
     async function processarCallback() {
-      // 1. Pega os parâmetros tanto da query (?code=...) quanto do hash (#access_token=...)
-      const urlParams = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+      // O cliente Supabase já processa o token da URL sozinho (detectSessionInUrl: true).
+      // Não guardamos nenhum token manualmente — apenas confirmamos que a
+      // sessão ficou estabelecida em memória antes de avançar.
+      const { data: { session } } = await supabase.auth.getSession();
 
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      const code = urlParams.get('code');
-
-      if (accessToken) {
-        // Salva o token de acesso e refresh token (se existir)
-        localStorage.setItem('google_access_token', accessToken);
-        if (refreshToken) {
-          localStorage.setItem('google_refresh_token', refreshToken);
-        }
-
-        setMensagem('Agenda conectada com sucesso! Redirecionando...');
-        setTimeout(() => navigate('/dashboard?status=agenda-conectada', { replace: true }), 1500);
-      } else if (code) {
-        // Armazena o código temporário para troca no backend/Supabase Edge Function
-        localStorage.setItem('google_auth_code', code);
+      if (session) {
         setMensagem('Agenda conectada com sucesso! Redirecionando...');
         setTimeout(() => navigate('/dashboard?status=agenda-conectada', { replace: true }), 1500);
       } else {

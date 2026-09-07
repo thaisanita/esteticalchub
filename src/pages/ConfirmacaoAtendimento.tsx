@@ -42,9 +42,7 @@ export const ConfirmacaoAtendimento = () => {
 
       try {
         const { data, error } = await supabase
-          .from('agendamentos')
-          .select('id, cliente, procedimento, data, hora, ponto_atendimento, status_confirmacao')
-          .eq('token_confirmacao', token)
+          .rpc('obter_agendamento_por_token', { p_token: token })
           .maybeSingle();
 
         if (error || !data) {
@@ -74,12 +72,10 @@ export const ConfirmacaoAtendimento = () => {
     setEnviando(true);
 
     try {
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ status_confirmacao: novaResposta })
-        .eq('id', agendamento.id);
+      const { data: sucesso, error } = await supabase
+        .rpc('confirmar_presenca', { p_token: token, p_resposta: novaResposta });
 
-      if (error) throw error;
+      if (error || !sucesso) throw error || new Error('Não foi possível atualizar.');
 
       setAgendamento({
         ...agendamento,
