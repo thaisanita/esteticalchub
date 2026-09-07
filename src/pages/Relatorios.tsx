@@ -377,7 +377,7 @@ const Relatorios = () => {
       )}
 
       {abaRelatorio === 'anual' && (
-      <div className="no-print">
+      <div className="no-print w-full">
         {/* Header */}
         <div className="mb-7 flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -470,15 +470,15 @@ const Relatorios = () => {
         </div>
 
         {/* Gráfico */}
-        <div className="mb-6 rounded-2xl border border-border bg-card p-6 shadow-lg shadow-black/20">
+        <div className="mb-6 w-full rounded-2xl border border-border bg-card p-6 shadow-lg shadow-black/20">
           <div className="mb-5 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-foreground">Evolução Mensal</h3>
               <p className="text-[11px] text-muted-foreground">Faturamento por mês, ano atual</p>
             </div>
           </div>
-          <div className="w-full" style={{ height: 380, minHeight: 380 }}>
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="w-full" style={{ height: 380, minHeight: 380, width: '100%' }}>
+            <ResponsiveContainer key={abaRelatorio} width="100%" height="100%" debounce={50} minWidth={0}>
               <AreaChart data={resumoDados.chartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
                 <defs>
                   <linearGradient id="corGanho" x1="0" y1="0" x2="0" y2="1">
