@@ -215,12 +215,6 @@ const Relatorios = () => {
 
   return (
     <div>
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-        }
-      `}</style>
-
       {/* Seletor de abas */}
       <div className="no-print mb-6 flex gap-2 border-b border-border">
         <button

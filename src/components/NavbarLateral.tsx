@@ -116,7 +116,7 @@ const NavbarLateral = () => {
     <>
       {/* Sidebar — computador */}
       {!isMobile && (
-        <aside className="fixed left-0 top-0 z-[1000] flex h-screen w-[260px] flex-col border-r border-border bg-card/95 p-5 backdrop-blur-xl shadow-2xl shadow-black/10">
+        <aside className="no-print fixed left-0 top-0 z-[1000] flex h-screen w-[260px] flex-col border-r border-border bg-card/95 p-5 backdrop-blur-xl shadow-2xl shadow-black/10">
         {/* Logótipo e Nome do Negócio (Clicável -> vai para Dashboard) */}
         <div
           onClick={() => irPara('/dashboard')}
@@ -243,7 +243,7 @@ const NavbarLateral = () => {
       {/* Barra inferior — telemóvel */}
       {isMobile && (
         <>
-          <nav className="fixed bottom-0 left-0 right-0 z-[1000] flex items-center justify-around border-t border-border bg-card/95 px-2 py-2 backdrop-blur-xl shadow-2xl shadow-black/20">
+          <nav className="no-print fixed bottom-0 left-0 right-0 z-[1000] flex items-center justify-around border-t border-border bg-card/95 px-2 py-2 backdrop-blur-xl shadow-2xl shadow-black/20">
             <button
               onClick={() => irPara('/dashboard')}
               className={cn(

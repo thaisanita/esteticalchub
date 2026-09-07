@@ -54,3 +54,11 @@
     color: hsl(var(--foreground)) !important;
   }
 }
+
+/* Impressão: esconde sempre o menu, cabeçalho e qualquer controlo marcado
+   como .no-print, em qualquer página — não só na de Relatórios. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

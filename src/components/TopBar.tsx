@@ -142,7 +142,7 @@ const TopBar = () => {
   };
 
   return (
-    <div className="flex w-full items-center justify-between gap-4 border-b border-border px-10 py-[18px]">
+    <div className="no-print flex w-full items-center justify-between gap-4 border-b border-border px-10 py-[18px]">
       {/* Campo de Busca */}
       <div className="flex w-full max-w-[320px] items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-2.5">
         <Search size={15} className="shrink-0 text-muted-foreground" />
