@@ -20,6 +20,7 @@ import Kanban from './pages/Kanban';
 import Config from './pages/Config';
 import AuthCallback from './pages/AuthCallback';
 import ConfirmacaoAtendimento from './pages/ConfirmacaoAtendimento';
+import PaginaPublica from './pages/PaginaPublica';
 
 // Menu lateral das áreas privadas
 import NavbarLateral from './components/NavbarLateral';
@@ -113,6 +114,7 @@ export default function App() {
 
         {/* Rotas Públicas */}
         <Route path="/confirmacao/:token" element={<ConfirmacaoAtendimento />} />
+        <Route path="/p/:slug" element={<PaginaPublica />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
 
         {/* Áreas Privadas do App — todas dentro do LayoutPrivado (menu lateral) */}

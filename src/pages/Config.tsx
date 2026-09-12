@@ -13,12 +13,14 @@ import {
 import {
   Settings,
   Globe,
+  Globe2,
   Link2,
   ChevronRight,
   Phone,
 } from 'lucide-react';
 import { textosConfig, obterIdiomaAtual, type Idioma } from '@/lib/i18n';
 import ConectarWhatsAppBot from '@/components/ConectarWhatsAppBot';
+import PaginaPublicaConfig from '@/components/PaginaPublicaConfig';
 
 interface Usuario {
   email: string;
@@ -112,6 +114,23 @@ export default function Config() {
         </div>
 
         <ConectarWhatsAppBot />
+      </div>
+
+      {/* Página Pública (captação de leads via anúncios) */}
+      <div className="mb-3 rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
+        <div className="flex items-start gap-3.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
+            <Globe2 size={18} className="text-primary" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-foreground">Página Pública</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              Uma página pra receber tráfego de anúncios — a visitante escolhe falar no WhatsApp ou deixar os dados.
+            </div>
+          </div>
+        </div>
+
+        <PaginaPublicaConfig />
       </div>
 
       {/* Idioma */}
