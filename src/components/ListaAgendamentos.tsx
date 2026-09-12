@@ -17,7 +17,6 @@ interface Appointment {
   procedimento?: string;
   procedure?: string;
   telefone?: string;
-  origem?: 'supabase' | 'google';
   pago?: boolean;
   cliente_id?: string;
 }
@@ -25,7 +24,7 @@ interface Appointment {
 interface ListaAgendamentosProps {
   appointments?: Appointment[];
   loading: boolean;
-  onDelete?: (id: string | number, origem?: string) => void;
+  onDelete?: (id: string | number) => void;
   onEdit?: (appt: Appointment) => void;
   onPago?: () => void;
 }
@@ -168,11 +167,6 @@ const ListaAgendamentos = ({
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
                     <strong className="text-sm text-foreground">{cliente}</strong>
-                    {appt.origem === 'google' && (
-                      <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-blue-500">
-                        Google Calendar
-                      </span>
-                    )}
                   </div>
                   {procedimento && (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -188,7 +182,7 @@ const ListaAgendamentos = ({
                   € {valor.toFixed(2)}
                 </span>
 
-                {appt.origem !== 'google' && appt.id && (
+                {appt.id && (
                   appt.pago ? (
                     <span className="flex h-8 items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 text-xs font-semibold text-emerald-500">
                       <CheckCircle2 size={13} /> Pago
@@ -217,8 +211,7 @@ const ListaAgendamentos = ({
                   <span className="hidden text-xs sm:inline">Lembrete</span>
                 </Button>
 
-                {/* Botão Editar (Apenas para agendamentos do Supabase) */}
-                {onEdit && appt.origem !== 'google' && (
+                {onEdit && (
                   <Button
                     onClick={() => onEdit(appt)}
                     size="icon"
@@ -230,10 +223,9 @@ const ListaAgendamentos = ({
                   </Button>
                 )}
 
-                {/* Botão Excluir (Apenas para agendamentos do Supabase) */}
-                {onDelete && appt.id && appt.origem !== 'google' && (
+                {onDelete && appt.id && (
                   <Button
-                    onClick={() => onDelete(appt.id!, appt.origem)}
+                    onClick={() => onDelete(appt.id!)}
                     size="icon"
                     variant="ghost"
                     className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10"

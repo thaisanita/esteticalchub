@@ -8,13 +8,6 @@ import { getErrorMessage } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-interface GoogleCalendarEvent {
-  id: string;
-  summary?: string;
-  description?: string;
-  start?: { dateTime?: string; date?: string };
-}
-
 interface Agendamento {
   id?: string | number;
   data: string;
@@ -24,7 +17,6 @@ interface Agendamento {
   pontoAtendimento?: string;
   hora?: string;
   procedimento?: string;
-  origem?: 'supabase' | 'google';
 }
 
 const getLocalDateString = (date = new Date()) => {
@@ -80,22 +72,9 @@ const Agenda = () => {
   const carregarAgendamentos = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      
-      let listaCombinada: Agendamento[] = [];
+      const { data: { user } } = await supabase.auth.getUser();
 
-      if (user && session.provider_token) {
-        supabase
-          .from('profiles')
-          .upsert({
-            id: user.id,
-            google_calendar_connected: true,
-            google_refresh_token: session.provider_refresh_token || null,
-            updated_at: new Date().toISOString(),
-          })
-          .then();
-      }
+      let lista: Agendamento[] = [];
 
       if (user) {
         const { data, error } = await supabase
@@ -105,49 +84,11 @@ const Agenda = () => {
           .order('hora', { ascending: true });
 
         if (!error && data) {
-          listaCombinada = data.map((item) => ({ ...item, origem: 'supabase' }));
+          lista = data;
         }
       }
 
-      const providerToken = session?.provider_token;
-
-      if (providerToken) {
-        try {
-          const res = await fetch(
-            'https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime',
-            {
-              headers: { Authorization: `Bearer ${providerToken}` },
-            }
-          );
-
-          if (res.ok) {
-            const googleData = await res.json();
-            const eventosGoogle: Agendamento[] = (googleData.items || []).map((evt: GoogleCalendarEvent) => {
-              const dataInicio = evt.start?.dateTime || evt.start?.date || '';
-              const dataFormatada = dataInicio.split('T')[0];
-              const horaFormatada = evt.start?.dateTime
-                ? new Date(evt.start.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : 'Dia todo';
-
-              return {
-                id: evt.id,
-                data: dataFormatada,
-                cliente: evt.summary || 'Agendamento Google',
-                preco: 0,
-                hora: horaFormatada,
-                procedimento: evt.description || 'Sincronizado via Google',
-                origem: 'google',
-              };
-            });
-
-            listaCombinada = [...listaCombinada, ...eventosGoogle];
-          }
-        } catch (err) {
-          console.error('Erro ao buscar eventos do Google Calendar:', err);
-        }
-      }
-
-      setAgendamentos(listaCombinada);
+      setAgendamentos(lista);
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
       setAgendamentos([]);
@@ -174,12 +115,7 @@ const Agenda = () => {
   }, [carregarAgendamentos]);
 
   // Função para EXCLUIR um agendamento no Supabase
-  const handleDeletarAgendamento = async (id: string | number, origem?: string) => {
-    if (origem === 'google') {
-      alert('Eventos vindos do Google Calendar devem ser excluídos direto pelo Google Calendar.');
-      return;
-    }
-
+  const handleDeletarAgendamento = async (id: string | number) => {
     if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
 
     try {
@@ -199,10 +135,6 @@ const Agenda = () => {
 
   // Função para acionar a EDIÇÃO
   const handleEditarAgendamento = (agendamento: Agendamento) => {
-    if (agendamento.origem === 'google') {
-      alert('Eventos do Google Calendar devem ser editados pelo próprio Google.');
-      return;
-    }
     // Passa o ID na URL para o NovoAgendamento ler via searchParams.get('edit')
     navigate(`/novo-agendamento?edit=${agendamento.id}`);
   };

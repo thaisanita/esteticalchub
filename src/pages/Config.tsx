@@ -15,7 +15,6 @@ import {
   Globe,
   Link2,
   ChevronRight,
-  Calendar,
   Phone,
 } from 'lucide-react';
 import { textosConfig, obterIdiomaAtual, type Idioma } from '@/lib/i18n';
@@ -32,7 +31,6 @@ export default function Config() {
   const navigate = useNavigate();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [idioma, setIdioma] = useState<Idioma>(obterIdiomaAtual());
-  const [googleConectado, setGoogleConectado] = useState(false);
 
   useEffect(() => {
     const carregarDadosUsuario = async () => {
@@ -43,41 +41,12 @@ export default function Config() {
           displayName: user.user_metadata?.full_name || 'Usuário',
           photoURL: user.user_metadata?.avatar_url,
         });
-
-        // 1. Verifica sincronização do Google Calendar
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('google_calendar_connected')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (profile?.google_calendar_connected) {
-          setGoogleConectado(true);
-        }
       }
     };
     carregarDadosUsuario();
   }, []);
 
   const t = textosConfig[idioma] || textosConfig['Português (PT)'];
-
-  const conectarGoogleCalendar = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/`,
-        scopes: 'https://www.googleapis.com/auth/calendar.readonly',
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-      },
-    });
-
-    if (error) {
-      alert(`Erro ao conectar: ${error.message}`);
-    }
-  };
 
   const copiarLink = () => {
     navigator.clipboard.writeText(window.location.origin);
@@ -166,26 +135,6 @@ export default function Config() {
             <SelectItem value="Español (ES)">Español (ES)</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-
-      {/* Sincronização Google Calendar */}
-      <div className="mb-3 flex items-center justify-between rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-lg hover:shadow-black/10">
-        <div className="flex items-center gap-3.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-            <Calendar size={18} className="text-primary" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-foreground">{t.agendaLabel}</div>
-            <div className="mt-0.5 text-xs text-muted-foreground">{t.agendaSub}</div>
-          </div>
-        </div>
-        <Button
-          onClick={conectarGoogleCalendar}
-          variant={googleConectado ? 'secondary' : 'outline'}
-          className="border-primary/30 text-primary hover:bg-primary/10 font-bold"
-        >
-          {googleConectado ? 'Conectado ✓' : t.btnAgenda}
-        </Button>
       </div>
 
       {/* Compartilhar */}
