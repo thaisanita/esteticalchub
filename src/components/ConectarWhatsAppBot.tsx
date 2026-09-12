@@ -114,6 +114,10 @@ export default function ConectarWhatsAppBot() {
             Abra o WhatsApp no celular → Configurações → Aparelhos conectados → Conectar um aparelho, e escaneie.
           </p>
         </div>
+      ) : status === 'aguardando_qr' ? (
+        <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+          <Loader2 size={14} className="animate-spin" /> A gerar o QR code, aguarde...
+        </div>
       ) : (
         <Button size="sm" onClick={conectar} disabled={carregando} className="gap-1.5">
           {carregando ? <Loader2 size={14} className="animate-spin" /> : <QrCode size={14} />}

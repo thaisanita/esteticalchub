@@ -61,8 +61,12 @@ app.get('/saude', (_req, res) => res.json({ ok: true }));
 app.post('/sessao/conectar', exigirUsuarioLogado, async (req, res) => {
   try {
     await iniciarSessao(req.usuarioId);
-    // O QR demora um instante a chegar — dá uma pequena espera antes de responder.
-    await new Promise((r) => setTimeout(r, 1500));
+    // O QR demora um instante a chegar — espera até 8s por ele (verifica a
+    // cada 500ms), em vez de assumir que 1,5s é sempre suficiente.
+    for (let tentativa = 0; tentativa < 16; tentativa++) {
+      if (qrDaSessao(req.usuarioId) || statusDaSessao(req.usuarioId) === 'conectado') break;
+      await new Promise((r) => setTimeout(r, 500));
+    }
     res.json({
       status: statusDaSessao(req.usuarioId),
       qr: qrDaSessao(req.usuarioId),
