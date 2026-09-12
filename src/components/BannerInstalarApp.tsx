@@ -7,7 +7,8 @@
 import { useState, useEffect } from 'react';
 import { Download, Share, X } from 'lucide-react';
 
-const CHAVE_FECHADO = 'banner_instalar_fechado';
+export const CHAVE_BANNER_INSTALAR_FECHADO = 'banner_instalar_fechado';
+const CHAVE_FECHADO = CHAVE_BANNER_INSTALAR_FECHADO;
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;

@@ -17,10 +17,12 @@ import {
   Link2,
   ChevronRight,
   Phone,
+  Download,
 } from 'lucide-react';
 import { textosConfig, obterIdiomaAtual, type Idioma } from '@/lib/i18n';
 import ConectarWhatsAppBot from '@/components/ConectarWhatsAppBot';
 import PaginaPublicaConfig from '@/components/PaginaPublicaConfig';
+import { CHAVE_BANNER_INSTALAR_FECHADO } from '@/components/BannerInstalarApp';
 
 interface Usuario {
   email: string;
@@ -53,6 +55,11 @@ export default function Config() {
   const copiarLink = () => {
     navigator.clipboard.writeText(window.location.origin);
     alert('Link do app copiado!');
+  };
+
+  const mostrarAvisoInstalarNovamente = () => {
+    localStorage.removeItem(CHAVE_BANNER_INSTALAR_FECHADO);
+    window.location.href = '/dashboard';
   };
 
   const salvarConfiguracoes = () => {
@@ -171,6 +178,25 @@ export default function Config() {
           </div>
         </div>
         <ChevronRight size={16} className="text-primary" />
+      </button>
+
+      {/* Aviso de instalar app (útil pra testar de novo) */}
+      <button
+        onClick={mostrarAvisoInstalarNovamente}
+        className="mb-3 flex w-full items-center justify-between rounded-2xl border border-border bg-card p-5 text-left transition-colors hover:bg-primary/5"
+      >
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <Download size={18} className="text-primary" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-foreground">Mostrar aviso de instalar app</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              Volta a mostrar o banner de "Instalar App", se já o tiver fechado.
+            </div>
+          </div>
+        </div>
+        <ChevronRight size={16} className="text-muted-foreground" />
       </button>
 
       {/* Ações */}
