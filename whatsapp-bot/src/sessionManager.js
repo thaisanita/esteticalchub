@@ -11,10 +11,8 @@ import fs from 'node:fs';
 import QRCode from 'qrcode';
 import pino from 'pino';
 import { Boom } from '@hapi/boom';
-import baileysPkg from '@whiskeysockets/baileys';
+import makeWASocket, { useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
 import { atualizarStatusWhatsapp } from './supabaseAdmin.js';
-
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = baileysPkg;
 
 const SESSIONS_DIR = process.env.SESSIONS_DIR || path.join(process.cwd(), 'sessions');
 fs.mkdirSync(SESSIONS_DIR, { recursive: true });
