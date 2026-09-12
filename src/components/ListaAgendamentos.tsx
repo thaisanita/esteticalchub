@@ -170,7 +170,7 @@ const ListaAgendamentos = ({
                     <strong className="text-sm text-foreground">{cliente}</strong>
                     {appt.origem === 'google' && (
                       <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-blue-500">
-                        Google / TimeTree
+                        Google Calendar
                       </span>
                     )}
                   </div>
