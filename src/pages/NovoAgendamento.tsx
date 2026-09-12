@@ -292,6 +292,11 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
             setDataAgendamento(data.data || '');
             setHoraInicio(data.hora || '09:00');
             if (data.hora_fim) setHoraFim(data.hora_fim);
+            if (data.canal_notificacao === 'email' || data.canal_notificacao === 'whatsapp') {
+              setCanalNotificacao(data.canal_notificacao);
+            }
+            if (typeof data.lembrete_1dia === 'boolean') setLembrete1Dia(data.lembrete_1dia);
+            if (typeof data.lembrete_1hora === 'boolean') setLembrete1Hora(data.lembrete_1hora);
           }
         } catch (e) {
           console.error('Erro ao buscar agendamento:', e);
@@ -302,9 +307,27 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     buscarDados();
   }, [idParaEditar]);
 
-  // Função de gerenciamento da fila de notificações com mensagens de log para o console
+  // Monta o texto do lembrete e "congela-o" na fila, para o worker (Edge
+  // Function processar-fila) só ter de enviar. Ver NOTIFICACOES_AUTOMATICAS.md.
+  const construirLembrete = (antecedencia: '1_dia' | '1_hora') => {
+    const quando = antecedencia === '1_dia' ? 'amanhã' : 'hoje';
+    const primeiroNome = (nomeCliente || cliente).split(' ')[0] || 'tudo bem';
+    const dataFmt = new Date(`${dataAgendamento}T00:00:00`).toLocaleDateString('pt-BR');
+    const local = pontoAtendimento.trim() ? ` Local: ${pontoAtendimento.trim()}.` : '';
+    const mensagem =
+      `Olá, ${primeiroNome}! Passando para lembrar do seu agendamento de ` +
+      `${procedimento.trim() || 'atendimento'} ${quando} (${dataFmt}) às ${horaInicio}.${local} ` +
+      `Qualquer imprevisto, é só responder. Até breve! ✨`;
+    const assunto = `Lembrete: ${procedimento.trim() || 'seu atendimento'} ${quando}`;
+    return { mensagem, assunto };
+  };
+
   const criarFilaNotificacoes = async (agendamentoId: string, userId: string) => {
     const dataHoraAtendimento = new Date(`${dataAgendamento}T${horaInicio}:00`);
+    const destino =
+      canalNotificacao === 'email'
+        ? emailCliente.trim()
+        : telefoneCliente.replace(/\D/g, '');
     const notificacoes = [];
 
     // Lembrete de 1 Dia Antes
@@ -318,7 +341,9 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
           canal: canalNotificacao,
           antecedencia: '1_dia',
           data_disparo: data1Dia.toISOString(),
-          status: 'pendente'
+          status: 'pendente',
+          destino,
+          ...construirLembrete('1_dia'),
         });
       }
     }
@@ -334,7 +359,9 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
           canal: canalNotificacao,
           antecedencia: '1_hora',
           data_disparo: data1Hora.toISOString(),
-          status: 'pendente'
+          status: 'pendente',
+          destino,
+          ...construirLembrete('1_hora'),
         });
       }
     }
@@ -415,6 +442,9 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
         valor: valorFormatado,
         ponto_atendimento: pontoAtendimento.trim(),
         usuario_id: user.id,
+        canal_notificacao: canalNotificacao,
+        lembrete_1dia: lembrete1Dia,
+        lembrete_1hora: lembrete1Hora,
       };
 
       let agendamentoId = idParaEditar;

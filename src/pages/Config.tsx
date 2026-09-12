@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { textosConfig, obterIdiomaAtual, type Idioma } from '@/lib/i18n';
 import { getErrorMessage } from '@/lib/utils';
+import ConectarWhatsAppBot from '@/components/ConectarWhatsAppBot';
 
 interface Usuario {
   email: string;
@@ -241,6 +242,8 @@ export default function Config() {
             </p>
           </div>
         </div>
+
+        <ConectarWhatsAppBot />
       </div>
 
       {/* Idioma */}

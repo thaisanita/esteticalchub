@@ -16,6 +16,7 @@ import {
   CalendarPlus,
   Users,
   HandCoins,
+  LayoutDashboard,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -102,6 +103,7 @@ const NavbarLateral = () => {
     { rota: '/custos', texto: textos.custos, Icone: Receipt },
     { rota: '/clientes', texto: textos.clientes, Icone: Users },
     { rota: '/pagamentos', texto: textos.pagamentos, Icone: HandCoins },
+    { rota: '/kanban', texto: textos.kanban, Icone: LayoutDashboard },
   ];
 
   const itemClasses = (isAtivo: boolean) =>
@@ -306,6 +308,7 @@ const NavbarLateral = () => {
                   { rota: '/porcentagem', texto: textos.porcentagem, Icone: Wallet },
                   { rota: '/relatorios', texto: textos.relatorios, Icone: TrendingUp },
                   { rota: '/pagamentos', texto: textos.pagamentos, Icone: HandCoins },
+                  { rota: '/kanban', texto: textos.kanban, Icone: LayoutDashboard },
                   { rota: '/configuracoes', texto: textos.configuracoes, Icone: Settings },
                 ].map(({ rota, texto, Icone }) => (
                   <button

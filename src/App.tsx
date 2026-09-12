@@ -16,6 +16,7 @@ import Custos from './pages/Custos';
 import Clientes from './pages/Clientes';
 import Prontuario from './pages/Prontuario';
 import Pagamentos from './pages/Pagamentos';
+import Kanban from './pages/Kanban';
 import Config from './pages/Config';
 import AuthCallback from './pages/AuthCallback';
 import ConfirmacaoAtendimento from './pages/ConfirmacaoAtendimento';
@@ -130,6 +131,7 @@ export default function App() {
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/prontuario/:clienteId" element={<Prontuario />} />
           <Route path="/pagamentos" element={<Pagamentos />} />
+          <Route path="/kanban" element={<Kanban />} />
           <Route path="/configuracoes" element={<Config />} />
           <Route path="/config" element={<Navigate to="/configuracoes" replace />} />
         </Route>

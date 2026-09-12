@@ -20,6 +20,7 @@ export interface TextosNavbar {
   custos: string;
   clientes: string;
   pagamentos: string;
+  kanban: string;
   configuracoes: string;
   sair: string;
 }
@@ -28,17 +29,20 @@ export const textosNavbar: Record<Idioma, TextosNavbar> = {
   'Português (PT)': {
     agenda: 'Agenda', procedimentos: 'Procedimentos',
     porcentagem: 'Comissão', relatorios: 'Relatórios e Ganhos',
-    custos: 'Custos', clientes: 'Clientes', pagamentos: 'Pagamentos', configuracoes: 'Configurações', sair: 'Sair',
+    custos: 'Custos', clientes: 'Clientes', pagamentos: 'Pagamentos', kanban: 'Planeamento',
+    configuracoes: 'Configurações', sair: 'Sair',
   },
   'English (US)': {
     agenda: 'Schedule', procedimentos: 'Procedures',
     porcentagem: 'Commission', relatorios: 'Reports & Earnings',
-    custos: 'Costs', clientes: 'Clients', pagamentos: 'Payments', configuracoes: 'Settings', sair: 'Logout',
+    custos: 'Costs', clientes: 'Clients', pagamentos: 'Payments', kanban: 'Planning',
+    configuracoes: 'Settings', sair: 'Logout',
   },
   'Español (ES)': {
     agenda: 'Agenda', procedimentos: 'Procedimientos',
     porcentagem: 'Comisión', relatorios: 'Informes y Ganancias',
-    custos: 'Costos', clientes: 'Clientes', pagamentos: 'Pagos', configuracoes: 'Configuración', sair: 'Salir',
+    custos: 'Costos', clientes: 'Clientes', pagamentos: 'Pagos', kanban: 'Planificación',
+    configuracoes: 'Configuración', sair: 'Salir',
   },
 };
 
@@ -181,5 +185,65 @@ export const textosProcedimentos: Record<Idioma, TextosProcedimentos> = {
     btnVoltar: 'Volver a la Agenda', btnNovo: 'Nueva Cita',
     confFalta: '¿Marcar como falta? El valor se ajustará a cero.',
     confExcluir: '¿Está seguro de que desea eliminar esta cita?', formatoData: 'es-ES', selecione: 'Seleccione un día',
+  },
+};
+
+// ---------- Kanban ----------
+export interface TextosKanban {
+  titulo: string;
+  subtitulo: string;
+  novoQuadro: string;
+  novoQuadroTitulo: string;
+  nomeQuadroPlaceholder: string;
+  criar: string;
+  cancelar: string;
+  novaLista: string;
+  nomeListaPlaceholder: string;
+  adicionarCartao: string;
+  tituloCartaoPlaceholder: string;
+  descricaoPlaceholder: string;
+  vazio: string;
+  vazioSub: string;
+  confExcluirQuadro: string;
+  confExcluirLista: string;
+  confExcluirCartao: string;
+}
+
+export const textosKanban: Record<Idioma, TextosKanban> = {
+  'Português (PT)': {
+    titulo: 'Planeamento', subtitulo: 'Organize ideias, tarefas e projetos do seu negócio.',
+    novoQuadro: 'Novo Quadro', novoQuadroTitulo: 'Criar novo quadro', nomeQuadroPlaceholder: 'Ex.: Marketing',
+    criar: 'Criar', cancelar: 'Cancelar',
+    novaLista: 'Nova lista', nomeListaPlaceholder: 'Nome da lista',
+    adicionarCartao: '+ Adicionar cartão', tituloCartaoPlaceholder: 'Título do cartão',
+    descricaoPlaceholder: 'Descrição (opcional)...',
+    vazio: 'Ainda não tem nenhum quadro.', vazioSub: 'Crie um quadro para começar a organizar as suas ideias.',
+    confExcluirQuadro: 'Excluir este quadro e todo o seu conteúdo?',
+    confExcluirLista: 'Excluir esta lista e todos os seus cartões?',
+    confExcluirCartao: 'Excluir este cartão?',
+  },
+  'English (US)': {
+    titulo: 'Planning', subtitulo: 'Organize ideas, tasks and projects for your business.',
+    novoQuadro: 'New Board', novoQuadroTitulo: 'Create new board', nomeQuadroPlaceholder: 'E.g.: Marketing',
+    criar: 'Create', cancelar: 'Cancel',
+    novaLista: 'New list', nomeListaPlaceholder: 'List name',
+    adicionarCartao: '+ Add card', tituloCartaoPlaceholder: 'Card title',
+    descricaoPlaceholder: 'Description (optional)...',
+    vazio: "You don't have any boards yet.", vazioSub: 'Create a board to start organizing your ideas.',
+    confExcluirQuadro: 'Delete this board and all its content?',
+    confExcluirLista: 'Delete this list and all its cards?',
+    confExcluirCartao: 'Delete this card?',
+  },
+  'Español (ES)': {
+    titulo: 'Planificación', subtitulo: 'Organice ideas, tareas y proyectos de su negocio.',
+    novoQuadro: 'Nuevo Tablero', novoQuadroTitulo: 'Crear nuevo tablero', nomeQuadroPlaceholder: 'Ej.: Marketing',
+    criar: 'Crear', cancelar: 'Cancelar',
+    novaLista: 'Nueva lista', nomeListaPlaceholder: 'Nombre de la lista',
+    adicionarCartao: '+ Añadir tarjeta', tituloCartaoPlaceholder: 'Título de la tarjeta',
+    descricaoPlaceholder: 'Descripción (opcional)...',
+    vazio: 'Aún no tiene ningún tablero.', vazioSub: 'Cree un tablero para empezar a organizar sus ideas.',
+    confExcluirQuadro: '¿Eliminar este tablero y todo su contenido?',
+    confExcluirLista: '¿Eliminar esta lista y todas sus tarjetas?',
+    confExcluirCartao: '¿Eliminar esta tarjeta?',
   },
 };
