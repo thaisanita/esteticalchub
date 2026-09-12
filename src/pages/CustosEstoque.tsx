@@ -316,10 +316,14 @@ export default function CustosEstoque() {
           <Plus size={14} className="text-primary" />
           Registrar Custo, Compra ou Conta
         </span>
+        <p className="-mt-2 text-[11px] text-muted-foreground">
+          Só para despesas variáveis (compras, insumos, contas pontuais). Se for um custo que se repete todos os
+          meses com o mesmo valor (renda, internet, software), regista-o na aba Custos Fixos.
+        </p>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Input
-            placeholder="Item / Descrição (ex: Segurança Social, Lâminas)"
+            placeholder="Item / Descrição (ex: Lâminas, Cremes)"
             value={titulo}
             onChange={(e) => setTitulo(e.target.value)}
             className="h-10 bg-background/50 text-xs"
@@ -332,7 +336,6 @@ export default function CustosEstoque() {
             className="h-10 rounded-md border border-border bg-background/50 px-3 text-xs font-medium text-foreground focus:outline-none"
           >
             <option value="material_estoque">Material / Insumos de Estoque</option>
-            <option value="fixo_recorrente">Custo Fixo (Segurança Social, Renda)</option>
             <option value="imposto_taxa">Imposto / Licenças / Seguros</option>
             <option value="equipamento">Equipamento / Manutenção</option>
           </select>

@@ -200,6 +200,10 @@ export default function CustosFixos() {
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <Plus size={16} className="text-primary" /> Adicionar Custo Fixo
         </h3>
+        <p className="text-[11px] text-muted-foreground">
+          Só para o que se repete todos os meses com o mesmo valor. Compras pontuais ou insumos vão na aba Variáveis
+          e Estoque.
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Input
             placeholder="Ex: Aluguel do espaço"
