@@ -25,6 +25,7 @@ import PaginaPublica from './pages/PaginaPublica';
 // Menu lateral das áreas privadas
 import NavbarLateral from './components/NavbarLateral';
 import TopBar from './components/TopBar';
+import BannerInstalarApp from './components/BannerInstalarApp';
 
 function RotaLogin({
   autenticado,
@@ -53,6 +54,7 @@ function LayoutPrivado() {
       <main className="min-w-0 flex-1 pb-24 md:pb-8 md:ml-[260px]">
         <TopBar />
         <div className="p-6 sm:p-8">
+          <BannerInstalarApp />
           <Outlet />
         </div>
       </main>
