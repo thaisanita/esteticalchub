@@ -5,7 +5,7 @@
   "description": "Robô próprio de envio de WhatsApp (não-oficial, via WhatsApp Web) para o EstetiCalcHub. Ver README.md antes de ativar.",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "start": "node src/index.js",
