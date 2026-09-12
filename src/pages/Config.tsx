@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Select,
@@ -11,20 +10,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Settings, 
-  Globe, 
-  Link2, 
-  ChevronRight, 
-  Calendar, 
-  Phone, 
-  CheckCircle2, 
-  AlertCircle, 
-  Loader2,
-  Save
+import {
+  Settings,
+  Globe,
+  Link2,
+  ChevronRight,
+  Calendar,
+  Phone,
 } from 'lucide-react';
 import { textosConfig, obterIdiomaAtual, type Idioma } from '@/lib/i18n';
-import { getErrorMessage } from '@/lib/utils';
 import ConectarWhatsAppBot from '@/components/ConectarWhatsAppBot';
 
 interface Usuario {
@@ -39,11 +33,6 @@ export default function Config() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [idioma, setIdioma] = useState<Idioma>(obterIdiomaAtual());
   const [googleConectado, setGoogleConectado] = useState(false);
-
-  // Estados do WhatsApp
-  const [telefoneRemetente, setTelefoneRemetente] = useState('');
-  const [salvandoTelefone, setSalvandoTelefone] = useState(false);
-  const [whatsappStatus, setWhatsappStatus] = useState<'conectado' | 'desconectado'>('desconectado');
 
   useEffect(() => {
     const carregarDadosUsuario = async () => {
@@ -64,20 +53,6 @@ export default function Config() {
 
         if (profile?.google_calendar_connected) {
           setGoogleConectado(true);
-        }
-
-        // 2. Carrega as configurações de telefone e WhatsApp do usuário
-        const { data: configWhatsapp } = await supabase
-          .from('configuracoes_usuario')
-          .select('telefone_remetente, whatsapp_status')
-          .eq('usuario_id', user.id)
-          .maybeSingle();
-
-        if (configWhatsapp) {
-          setTelefoneRemetente(configWhatsapp.telefone_remetente || '');
-          if (configWhatsapp.telefone_remetente?.trim()) {
-            setWhatsappStatus('conectado');
-          }
         }
       }
     };
@@ -101,39 +76,6 @@ export default function Config() {
 
     if (error) {
       alert(`Erro ao conectar: ${error.message}`);
-    }
-  };
-
-  const salvarTelefoneWhatsApp = async () => {
-    if (!telefoneRemetente.trim()) {
-      alert('Por favor, informe um número de telefone válido.');
-      return;
-    }
-
-    setSalvandoTelefone(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado.');
-
-      const { error } = await supabase
-        .from('configuracoes_usuario')
-        .upsert(
-          {
-            usuario_id: user.id,
-            telefone_remetente: telefoneRemetente.trim(),
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'usuario_id' }
-        );
-
-      if (error) throw error;
-
-      setWhatsappStatus('conectado');
-      alert('Número salvo com sucesso!');
-    } catch (err) {
-      alert(`Erro ao salvar número: ${getErrorMessage(err)}`);
-    } finally {
-      setSalvandoTelefone(false);
     }
   };
 
@@ -186,60 +128,17 @@ export default function Config() {
         </div>
       )}
 
-      {/* Bloco WhatsApp / Telefone do Profissional */}
+      {/* Bloco WhatsApp — conectar o robô automático */}
       <div className="mb-3 rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
         <div className="flex items-start gap-3.5">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
             <Phone size={18} className="text-primary" />
           </div>
           <div>
-            <div className="text-sm font-bold text-foreground">{t.whatsappLabel}</div>
-            <div className="mt-0.5 text-xs text-muted-foreground">{t.whatsappSub}</div>
-          </div>
-        </div>
-
-        {/* Input e Ação de Salvar */}
-        <div className="space-y-2 pt-1">
-          <label className="text-xs font-semibold text-foreground">
-            {t.whatsappInputLabel}
-          </label>
-          <div className="flex gap-2">
-            <Input
-              type="tel"
-              value={telefoneRemetente}
-              onChange={(e) => setTelefoneRemetente(e.target.value)}
-              placeholder={t.whatsappPlaceholder}
-              className="h-10 bg-background/50 border-border"
-            />
-            <Button
-              onClick={salvarTelefoneWhatsApp}
-              disabled={salvandoTelefone}
-              className="h-10 gap-1.5 px-4 font-semibold"
-            >
-              {salvandoTelefone ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Save size={16} />
-              )}
-              {t.btnSalvarNumero}
-            </Button>
-          </div>
-        </div>
-
-        {/* Badge Status do WhatsApp */}
-        <div className="flex items-center gap-2.5 rounded-xl bg-muted/40 p-3 border border-border/80">
-          {whatsappStatus === 'conectado' ? (
-            <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
-          ) : (
-            <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
-          )}
-          <div className="text-xs">
-            <p className="font-semibold text-foreground">
-              {whatsappStatus === 'conectado' ? t.statusConectado : t.statusDesconectado}
-            </p>
-            <p className="text-muted-foreground">
-              {whatsappStatus === 'conectado' ? t.statusConectadoSub : t.statusDesconectadoSub}
-            </p>
+            <div className="text-sm font-bold text-foreground">WhatsApp</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              Ligue o seu WhatsApp para enviar lembretes automáticos às clientes.
+            </div>
           </div>
         </div>
 
