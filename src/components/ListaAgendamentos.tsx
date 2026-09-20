@@ -93,7 +93,7 @@ const ListaAgendamentos = ({
 
   if (loading) {
     return (
-      <div className="flex min-h-[120px] flex-col items-center justify-center gap-2 px-3 py-5 text-center">
+      <div className="flex min-h-[150px] flex-col items-center justify-center gap-2 px-3 py-5 text-center">
         <p className="text-[12px] text-muted-foreground">Carregando atendimentos...</p>
       </div>
     );
@@ -101,7 +101,7 @@ const ListaAgendamentos = ({
 
   if (!appointments || appointments.length === 0) {
     return (
-      <div className="flex min-h-[120px] flex-col items-center justify-center gap-2 px-3 py-4 text-center">
+      <div className="flex min-h-[150px] flex-col items-center justify-center gap-2 px-3 py-4 text-center">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
           <CalendarX size={18} className="text-primary" />
         </div>

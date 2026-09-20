@@ -179,7 +179,7 @@ const Agenda = () => {
   }, [agendamentos, dataSelecionada]);
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,2.3fr)_minmax(0,1fr)] lg:items-start">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)] lg:items-start">
       {/* Cabeçalho */}
       <header className="flex flex-wrap items-end justify-between gap-3 lg:col-span-2">
         <div>
@@ -216,7 +216,7 @@ const Agenda = () => {
 
       {/* Coluna Direita: Lista de Agendamentos */}
       <div className="flex flex-col gap-4">
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-lg shadow-black/20">
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/20">
           <ListaAgendamentos 
             appointments={agendamentosDoDia} 
             loading={loading}
@@ -227,7 +227,7 @@ const Agenda = () => {
         </div>
 
         {/* Card de Meta */}
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-lg shadow-black/20">
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/20">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">

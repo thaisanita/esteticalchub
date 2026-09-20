@@ -134,7 +134,7 @@ const Calendar = ({ onDaySelect, onMonthChange, agendamentos = [] }: CalendarPro
             onDaySelect(dateString);
           }}
           className={cn(
-            'relative flex min-h-[92px] flex-col items-center rounded-lg border border-border pt-1.5 transition-colors',
+            'relative flex min-h-[82px] flex-col items-center rounded-lg border border-border pt-1.5 transition-colors',
             isSelecionado
               ? 'border-primary bg-primary/10'
               : isHoje
