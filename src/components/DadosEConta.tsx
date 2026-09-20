@@ -4,9 +4,16 @@
 import { useState } from 'react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { getErrorMessage } from '@/lib/utils';
-import { Download, Trash2, Loader2 } from 'lucide-react';
+import { Download, Trash2, Loader2, AlertTriangle } from 'lucide-react';
 
 // Nome (slug) com que a função foi publicada no Supabase. O código dela está em
 // supabase/functions/excluir-conta/index.ts — o painel do Supabase gerou este nome.
@@ -32,7 +39,8 @@ const TABELAS_EXPORTAVEIS = [
 
 export default function DadosEConta() {
   const [exportando, setExportando] = useState(false);
-  const [confirmacao, setConfirmacao] = useState('');
+  const [dialogoAberto, setDialogoAberto] = useState(false);
+  const [emailConta, setEmailConta] = useState('');
   const [eliminando, setEliminando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -66,8 +74,14 @@ export default function DadosEConta() {
     }
   };
 
+  const abrirDialogo = async () => {
+    setErro(null);
+    const { data: { user } } = await supabase.auth.getUser();
+    setEmailConta(user?.email ?? '');
+    setDialogoAberto(true);
+  };
+
   const eliminar = async () => {
-    if (confirmacao !== 'ELIMINAR') return;
     setEliminando(true);
     setErro(null);
     try {
@@ -103,6 +117,7 @@ export default function DadosEConta() {
       localStorage.clear();
       window.location.href = '/';
     } catch (e) {
+      setDialogoAberto(false);
       setErro(`Não foi possível eliminar a conta: ${getErrorMessage(e)}. Se o problema continuar, escreva para o suporte.`);
       setEliminando(false);
     }
@@ -126,25 +141,34 @@ export default function DadosEConta() {
           Apaga definitivamente a sua conta e todos os dados (clientes, agendamentos, prontuários, ficheiros e
           ligação ao WhatsApp). Não pode ser desfeito. Exporte primeiro, se quiser guardar uma cópia.
         </p>
-        <div className="flex gap-2">
-          <Input
-            value={confirmacao}
-            onChange={(e) => setConfirmacao(e.target.value)}
-            placeholder='Escreva ELIMINAR para confirmar'
-            className="h-9 text-xs"
-          />
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={eliminar}
-            disabled={confirmacao !== 'ELIMINAR' || eliminando}
-            className="shrink-0 gap-1.5"
-          >
-            {eliminando ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-            Eliminar
-          </Button>
-        </div>
+        <Button size="sm" variant="destructive" onClick={abrirDialogo} className="gap-1.5">
+          <Trash2 size={14} />
+          Eliminar conta
+        </Button>
       </div>
+
+      <Dialog open={dialogoAberto} onOpenChange={(aberto) => !eliminando && setDialogoAberto(aberto)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-danger">
+              <AlertTriangle size={16} /> Tem certeza que quer eliminar a conta?
+            </DialogTitle>
+            <DialogDescription>
+              Vai apagar <strong className="text-foreground">{emailConta || 'esta conta'}</strong> e todos os dados
+              dela, definitivamente. Não é possível desfazer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogoAberto(false)} disabled={eliminando}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={eliminar} disabled={eliminando} className="gap-1.5">
+              {eliminando ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              Sim, eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {erro && <p className="text-xs text-danger">{erro}</p>}
     </div>
