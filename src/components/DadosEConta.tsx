@@ -72,7 +72,23 @@ export default function DadosEConta() {
     setErro(null);
     try {
       const { data, error } = await supabase.functions.invoke(FUNCAO_EXCLUIR_CONTA);
-      if (error || data?.erro) throw new Error(data?.erro || error?.message || 'Não foi possível eliminar.');
+      if (error) {
+        // O supabase-js só diz "non-2xx": vamos buscar a resposta verdadeira da função.
+        let detalhe = error.message;
+        const resp = (error as { context?: Response }).context;
+        if (resp && typeof resp.json === 'function') {
+          try {
+            const corpo = await resp.json();
+            detalhe = corpo.erro
+              ? `${corpo.erro}${Array.isArray(corpo.falhas) ? ' (' + corpo.falhas.join('; ') + ')' : ''}`
+              : corpo.message || JSON.stringify(corpo);
+          } catch {
+            // resposta sem JSON: mantém a mensagem genérica
+          }
+        }
+        throw new Error(detalhe);
+      }
+      if (data?.erro) throw new Error(data.erro);
 
       await supabase.auth.signOut();
       localStorage.clear();
