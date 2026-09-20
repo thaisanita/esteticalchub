@@ -562,37 +562,7 @@ required
 
 
 
-{isRegistro && (
 
-<label className="flex cursor-pointer items-start gap-2 text-left text-xs leading-relaxed text-muted-foreground">
-
-<input
-
-type="checkbox"
-
-checked={aceitouTermos}
-
-onChange={(e) => setAceitouTermos(e.target.checked)}
-
-className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-
-/>
-
-<span>
-
-Li e aceito os{' '}
-
-<a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-primary underline">Termos de Uso</a>
-
-{' '}e a{' '}
-
-<a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-primary underline">Política de Privacidade</a>.
-
-</span>
-
-</label>
-
-)}
 
 
 
@@ -789,6 +759,40 @@ Esqueci minha senha
 {mensagem}
 
 </div>
+
+)}
+
+
+
+{isRegistro && (
+
+<label className="flex cursor-pointer items-start gap-2 text-left text-xs leading-relaxed text-muted-foreground">
+
+<input
+
+type="checkbox"
+
+checked={aceitouTermos}
+
+onChange={(e) => setAceitouTermos(e.target.checked)}
+
+className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+
+/>
+
+<span>
+
+Li e aceito os{' '}
+
+<a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-primary underline">Termos de Uso</a>
+
+{' '}e a{' '}
+
+<a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-primary underline">Política de Privacidade</a>.
+
+</span>
+
+</label>
 
 )}
 
