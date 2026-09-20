@@ -61,4 +61,4 @@ where schemaname = 'public' and (qual = 'true' or qual is null or 'anon' = any(r
 
 ## Publicar a função `excluir-conta`
 Supabase → Edge Functions → *Deploy a new function* → nome `excluir-conta` → colar o conteúdo de
-`supabase/functions/excluir-conta/index.ts` → **deixar "Verify JWT" LIGADO** → Deploy.
+`supabase/functions/excluir-conta/index.ts` → Deploy. (Foi publicada como `rapid-worker`; a função valida o utilizador no código, por isso o "Verify JWT" pode ficar desligado.)

@@ -8,6 +8,10 @@ import { Input } from '@/components/ui/input';
 import { getErrorMessage } from '@/lib/utils';
 import { Download, Trash2, Loader2 } from 'lucide-react';
 
+// Nome (slug) com que a função foi publicada no Supabase. O código dela está em
+// supabase/functions/excluir-conta/index.ts — o painel do Supabase gerou este nome.
+const FUNCAO_EXCLUIR_CONTA = 'rapid-worker';
+
 const TABELAS_EXPORTAVEIS = [
   'clientes',
   'agendamentos',
@@ -67,7 +71,7 @@ export default function DadosEConta() {
     setEliminando(true);
     setErro(null);
     try {
-      const { data, error } = await supabase.functions.invoke('excluir-conta');
+      const { data, error } = await supabase.functions.invoke(FUNCAO_EXCLUIR_CONTA);
       if (error || data?.erro) throw new Error(data?.erro || error?.message || 'Não foi possível eliminar.');
 
       await supabase.auth.signOut();

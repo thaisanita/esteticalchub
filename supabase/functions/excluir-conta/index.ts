@@ -2,9 +2,10 @@
 // Direito ao apagamento (RGPD, art. 17.º): a própria profissional elimina a
 // sua conta e todos os dados associados, a partir de Configurações.
 //
-// Deploy: esta função DEVE ter "Verify JWT" LIGADO (ao contrário da
-// processar-fila) — só quem está autenticado pode apagar a própria conta, e a
-// função só apaga a conta de quem fez o pedido.
+// Publicada no Supabase com o nome "rapid-worker" (o painel gera o nome).
+// A própria função valida quem pede (auth.getUser com o token da pessoa) e só
+// apaga a conta de quem fez o pedido, por isso o "Verify JWT" do gateway pode
+// ficar desligado (recomendação do Supabase: validar no código).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
