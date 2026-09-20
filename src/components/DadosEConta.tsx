@@ -71,25 +71,33 @@ export default function DadosEConta() {
     setEliminando(true);
     setErro(null);
     try {
-      const { data, error } = await supabase.functions.invoke(FUNCAO_EXCLUIR_CONTA);
-      if (error) {
-        // O supabase-js só diz "non-2xx": vamos buscar a resposta verdadeira da função.
-        let detalhe = error.message;
-        const resp = (error as { context?: Response }).context;
-        if (resp && typeof resp.text === 'function') {
-          const texto = await resp.text().catch(() => '');
-          try {
-            const corpo = JSON.parse(texto);
-            detalhe = corpo.erro
-              ? `${corpo.erro}${Array.isArray(corpo.falhas) && corpo.falhas.length ? ' (' + corpo.falhas.join('; ') + ')' : ''}`
-              : corpo.message || texto;
-          } catch {
-            detalhe = `HTTP ${resp.status}${texto ? ': ' + texto.slice(0, 200) : ''}`;
-          }
-        }
-        throw new Error(detalhe);
+      // Chamada direta (em vez de supabase.functions.invoke) para vermos sempre a
+      // resposta verdadeira da função, mesmo quando falha.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão expirada. Entre novamente.');
+
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${FUNCAO_EXCLUIR_CONTA}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+      });
+      const texto = await resp.text();
+      let corpo: { erro?: string; falhas?: string[]; ok?: boolean; message?: string } = {};
+      try {
+        corpo = JSON.parse(texto);
+      } catch {
+        // resposta que não é JSON: mostramos o texto cru abaixo
       }
-      if (data?.erro) throw new Error(data.erro);
+
+      if (!resp.ok || !corpo.ok) {
+        const falhas = corpo.falhas?.length ? ` (${corpo.falhas.join('; ')})` : '';
+        throw new Error(
+          `[HTTP ${resp.status}] ${corpo.erro || corpo.message || texto.slice(0, 300) || 'sem resposta'}${falhas}`
+        );
+      }
 
       await supabase.auth.signOut();
       localStorage.clear();
