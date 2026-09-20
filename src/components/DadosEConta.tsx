@@ -1,12 +1,16 @@
-// "Os meus dados": exportar tudo (portabilidade, RGPD art. 20.º).
-// A eliminação de conta está desativada até ser revista: os pedidos de
-// eliminação são tratados por email (EMPRESA.email).
+// "Os meus dados": exportar tudo (portabilidade, RGPD art. 20.º) e eliminar a
+// conta com todos os dados (apagamento, art. 17.º). A eliminação é feita pela
+// Edge Function `excluir-conta`.
 import { useState } from 'react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { getErrorMessage } from '@/lib/utils';
-import { EMPRESA } from '@/lib/empresa';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Trash2, Loader2 } from 'lucide-react';
+
+// Nome (slug) com que a função foi publicada no Supabase. O código dela está em
+// supabase/functions/excluir-conta/index.ts — o painel do Supabase gerou este nome.
+const FUNCAO_EXCLUIR_CONTA = 'rapid-worker';
 
 const TABELAS_EXPORTAVEIS = [
   'clientes',
@@ -28,6 +32,8 @@ const TABELAS_EXPORTAVEIS = [
 
 export default function DadosEConta() {
   const [exportando, setExportando] = useState(false);
+  const [confirmacao, setConfirmacao] = useState('');
+  const [eliminando, setEliminando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
   const exportar = async () => {
@@ -60,8 +66,50 @@ export default function DadosEConta() {
     }
   };
 
+  const eliminar = async () => {
+    if (confirmacao !== 'ELIMINAR') return;
+    setEliminando(true);
+    setErro(null);
+    try {
+      // Chamada direta (em vez de supabase.functions.invoke) para vermos sempre a
+      // resposta verdadeira da função, mesmo quando falha.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão expirada. Entre novamente.');
+
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${FUNCAO_EXCLUIR_CONTA}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+      });
+      const texto = await resp.text();
+      let corpo: { erro?: string; falhas?: string[]; ok?: boolean; message?: string } = {};
+      try {
+        corpo = JSON.parse(texto);
+      } catch {
+        // resposta que não é JSON: mostramos o texto cru abaixo
+      }
+
+      if (!resp.ok || !corpo.ok) {
+        const falhas = corpo.falhas?.length ? ` (${corpo.falhas.join('; ')})` : '';
+        throw new Error(
+          `[HTTP ${resp.status}] ${corpo.erro || corpo.message || texto.slice(0, 300) || 'sem resposta'}${falhas}`
+        );
+      }
+
+      await supabase.auth.signOut();
+      localStorage.clear();
+      window.location.href = '/';
+    } catch (e) {
+      setErro(`Não foi possível eliminar a conta: ${getErrorMessage(e)}. Se o problema continuar, escreva para o suporte.`);
+      setEliminando(false);
+    }
+  };
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
           Descarregue uma cópia de todos os seus dados (clientes, agendamentos, custos, etc.) em formato JSON.
@@ -71,13 +119,33 @@ export default function DadosEConta() {
           Exportar
         </Button>
       </div>
-      <p className="text-[11px] text-muted-foreground">
-        Para eliminar a sua conta e todos os dados, escreva para{' '}
-        <a className="text-primary underline" href={`mailto:${EMPRESA.email}`}>
-          {EMPRESA.email}
-        </a>
-        .
-      </p>
+
+      <div className="space-y-2 rounded-xl border border-danger/30 bg-danger/5 p-3">
+        <p className="text-xs font-semibold text-danger">Eliminar conta</p>
+        <p className="text-[11px] text-muted-foreground">
+          Apaga definitivamente a sua conta e todos os dados (clientes, agendamentos, prontuários, ficheiros e
+          ligação ao WhatsApp). Não pode ser desfeito. Exporte primeiro, se quiser guardar uma cópia.
+        </p>
+        <div className="flex gap-2">
+          <Input
+            value={confirmacao}
+            onChange={(e) => setConfirmacao(e.target.value)}
+            placeholder='Escreva ELIMINAR para confirmar'
+            className="h-9 text-xs"
+          />
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={eliminar}
+            disabled={confirmacao !== 'ELIMINAR' || eliminando}
+            className="shrink-0 gap-1.5"
+          >
+            {eliminando ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            Eliminar
+          </Button>
+        </div>
+      </div>
+
       {erro && <p className="text-xs text-danger">{erro}</p>}
     </div>
   );

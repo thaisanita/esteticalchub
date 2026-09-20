@@ -191,7 +191,7 @@ export default function Config() {
           <div>
             <div className="text-sm font-bold text-foreground">Os meus dados</div>
             <div className="mt-0.5 text-xs text-muted-foreground">
-              Exporte uma cópia dos seus dados.
+              Exporte uma cópia ou elimine a sua conta e todos os dados.
             </div>
           </div>
         </div>
