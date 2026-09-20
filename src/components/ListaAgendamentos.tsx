@@ -93,22 +93,22 @@ const ListaAgendamentos = ({
 
   if (loading) {
     return (
-      <div className="flex min-h-[320px] flex-col items-center justify-center gap-3.5 px-5 py-10 text-center">
-        <p className="text-[13px] text-muted-foreground">Carregando atendimentos...</p>
+      <div className="flex min-h-[120px] flex-col items-center justify-center gap-2 px-3 py-5 text-center">
+        <p className="text-[12px] text-muted-foreground">Carregando atendimentos...</p>
       </div>
     );
   }
 
   if (!appointments || appointments.length === 0) {
     return (
-      <div className="flex min-h-[320px] flex-col items-center justify-center gap-3.5 px-5 py-10 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-          <CalendarX size={22} className="text-primary" />
+      <div className="flex min-h-[120px] flex-col items-center justify-center gap-2 px-3 py-4 text-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+          <CalendarX size={18} className="text-primary" />
         </div>
-        <h4 className="font-display text-[19px] font-semibold text-foreground">
+        <h4 className="font-display text-[15px] font-semibold text-foreground">
           Nenhum agendamento
         </h4>
-        <p className="max-w-[240px] text-[13px] text-muted-foreground">
+        <p className="max-w-[240px] text-[12px] text-muted-foreground">
           Selecione um dia com marcação no calendário ao lado para ver os detalhes aqui.
         </p>
       </div>
@@ -118,35 +118,35 @@ const ListaAgendamentos = ({
   return (
     <div>
       {/* Resumo Financeiro Compacto */}
-      <div className="mb-5 flex rounded-xl border border-border bg-card p-4">
-        <div className="flex flex-1 flex-col items-center gap-1.5 border-r border-border">
+      <div className="mb-3 flex rounded-xl border border-border bg-card p-3">
+        <div className="flex flex-1 flex-col items-center gap-1 border-r border-border">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             Bruto
           </span>
-          <strong className="font-display text-xl font-bold text-foreground">
+          <strong className="font-display text-base font-bold text-foreground">
             € {totals.totalRendimento.toFixed(2)}
           </strong>
         </div>
-        <div className="flex flex-1 flex-col items-center gap-1.5 border-r border-border">
+        <div className="flex flex-1 flex-col items-center gap-1 border-r border-border">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             Custo
           </span>
-          <strong className="font-display text-xl font-bold text-rose-500">
+          <strong className="font-display text-base font-bold text-rose-500">
             € {totals.totalCusto.toFixed(2)}
           </strong>
         </div>
-        <div className="flex flex-1 flex-col items-center gap-1.5">
+        <div className="flex flex-1 flex-col items-center gap-1">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             Lucro
           </span>
-          <strong className="font-display text-xl font-bold text-emerald-500">
+          <strong className="font-display text-base font-bold text-emerald-500">
             € {totals.totalLucro.toFixed(2)}
           </strong>
         </div>
       </div>
 
       {/* Lista de Atendimentos */}
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-2">
         {appointments.map((appt, index) => {
           const valor = parseMoeda(appt.valor ?? appt.price ?? 0);
           const cliente = appt.cliente || appt.clientName || 'Cliente';
@@ -156,46 +156,45 @@ const ListaAgendamentos = ({
           return (
             <div
               key={appt.id || index}
-              className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3.5 transition-colors hover:border-muted-foreground/30"
+              className="rounded-lg border border-border bg-card px-3 py-2.5 transition-colors hover:border-muted-foreground/30"
             >
-              <div className="flex items-center gap-3.5">
-                {hora && (
-                  <span className="shrink-0 rounded-md bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
-                    {hora}
-                  </span>
-                )}
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <strong className="text-sm text-foreground">{cliente}</strong>
-                  </div>
-                  {procedimento && (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Sparkles size={11} className="text-primary" />
-                      {procedimento}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  {hora && (
+                    <span className="shrink-0 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-bold text-primary">
+                      {hora}
                     </span>
                   )}
+                  <div className="flex min-w-0 flex-col">
+                    <strong className="truncate text-[13px] text-foreground">{cliente}</strong>
+                    {procedimento && (
+                      <span className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
+                        <Sparkles size={10} className="shrink-0 text-primary" />
+                        <span className="truncate">{procedimento}</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-2.5">
-                <span className="font-display text-base font-bold text-foreground">
+                <span className="shrink-0 font-display text-sm font-bold text-foreground">
                   € {valor.toFixed(2)}
                 </span>
+              </div>
 
+              <div className="mt-2 flex flex-wrap items-center justify-end gap-1.5">
                 {appt.id && (
                   appt.pago ? (
-                    <span className="flex h-8 items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 text-xs font-semibold text-emerald-500">
-                      <CheckCircle2 size={13} /> Pago
+                    <span className="flex h-7 items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 text-[11px] font-semibold text-emerald-500">
+                      <CheckCircle2 size={12} /> Pago
                     </span>
                   ) : (
                     <Button
                       onClick={() => abrirPagamento(appt)}
                       size="sm"
-                      className="h-8 gap-1.5 px-2.5 font-semibold"
+                      className="h-7 gap-1 px-2 text-[11px] font-semibold"
                       title="Marcar como pago"
                     >
-                      <Euro size={14} />
-                      <span className="hidden text-xs sm:inline">Pago</span>
+                      <Euro size={12} />
+                      Pago
                     </Button>
                   )
                 )}
@@ -204,11 +203,11 @@ const ListaAgendamentos = ({
                   onClick={() => enviarLembreteWhatsApp(appt)}
                   size="sm"
                   variant="outline"
-                  className="h-8 gap-1.5 border-emerald-500/30 px-2.5 font-semibold text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
+                  className="h-7 gap-1 border-emerald-500/30 px-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
                   title="Enviar lembrete pelo WhatsApp"
                 >
-                  <MessageCircle size={14} />
-                  <span className="hidden text-xs sm:inline">Lembrete</span>
+                  <MessageCircle size={12} />
+                  Lembrete
                 </Button>
 
                 {onEdit && (
@@ -216,10 +215,10 @@ const ListaAgendamentos = ({
                     onClick={() => onEdit(appt)}
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
                     title="Editar agendamento"
                   >
-                    <Pencil size={14} />
+                    <Pencil size={13} />
                   </Button>
                 )}
 
@@ -228,10 +227,10 @@ const ListaAgendamentos = ({
                     onClick={() => onDelete(appt.id!)}
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10"
+                    className="h-7 w-7 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10"
                     title="Excluir agendamento"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={13} />
                   </Button>
                 )}
               </div>

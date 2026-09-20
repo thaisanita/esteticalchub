@@ -179,7 +179,7 @@ const Agenda = () => {
   }, [agendamentos, dataSelecionada]);
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_1fr] lg:items-start">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,2.3fr)_minmax(0,1fr)] lg:items-start">
       {/* Cabeçalho */}
       <header className="flex flex-wrap items-end justify-between gap-3 lg:col-span-2">
         <div>
@@ -210,13 +210,13 @@ const Agenda = () => {
       </header>
 
       {/* Coluna Esquerda: Calendário */}
-      <div className="rounded-2xl border border-border bg-card p-7 shadow-lg shadow-black/20">
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-lg shadow-black/20">
         <Calendar onDaySelect={manipularSelecaoDia} onMonthChange={setMesExibido} agendamentos={agendamentos} />
       </div>
 
       {/* Coluna Direita: Lista de Agendamentos */}
-      <div className="flex flex-col gap-6">
-        <div className="rounded-2xl border border-border bg-card p-7 shadow-lg shadow-black/20">
+      <div className="flex flex-col gap-4">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-lg shadow-black/20">
           <ListaAgendamentos 
             appointments={agendamentosDoDia} 
             loading={loading}
@@ -227,11 +227,11 @@ const Agenda = () => {
         </div>
 
         {/* Card de Meta */}
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-lg shadow-black/20">
-          <div className="mb-4 flex items-center justify-between">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-lg shadow-black/20">
+          <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Target size={18} />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Target size={16} />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-foreground">Meta de Atendimentos</h3>
@@ -253,8 +253,8 @@ const Agenda = () => {
             </div>
           </div>
 
-          <div className="mb-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-foreground tabular-nums">
+          <div className="mb-1.5 flex items-baseline justify-between">
+            <span className="text-xl font-bold text-foreground tabular-nums">
               {estatisticasMes.realizados} <span className="text-xs font-normal text-muted-foreground">/ {metaAtendimentos} realizados</span>
             </span>
             <span className="text-sm font-bold text-primary">
@@ -262,7 +262,7 @@ const Agenda = () => {
             </span>
           </div>
 
-          <div className="relative h-3 w-full overflow-hidden rounded-full bg-background border border-border">
+          <div className="relative h-2 w-full overflow-hidden rounded-full bg-background border border-border">
             <div
               className="h-full bg-gradient-to-r from-primary to-primary-hover transition-all duration-500 ease-out"
               style={{ width: `${estatisticasMes.porcentagem}%` }}
@@ -270,7 +270,7 @@ const Agenda = () => {
           </div>
 
           {estatisticasMes.porcentagem >= 100 && (
-            <div className="mt-3 flex items-center gap-1.5 text-xs font-medium text-emerald-500">
+            <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-emerald-500">
               <CheckCircle2 size={14} />
               Parabéns! Meta do mês atingida!
             </div>
