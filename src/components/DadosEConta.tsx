@@ -76,14 +76,15 @@ export default function DadosEConta() {
         // O supabase-js só diz "non-2xx": vamos buscar a resposta verdadeira da função.
         let detalhe = error.message;
         const resp = (error as { context?: Response }).context;
-        if (resp && typeof resp.json === 'function') {
+        if (resp && typeof resp.text === 'function') {
+          const texto = await resp.text().catch(() => '');
           try {
-            const corpo = await resp.json();
+            const corpo = JSON.parse(texto);
             detalhe = corpo.erro
-              ? `${corpo.erro}${Array.isArray(corpo.falhas) ? ' (' + corpo.falhas.join('; ') + ')' : ''}`
-              : corpo.message || JSON.stringify(corpo);
+              ? `${corpo.erro}${Array.isArray(corpo.falhas) && corpo.falhas.length ? ' (' + corpo.falhas.join('; ') + ')' : ''}`
+              : corpo.message || texto;
           } catch {
-            // resposta sem JSON: mantém a mensagem genérica
+            detalhe = `HTTP ${resp.status}${texto ? ': ' + texto.slice(0, 200) : ''}`;
           }
         }
         throw new Error(detalhe);
