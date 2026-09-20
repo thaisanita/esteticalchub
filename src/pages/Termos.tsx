@@ -53,7 +53,7 @@ const secoes: SecaoLegal[] = [
           fase de testes (beta), que podem mudar ou ser retiradas.
         </p>
         <p>
-          Recomendamos que o utilizador exporte regularmente os seus dados (Configurações → Exportar os meus dados).
+          Recomendamos que o utilizador exporte regularmente os seus dados (Configurações → Os meus dados → Exportar).
         </p>
       </>
     ),
@@ -149,9 +149,9 @@ const secoes: SecaoLegal[] = [
     conteudo: (
       <>
         <p>
-          O utilizador pode <strong>exportar os seus dados</strong> e <strong>eliminar a conta</strong> a qualquer
-          momento em Configurações. Ao eliminar a conta, os dados associados são apagados, salvo o que tivermos de
-          conservar por obrigação legal.
+          O utilizador pode <strong>exportar os seus dados</strong> em Configurações e pedir a <strong>eliminação da
+          conta</strong> a qualquer momento por email. Ao eliminar a conta, os dados associados são apagados, salvo o
+          que tivermos de conservar por obrigação legal.
         </p>
         <p>
           Podemos suspender ou encerrar contas que violem estes termos ou a lei, com aviso prévio sempre que
@@ -211,7 +211,7 @@ const anexo = (
           'recorrer a outros subcontratantes (lista na Política de Privacidade) com garantias equivalentes, informando o responsável de alterações relevantes;',
           'auxiliar o responsável a responder a pedidos de titulares (acesso, retificação, apagamento, portabilidade);',
           'notificar o responsável, sem demora injustificada, após tomar conhecimento de uma violação de dados pessoais;',
-          'apagar ou devolver os dados no fim do serviço (exportação e eliminação de conta em Configurações);',
+          'apagar ou devolver os dados no fim do serviço (exportação em Configurações; eliminação a pedido);',
           'disponibilizar as informações necessárias para demonstrar o cumprimento e permitir auditorias razoáveis.',
         ]}
       />

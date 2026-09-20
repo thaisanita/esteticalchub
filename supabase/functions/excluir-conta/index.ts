@@ -1,3 +1,6 @@
+// ⚠️ NÃO PUBLICAR / DESATIVADA: eliminação de conta suspensa até se perceber porque
+// apareceu perda de dados noutras contas. Ver conversa de 20/09/2026.
+
 // Edge Function: excluir-conta
 // Direito ao apagamento (RGPD, art. 17.º): a própria profissional elimina a
 // sua conta e todos os dados associados, a partir de Configurações.

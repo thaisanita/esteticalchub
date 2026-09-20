@@ -108,7 +108,7 @@ const secoes: SecaoLegal[] = [
     titulo: 'Durante quanto tempo guardamos os dados',
     conteudo: (
       <p>
-        Enquanto a conta estiver ativa. Ao eliminar a conta (Configurações → Eliminar conta), apagamos os dados da
+        Enquanto a conta estiver ativa. Quando pedir a eliminação da conta (por email), apagamos os dados da
         conta e do negócio, incluindo ficheiros e a sessão de WhatsApp, exceto o que a lei nos obrigue a conservar.
         Cópias de segurança do fornecedor de base de dados são substituídas no seu ciclo normal.
       </p>
@@ -120,8 +120,8 @@ const secoes: SecaoLegal[] = [
       <>
         <p>
           Tem direito de acesso, retificação, apagamento, limitação, portabilidade e oposição, e pode retirar a
-          qualquer momento um consentimento dado. Em Configurações pode <strong>exportar os seus dados</strong> e{' '}
-          <strong>eliminar a conta</strong>. Para outros pedidos, escreva para {EMPRESA.email}.
+          qualquer momento um consentimento dado. Em Configurações pode <strong>exportar os seus dados</strong>. Para eliminar a conta ou fazer outros
+          pedidos, escreva para {EMPRESA.email}.
         </p>
         <p>
           Se as clientes do utilizador quiserem exercer direitos sobre os seus dados, devem dirigir-se ao
