@@ -20,10 +20,10 @@ declare global {
   }
 }
 
-/** Carrega o Pixel da Meta só nesta página, e só se a profissional tiver um configurado. */
-function usarMetaPixel(pixelId: string | null) {
+/** Carrega o Pixel da Meta só nesta página, se a profissional tiver um configurado E o visitante aceitar (Lei n.º 41/2004, art. 5.º). */
+function usarMetaPixel(pixelId: string | null, permitido: boolean) {
   useEffect(() => {
-    if (!pixelId) return;
+    if (!pixelId || !permitido) return;
 
     if (!window.fbq) {
       const win = window as Window & { _fbq?: unknown };
@@ -48,7 +48,7 @@ function usarMetaPixel(pixelId: string | null) {
 
     window.fbq('init', pixelId);
     window.fbq('track', 'PageView');
-  }, [pixelId]);
+  }, [pixelId, permitido]);
 }
 
 export default function PaginaPublica() {
@@ -65,6 +65,16 @@ export default function PaginaPublica() {
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [erroForm, setErroForm] = useState<string | null>(null);
+  const [aceitouContacto, setAceitouContacto] = useState(false);
+  const [website, setWebsite] = useState(''); // campo-armadilha anti-spam (fica escondido)
+  const [consentimentoPixel, setConsentimentoPixel] = useState<'sim' | 'nao' | null>(() => {
+    try {
+      const v = localStorage.getItem('consent_meta_pixel');
+      return v === 'sim' || v === 'nao' ? v : null;
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
     const buscar = async () => {
@@ -89,7 +99,16 @@ export default function PaginaPublica() {
     buscar();
   }, [slug]);
 
-  usarMetaPixel(pagina?.meta_pixel_id ?? null);
+  usarMetaPixel(pagina?.meta_pixel_id ?? null, consentimentoPixel === 'sim');
+
+  const responderConsentimento = (valor: 'sim' | 'nao') => {
+    try {
+      localStorage.setItem('consent_meta_pixel', valor);
+    } catch {
+      // sem armazenamento disponível: a escolha vale só nesta visita
+    }
+    setConsentimentoPixel(valor);
+  };
 
   const clicarWhatsApp = useCallback(() => {
     if (!pagina?.telefone_whatsapp) return;
@@ -108,6 +127,15 @@ export default function PaginaPublica() {
 
     if (!nome.trim() || !telefone.trim()) {
       setErroForm('Preenche o nome e o telefone.');
+      return;
+    }
+    if (!aceitouContacto) {
+      setErroForm('Confirma que aceitas ser contactada(o) para enviar o pedido.');
+      return;
+    }
+    if (website) {
+      // robô: finge sucesso sem enviar nada
+      setEnviado(true);
       return;
     }
 
@@ -153,6 +181,31 @@ export default function PaginaPublica() {
 
   return (
     <div className="min-h-screen bg-background">
+      {pagina.meta_pixel_id && consentimentoPixel === null && (
+        <div className="fixed inset-x-3 bottom-3 z-50 mx-auto flex max-w-xl flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-2xl shadow-black/30 sm:flex-row sm:items-center">
+          <p className="flex-1 text-xs leading-relaxed text-muted-foreground">
+            Esta página usa o Pixel da Meta para medir os anúncios de {pagina.nome_negocio}. Aceitas que o carregue?
+            Podes recusar e continuar a usar a página normalmente.{' '}
+            <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+              Saber mais
+            </a>
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => responderConsentimento('nao')}
+              className="flex-1 rounded-lg border border-border px-4 py-2 text-xs font-semibold text-foreground hover:bg-background sm:flex-none"
+            >
+              Recusar
+            </button>
+            <button
+              onClick={() => responderConsentimento('sim')}
+              className="flex-1 rounded-lg border border-border px-4 py-2 text-xs font-semibold text-foreground hover:bg-background sm:flex-none"
+            >
+              Aceitar
+            </button>
+          </div>
+        </div>
+      )}
       <div className="mx-auto max-w-2xl px-5 py-10 sm:py-16">
         {/* Cabeçalho */}
         <div className="mb-8 text-center">
@@ -241,6 +294,31 @@ export default function PaginaPublica() {
                   rows={2}
                   className="w-full rounded-lg border border-border bg-background/50 px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                 />
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  className="hidden"
+                  aria-hidden="true"
+                />
+                <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-relaxed text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={aceitouContacto}
+                    onChange={(e) => setAceitouContacto(e.target.checked)}
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-primary"
+                  />
+                  <span>
+                    Aceito que {pagina.nome_negocio} me contacte sobre este pedido, usando os dados que indiquei.{' '}
+                    <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                      Política de Privacidade
+                    </a>
+                    .
+                  </span>
+                </label>
                 {erroForm && <p className="text-xs text-danger">{erroForm}</p>}
                 <button
                   type="submit"

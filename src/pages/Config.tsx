@@ -18,10 +18,12 @@ import {
   ChevronRight,
   Phone,
   Download,
+  ShieldCheck,
 } from 'lucide-react';
 import { textosConfig, obterIdiomaAtual, type Idioma } from '@/lib/i18n';
 import ConectarWhatsAppBot from '@/components/ConectarWhatsAppBot';
 import PaginaPublicaConfig from '@/components/PaginaPublicaConfig';
+import DadosEConta from '@/components/DadosEConta';
 import { CHAVE_BANNER_INSTALAR_FECHADO } from '@/components/BannerInstalarApp';
 
 interface Usuario {
@@ -179,6 +181,22 @@ export default function Config() {
         </div>
         <ChevronRight size={16} className="text-primary" />
       </button>
+
+      {/* Os meus dados (RGPD): exportar e eliminar conta */}
+      <div className="mb-3 rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
+        <div className="flex items-start gap-3.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
+            <ShieldCheck size={18} className="text-primary" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-foreground">Os meus dados</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              Exporte uma cópia ou elimine a sua conta e todos os dados.
+            </div>
+          </div>
+        </div>
+        <DadosEConta />
+      </div>
 
       {/* Aviso de instalar app (útil pra testar de novo) */}
       <button

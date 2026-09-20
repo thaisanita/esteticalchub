@@ -309,7 +309,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
 
   // Monta o texto do lembrete e "congela-o" na fila, para o worker (Edge
   // Function processar-fila) só ter de enviar. Ver NOTIFICACOES_AUTOMATICAS.md.
-  const construirLembrete = (antecedencia: '1_dia' | '1_hora') => {
+  const construirLembrete = (antecedencia: '1_dia' | '1_hora', rodape = '') => {
     const quando = antecedencia === '1_dia' ? 'amanhã' : 'hoje';
     const primeiroNome = (nomeCliente || cliente).split(' ')[0] || 'tudo bem';
     const dataFmt = new Date(`${dataAgendamento}T00:00:00`).toLocaleDateString('pt-BR');
@@ -317,12 +317,26 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     const mensagem =
       `Olá, ${primeiroNome}! Passando para lembrar do seu agendamento de ` +
       `${procedimento.trim() || 'atendimento'} ${quando} (${dataFmt}) às ${horaInicio}.${local} ` +
-      `Qualquer imprevisto, é só responder. Até breve! ✨`;
+      `Qualquer imprevisto, é só responder. Até breve! ✨${rodape}`;
     const assunto = `Lembrete: ${procedimento.trim() || 'seu atendimento'} ${quando}`;
     return { mensagem, assunto };
   };
 
-  const criarFilaNotificacoes = async (agendamentoId: string, userId: string) => {
+  const criarFilaNotificacoes = async (agendamentoId: string, userId: string, clienteIdDaCliente: string | null) => {
+    // WhatsApp: junta ao texto a ligação para a cliente deixar de receber lembretes
+    // (nos emails, a Edge Function já acrescenta essa ligação sozinha).
+    let rodape = '';
+    if (canalNotificacao === 'whatsapp' && clienteIdDaCliente) {
+      const { data: cli } = await supabase
+        .from('clientes')
+        .select('opt_out_token')
+        .eq('id', clienteIdDaCliente)
+        .maybeSingle();
+      if (cli?.opt_out_token) {
+        rodape = `\n\nPara deixar de receber lembretes: ${window.location.origin}/opt-out?token=${cli.opt_out_token}`;
+      }
+    }
+
     const dataHoraAtendimento = new Date(`${dataAgendamento}T${horaInicio}:00`);
     const destino =
       canalNotificacao === 'email'
@@ -343,7 +357,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
           data_disparo: data1Dia.toISOString(),
           status: 'pendente',
           destino,
-          ...construirLembrete('1_dia'),
+          ...construirLembrete('1_dia', rodape),
         });
       }
     }
@@ -361,7 +375,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
           data_disparo: data1Hora.toISOString(),
           status: 'pendente',
           destino,
-          ...construirLembrete('1_hora'),
+          ...construirLembrete('1_hora', rodape),
         });
       }
     }
@@ -468,7 +482,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
       }
 
       if (agendamentoId) {
-        await criarFilaNotificacoes(agendamentoId, user.id);
+        await criarFilaNotificacoes(agendamentoId, user.id, clienteIdFinal);
       }
 
       salvarHistorico('hist_clientes', cliente);

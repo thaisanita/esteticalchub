@@ -64,6 +64,8 @@ const [registrou, setRegistrou] = useState(false);
 
 const [mostrarSenha, setMostrarSenha] = useState(false);
 
+const [aceitouTermos, setAceitouTermos] = useState(false);
+
 
 
 useEffect(() => {
@@ -132,7 +134,19 @@ try {
 
 if (isRegistro) {
 
-const { error } = await supabase.auth.signUp({ email, password: senha });
+if (!aceitouTermos) throw new Error('Para criar conta, aceite os Termos de Uso e a Política de Privacidade.');
+
+if (senha.length < 8) throw new Error('A senha deve ter pelo menos 8 caracteres.');
+
+const { error } = await supabase.auth.signUp({
+
+email,
+
+password: senha,
+
+options: { data: { termos_aceites_em: new Date().toISOString() } },
+
+});
 
 if (error) throw error;
 
@@ -190,7 +204,7 @@ try {
 
 const { error } = await supabase.auth.resetPasswordForEmail(email, {
 
-redirectTo: 'https://esteticalchub.vercel.app/reset-password',
+redirectTo: `${window.location.origin}/reset-password`,
 
 });
 
@@ -548,6 +562,40 @@ required
 
 
 
+{isRegistro && (
+
+<label className="flex cursor-pointer items-start gap-2 text-left text-xs leading-relaxed text-muted-foreground">
+
+<input
+
+type="checkbox"
+
+checked={aceitouTermos}
+
+onChange={(e) => setAceitouTermos(e.target.checked)}
+
+className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+
+/>
+
+<span>
+
+Li e aceito os{' '}
+
+<a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-primary underline">Termos de Uso</a>
+
+{' '}e a{' '}
+
+<a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-primary underline">Política de Privacidade</a>.
+
+</span>
+
+</label>
+
+)}
+
+
+
 <Button
 
 type="submit"
@@ -821,6 +869,18 @@ className="mr-2.5 w-[18px]"
 Continuar com Google
 
 </Button>
+
+<p className="mt-2 text-center text-[11px] text-muted-foreground">
+
+Ao continuar com Google, aceita os{' '}
+
+<a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="underline">Termos de Uso</a>
+
+{' '}e a{' '}
+
+<a href="/privacidade" target="_blank" rel="noopener noreferrer" className="underline">Política de Privacidade</a>.
+
+</p>
 
 
 

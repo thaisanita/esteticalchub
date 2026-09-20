@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /configuracoes
+Disallow: /clientes
+Disallow: /prontuario/
+Disallow: /confirmacao/
+Disallow: /opt-out
+Disallow: /reset-password
+Disallow: /auth/
+
+Sitemap: https://esteticalchub.vercel.app/sitemap.xml

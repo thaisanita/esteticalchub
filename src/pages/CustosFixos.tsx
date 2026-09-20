@@ -96,7 +96,10 @@ export default function CustosFixos() {
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome.trim() || !valorMensal) return;
+    if (!nome.trim() || !valorMensal) {
+      alert('Preenche o nome e o valor mensal do custo fixo.');
+      return;
+    }
     setSalvando(true);
 
     const { error } = await supabase.from('custos_fixos').insert([
@@ -222,8 +225,8 @@ export default function CustosFixos() {
             </SelectContent>
           </Select>
           <Input
-            type="number"
-            step="0.01"
+            type="text"
+            inputMode="decimal"
             placeholder="Valor mensal (€)"
             value={valorMensal}
             onChange={(e) => setValorMensal(e.target.value)}

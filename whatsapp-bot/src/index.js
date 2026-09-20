@@ -26,6 +26,7 @@ import {
 import { usuarioIdDoToken } from './supabaseAdmin.js';
 
 const PORT = process.env.PORT || 3333;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BOT_SECRET = process.env.BOT_SECRET;
 
 if (!BOT_SECRET) {
@@ -88,10 +89,18 @@ app.post('/sessao/desconectar', exigirUsuarioLogado, async (req, res) => {
   res.json({ status: 'desconectado' });
 });
 
+// Chamado pela Edge Function excluir-conta: apaga a sessão guardada de um utilizador
+app.post('/sessao/apagar', exigirSegredoDoWorker, async (req, res) => {
+  const { usuario_id } = req.body || {};
+  if (!UUID.test(String(usuario_id ?? ''))) return res.status(400).json({ erro: 'usuario_id inválido.' });
+  await desconectarSessao(usuario_id);
+  res.json({ ok: true });
+});
+
 // Chamado pela Edge Function processar-fila (worker de lembretes)
 app.post('/enviar', exigirSegredoDoWorker, async (req, res) => {
   const { usuario_id, telefone, mensagem } = req.body || {};
-  if (!usuario_id || !telefone || !mensagem) {
+  if (!UUID.test(String(usuario_id ?? '')) || !telefone || !mensagem) {
     return res.status(400).json({ erro: 'Faltam campos: usuario_id, telefone, mensagem.' });
   }
   try {

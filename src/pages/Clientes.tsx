@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
@@ -64,6 +64,7 @@ export default function Clientes() {
   const [retornoPrevisto, setRetornoPrevisto] = useState('');
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const painelRef = useRef<HTMLFormElement>(null);
 
   const carregarDados = useCallback(async () => {
     setLoading(true);
@@ -185,6 +186,12 @@ export default function Clientes() {
     setPainelAberto(true);
   };
 
+  useEffect(() => {
+    if (painelAberto) {
+      painelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [painelAberto]);
+
   const handleExcluir = async (id: string) => {
     if (!window.confirm('Excluir esta cliente? O histórico de agendamentos dela não é apagado.')) return;
     const { error } = await supabase.from('clientes').delete().eq('id', id);
@@ -284,7 +291,7 @@ export default function Clientes() {
 
       {/* Painel de adicionar/editar */}
       {painelAberto && (
-        <form onSubmit={handleSalvar} className="rounded-2xl border border-border bg-card p-5 shadow-md shadow-black/10 space-y-3">
+        <form ref={painelRef} onSubmit={handleSalvar} className="rounded-2xl border border-border bg-card p-5 shadow-md shadow-black/10 space-y-3 scroll-mt-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <Plus size={16} className="text-primary" /> {editandoId ? 'Editar Cliente' : 'Adicionar Cliente'}
@@ -362,7 +369,7 @@ export default function Clientes() {
                 <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider">Retorno Previsto</th>
                 <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider">Status</th>
                 <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider">Observações</th>
-                <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider">Ações</th>
+                <th className="sticky right-0 z-10 bg-primary px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider shadow-[-6px_0_8px_-4px_rgba(0,0,0,0.25)]">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -415,7 +422,11 @@ export default function Clientes() {
                     <td className="px-4 py-3 text-muted-foreground max-w-[200px] truncate" title={c.notas || ''}>
                       {c.notas || '—'}
                     </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <td
+                      className={`sticky right-0 z-10 px-4 py-3 text-right whitespace-nowrap shadow-[-6px_0_8px_-4px_rgba(0,0,0,0.15)] ${
+                        i % 2 === 0 ? 'bg-card' : 'bg-background/40'
+                      }`}
+                    >
                       <button onClick={() => navigate(`/prontuario/${c.id}`)} title="Prontuário" className="text-muted-foreground hover:text-primary transition-colors mr-3">
                         <FileHeart size={15} />
                       </button>

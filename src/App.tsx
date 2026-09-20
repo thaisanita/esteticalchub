@@ -21,6 +21,10 @@ import Config from './pages/Config';
 import AuthCallback from './pages/AuthCallback';
 import ConfirmacaoAtendimento from './pages/ConfirmacaoAtendimento';
 import PaginaPublica from './pages/PaginaPublica';
+import Termos from './pages/Termos';
+import Privacidade from './pages/Privacidade';
+import ResetPassword from './pages/ResetPassword';
+import OptOut from './pages/OptOut';
 
 // Menu lateral das áreas privadas
 import NavbarLateral from './components/NavbarLateral';
@@ -47,11 +51,26 @@ function RotaLogin({
 // Layout que envolve todas as páginas privadas com o menu lateral
 function LayoutPrivado() {
   const [pagamentoRapidoAberto, setPagamentoRapidoAberto] = useState(false);
+  const [menuFixado, setMenuFixado] = useState(
+    () => localStorage.getItem('menu_lateral_fixado') === '1'
+  );
+
+  const alternarMenuFixado = () => {
+    setMenuFixado((prev) => {
+      const novo = !prev;
+      localStorage.setItem('menu_lateral_fixado', novo ? '1' : '0');
+      return novo;
+    });
+  };
 
   return (
     <div className="flex min-h-screen bg-background overflow-x-hidden">
-      <NavbarLateral />
-      <main className="min-w-0 flex-1 pb-24 md:pb-8 md:ml-[260px]">
+      <NavbarLateral fixado={menuFixado} onAlternarFixado={alternarMenuFixado} />
+      <main
+        className={`min-w-0 flex-1 pb-24 md:pb-8 transition-[margin] duration-200 ${
+          menuFixado ? 'md:ml-[260px]' : 'md:ml-[76px]'
+        }`}
+      >
         <TopBar />
         <div className="p-6 sm:p-8">
           <BannerInstalarApp />
@@ -117,6 +136,10 @@ export default function App() {
         {/* Rotas Públicas */}
         <Route path="/confirmacao/:token" element={<ConfirmacaoAtendimento />} />
         <Route path="/p/:slug" element={<PaginaPublica />} />
+        <Route path="/termos-de-uso" element={<Termos />} />
+        <Route path="/privacidade" element={<Privacidade />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/opt-out" element={<OptOut />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
 
         {/* Áreas Privadas do App — todas dentro do LayoutPrivado (menu lateral) */}

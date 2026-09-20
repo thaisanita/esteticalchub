@@ -123,7 +123,7 @@ export default function LandingPage() {
                 <div className="h-3 w-3 rounded-full bg-yellow-400/80" />
                 <div className="h-3 w-3 rounded-full bg-green-400/80" />
               </div>
-              <span className="text-[11px] font-medium text-muted-foreground/70">app.esteticalchub.com</span>
+              <span className="text-[11px] font-medium text-muted-foreground/70">Exemplo ilustrativo</span>
               <div className="w-12" />
             </div>
 
@@ -173,20 +173,20 @@ export default function LandingPage() {
       <section className="border-y border-border bg-card/40 py-8 relative z-10">
         <div className="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           <div>
-            <div className="font-display text-2xl sm:text-3xl font-bold text-foreground">+100%</div>
-            <div className="text-xs text-muted-foreground mt-0.5">Precisão nos Custos</div>
+            <div className="font-display text-2xl sm:text-3xl font-bold text-foreground">Tudo</div>
+            <div className="text-xs text-muted-foreground mt-0.5">Custos, comissões e lucro num só lugar</div>
           </div>
           <div>
-            <div className="font-display text-2xl sm:text-3xl font-bold text-foreground">24/7</div>
-            <div className="text-xs text-muted-foreground mt-0.5">Agenda Acessível</div>
+            <div className="font-display text-2xl sm:text-3xl font-bold text-foreground">Online</div>
+            <div className="text-xs text-muted-foreground mt-0.5">Agenda acessível no telemóvel e no PC</div>
           </div>
           <div>
-            <div className="font-display text-2xl sm:text-3xl font-bold text-foreground">0 min</div>
-            <div className="text-xs text-muted-foreground mt-0.5">Tempo Perdido com Papel</div>
+            <div className="font-display text-2xl sm:text-3xl font-bold text-foreground">Menos</div>
+            <div className="text-xs text-muted-foreground mt-0.5">Papel e folhas de cálculo soltas</div>
           </div>
           <div>
-            <div className="font-display text-2xl sm:text-3xl font-bold text-foreground">100%</div>
-            <div className="text-xs text-muted-foreground mt-0.5">Na Nuvem e Seguro</div>
+            <div className="font-display text-2xl sm:text-3xl font-bold text-foreground">RGPD</div>
+            <div className="text-xs text-muted-foreground mt-0.5">Dados isolados por conta e acesso protegido</div>
           </div>
         </div>
       </section>
