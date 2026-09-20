@@ -3,6 +3,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { getErrorMessage } from '@/lib/utils';
 import Footer from './Footer';
+import { avaliarSenha } from '@/lib/senha';
+import RequisitosSenha from '@/components/RequisitosSenha';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -66,6 +68,8 @@ const [mostrarSenha, setMostrarSenha] = useState(false);
 
 const [aceitouTermos, setAceitouTermos] = useState(false);
 
+const [emailNaoConfirmado, setEmailNaoConfirmado] = useState(false);
+
 
 
 useEffect(() => {
@@ -116,6 +120,8 @@ return () => subscription.unsubscribe();
 
 
 
+const avaliacaoSenha = avaliarSenha(senha, email);
+
 const handleAuth = async (e: React.FormEvent) => {
 
 e.preventDefault();
@@ -128,6 +134,8 @@ setCarregando(true);
 
 setRegistrou(false);
 
+setEmailNaoConfirmado(false);
+
 
 
 try {
@@ -136,7 +144,7 @@ if (isRegistro) {
 
 if (!aceitouTermos) throw new Error('Para criar conta, aceite os Termos de Uso e a Política de Privacidade.');
 
-if (senha.length < 8) throw new Error('A senha deve ter pelo menos 8 caracteres.');
+if (!avaliacaoSenha.forte) throw new Error('A senha ainda não cumpre todos os requisitos indicados abaixo do campo.');
 
 const { error } = await supabase.auth.signUp({
 
@@ -144,7 +152,13 @@ email,
 
 password: senha,
 
-options: { data: { termos_aceites_em: new Date().toISOString() } },
+options: {
+
+data: { termos_aceites_em: new Date().toISOString() },
+
+emailRedirectTo: `${window.location.origin}/login`,
+
+},
 
 });
 
@@ -160,15 +174,25 @@ setMensagem(
 
 setRegistrou(true);
 
-setEmail('');
-
 setSenha('');
 
 } else {
 
 const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
 
-if (error) throw new Error('E-mail ou senha incorretos.');
+if (error) {
+
+if (/not confirmed/i.test(error.message)) {
+
+setEmailNaoConfirmado(true);
+
+throw new Error('Confirme primeiro o seu email: enviámos-lhe uma ligação de confirmação. Veja também o spam.');
+
+}
+
+throw new Error('E-mail ou senha incorretos.');
+
+}
 
 onLogin(true);
 
@@ -670,7 +694,7 @@ type={mostrarSenha ? 'text' : 'password'}
 
 name="password"
 
-placeholder="Sua senha"
+placeholder={isRegistro ? 'Crie uma senha forte' : 'Sua senha'}
 
 value={senha}
 
@@ -711,6 +735,10 @@ className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground trans
 </div>
 
 </div>
+
+
+
+{isRegistro && senha && <RequisitosSenha avaliacao={avaliacaoSenha} />}
 
 
 
@@ -802,7 +830,7 @@ Li e aceito os{' '}
 
 type="submit"
 
-disabled={carregando}
+disabled={carregando || (isRegistro && (!avaliacaoSenha.forte || !aceitouTermos))}
 
 className="mt-1 w-full bg-gradient-to-br from-primary to-primary-hover font-semibold text-primary-foreground shadow-lg shadow-primary/30 hover:opacity-90 cursor-pointer"
 
@@ -816,7 +844,7 @@ className="mt-1 w-full bg-gradient-to-br from-primary to-primary-hover font-semi
 
 
 
-{isRegistro && registrou && (
+{((isRegistro && registrou) || emailNaoConfirmado) && (
 
 <Button
 

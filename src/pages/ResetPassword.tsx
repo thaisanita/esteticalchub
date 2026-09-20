@@ -5,6 +5,8 @@ import { getErrorMessage } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { avaliarSenha } from '@/lib/senha';
+import RequisitosSenha from '@/components/RequisitosSenha';
 import { Eye, EyeOff, AlertTriangle, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
 const ResetPassword = () => {
@@ -56,8 +58,8 @@ const ResetPassword = () => {
     setErro('');
     setMensagem('');
 
-    if (novaSenha.length < 8) {
-      setErro('A senha deve ter pelo menos 8 caracteres.');
+    if (!avaliarSenha(novaSenha).forte) {
+      setErro('A senha ainda não cumpre todos os requisitos.');
       return;
     }
     if (novaSenha !== confirmarSenha) {
@@ -79,16 +81,17 @@ const ResetPassword = () => {
     }
   };
 
-  const getForcaSenha = (senha: string) => {
-    if (!senha) return null;
-    if (senha.length < 6) return { nivel: 1, label: 'Fraca', className: 'bg-danger', textClass: 'text-danger' };
-    if (senha.length < 8) return { nivel: 2, label: 'Média', className: 'bg-warning', textClass: 'text-warning' };
-    if (/[A-Z]/.test(senha) && /[0-9]/.test(senha))
-      return { nivel: 4, label: 'Muito forte', className: 'bg-success', textClass: 'text-success' };
-    return { nivel: 3, label: 'Boa', className: 'bg-primary', textClass: 'text-primary' };
-  };
-
-  const forca = getForcaSenha(novaSenha);
+  const avaliacao = avaliarSenha(novaSenha);
+  const ESTILOS = [
+    null,
+    { className: 'bg-danger', textClass: 'text-danger' },
+    { className: 'bg-warning', textClass: 'text-warning' },
+    { className: 'bg-primary', textClass: 'text-primary' },
+    { className: 'bg-success', textClass: 'text-success' },
+  ];
+  const forca = novaSenha
+    ? { nivel: avaliacao.nivel, label: avaliacao.label, ...ESTILOS[avaliacao.nivel]! }
+    : null;
 
   if (verificando) {
     return (
@@ -180,6 +183,7 @@ const ResetPassword = () => {
                 <span className={`shrink-0 text-[11px] font-bold ${forca.textClass}`}>{forca.label}</span>
               </div>
             )}
+            {novaSenha && <RequisitosSenha avaliacao={avaliacao} />}
           </div>
 
           <div className="flex flex-col gap-1.5">

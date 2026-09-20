@@ -23,7 +23,8 @@ confirma os pontos marcados com ⚖️ com um contabilista certificado (OCC) e/o
 
 ### Segurança da base de dados
 - [ ] Correr a verificação de RLS (abaixo) e confirmar que **todas** as tabelas têm RLS ligado e nenhuma política com `using (true)` aberta a utilizadores.
-- [ ] Supabase → Authentication: mínimo de senha 8+, confirmação de email ligada, ativar *leaked password protection* (Pro) e CAPTCHA no registo.
+- [ ] Supabase → Authentication → Sign In / Providers → Email: **tamanho mínimo da senha 10**, exigir maiúsculas, minúsculas e números, **Confirm email ligado**; ativar *leaked password protection* (Pro) e CAPTCHA no registo. (O site já valida no navegador, mas só estas definições impedem quem chama a API diretamente.)
+- [ ] **SMTP próprio para os emails de confirmação/recuperação.** O SMTP padrão do Supabase só envia a membros da tua equipa e no máximo 2 emails por hora — utilizadoras reais **não recebem** o email de confirmação. Configurar em Authentication → SMTP Settings (ex.: Resend, com o domínio verificado). [Supabase SMTP](https://supabase.com/docs/guides/auth/auth-smtp)
 
 ## 🟡 Recomendado (primeiros meses)
 - [ ] **AIPD (avaliação de impacto)**: tratas dados de saúde (anamnese) de muitas pessoas; a CNPD tem lista de tratamentos que exigem AIPD (Regulamento 1/2018). Faz uma versão simples. ⚖️ [CNPD](https://www.cnpd.pt/umbraco/surface/cnpdDecision/download/121818)
