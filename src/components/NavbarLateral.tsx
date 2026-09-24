@@ -17,6 +17,7 @@ import {
   Users,
   HandCoins,
   LayoutDashboard,
+  Activity,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -97,6 +98,7 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
   };
 
   const menuItems: MenuItem[] = [
+    { rota: '/visao-geral', texto: textos.visaoGeral, Icone: Activity },
     {
       texto: textos.agenda,
       Icone: Calendar,
@@ -348,6 +350,7 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
               </SheetHeader>
               <div className="grid grid-cols-3 gap-3 pb-4 pt-2">
                 {[
+                  { rota: '/visao-geral', texto: textos.visaoGeral, Icone: Activity },
                   { rota: '/procedimentos', texto: textos.procedimentos, Icone: ClipboardList },
                   { rota: '/porcentagem', texto: textos.porcentagem, Icone: Wallet },
                   { rota: '/relatorios', texto: textos.relatorios, Icone: TrendingUp },
