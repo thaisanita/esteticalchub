@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import Footer from './Footer';
 import { Button } from '@/components/ui/button';
+import { WordsStagger } from '@/components/ui/words-stagger';
 import { 
   Sparkles, 
   ShieldCheck,
@@ -97,9 +98,9 @@ export default function LandingPage() {
           </span>
         </h1>
 
-        <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+        <WordsStagger className="justify-center text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
           Centralize o cálculo exato de custos de insumos, comissões, faturamento e agenda em uma única plataforma feita para profissionais independentes e clínicas.
-        </p>
+        </WordsStagger>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
           <Button 
