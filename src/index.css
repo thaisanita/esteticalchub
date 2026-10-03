@@ -62,3 +62,27 @@
     display: none !important;
   }
 }
+
+/* Scrollbar fina, a combinar com o tema roxo escuro (em vez da barra
+   cinzenta nativa do browser) — aplica-se a toda a app, incluindo a
+   sidebar. Firefox usa as propriedades scrollbar-width/scrollbar-color;
+   Chrome/Edge/Safari usam os pseudo-elementos ::-webkit-scrollbar-*. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
