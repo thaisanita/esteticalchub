@@ -20,9 +20,13 @@
     --muted: 258 16% 34%;
     --muted-foreground: 250 12% 80%;
 
-    /* Destaques (Roxo) */
-    --primary: 262 83% 68%;            /* Roxo vibrante acentuado */
-    --primary-hover: 262 83% 60%;
+    /* Destaques (Roxo) — tom pedido pela Thais, extraído do roxo vibrante
+       do banner do kit "Bootstrap 4+ UI Kit" no Figma (~#8018C3). Mantém
+       a mesma saturação/luminosidade que já funcionava bem neste tema
+       escuro, só muda o matiz de 262° (mais azulado) para 275° (mais
+       magenta/elétrico, igual à referência). */
+    --primary: 275 83% 68%;
+    --primary-hover: 275 83% 60%;
     --primary-foreground: 0 0% 100%;
 
     /* Superfícies flutuantes: menus, caixas de seleção, diálogos.
@@ -41,7 +45,7 @@
     --success: 160 84% 39%;
     --warning: 38 92% 50%;
     --danger: 0 84% 60%;
-    --ring: 262 83% 68%;
+    --ring: 275 83% 68%;
     --radius: 1rem;
   }
 
