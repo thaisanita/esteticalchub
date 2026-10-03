@@ -18,7 +18,7 @@ type Mensagem = {
 const MENSAGEM_BOAS_VINDAS: Mensagem = {
   id: 'boas-vindas',
   autor: 'assistente',
-  texto: 'Olá! Pergunta-me sobre a tua agenda, o teu faturamento ou as tuas clientes.',
+  texto: 'Olá! Pergunta-me sobre a tua agenda, pagamentos, custos fixos ou clientes.',
 };
 
 export default function AssistenteIA() {
@@ -27,10 +27,24 @@ export default function AssistenteIA() {
   const [input, setInput] = useState('');
   const [enviando, setEnviando] = useState(false);
   const fimDaListaRef = useRef<HTMLDivElement>(null);
+  const painelRef = useRef<HTMLDivElement>(null);
+  const botaoRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (aberto) fimDaListaRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens, aberto]);
+
+  // Fecha ao clicar fora da janela (mas não ao clicar no próprio botão, que já alterna).
+  useEffect(() => {
+    if (!aberto) return;
+    const aoClicarFora = (e: MouseEvent) => {
+      const alvo = e.target as Node;
+      if (painelRef.current?.contains(alvo) || botaoRef.current?.contains(alvo)) return;
+      setAberto(false);
+    };
+    document.addEventListener('mousedown', aoClicarFora);
+    return () => document.removeEventListener('mousedown', aoClicarFora);
+  }, [aberto]);
 
   const enviar = async () => {
     const texto = input.trim();
@@ -45,27 +59,17 @@ export default function AssistenteIA() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Sessão expirada. Entra novamente.');
 
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${FUNCAO_ASSISTENTE_IA}`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ message: texto, user_id: session.user.id }),
-        }
+      const { data, error } = await supabase.functions.invoke<{ resposta?: string; erro?: string }>(
+        FUNCAO_ASSISTENTE_IA,
+        { body: { message: texto, user_id: session.user.id } }
       );
 
-      const corpo: { resposta?: string; erro?: string } = await resp.json().catch(() => ({}));
-      if (!resp.ok || corpo.erro) {
-        throw new Error(corpo.erro || `Falha ao contactar o assistente (${resp.status}).`);
-      }
+      if (error) throw new Error(error.message || 'Falha ao contactar o assistente.');
+      if (data?.erro) throw new Error(data.erro);
 
       setMensagens((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), autor: 'assistente', texto: corpo.resposta || 'Sem resposta.' },
+        { id: crypto.randomUUID(), autor: 'assistente', texto: data?.resposta || 'Sem resposta.' },
       ]);
     } catch (e) {
       setMensagens((prev) => [
@@ -93,6 +97,7 @@ export default function AssistenteIA() {
     <>
       {/* Botão flutuante: fica por cima do botão de "pagamento rápido" */}
       <button
+        ref={botaoRef}
         onClick={() => setAberto((v) => !v)}
         title="Assistente"
         className="no-print fixed bottom-[9.5rem] right-5 z-[900] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-hover text-primary-foreground shadow-lg shadow-primary/40 transition-transform hover:scale-105 active:scale-95 md:bottom-[5.5rem] md:right-6"
@@ -101,10 +106,22 @@ export default function AssistenteIA() {
       </button>
 
       {aberto && (
-        <div className="no-print fixed bottom-[16rem] right-5 z-[900] flex h-[28rem] w-[22rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/20 md:bottom-[9.5rem] md:right-6">
-          <div className="flex items-center gap-2 border-b border-border bg-primary/5 px-4 py-3">
-            <Sparkles size={16} className="text-primary" />
-            <p className="font-display text-sm font-bold text-foreground">Assistente</p>
+        <div
+          ref={painelRef}
+          className="no-print fixed bottom-[16rem] right-5 z-[900] flex h-[28rem] w-[22rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/20 md:bottom-[9.5rem] md:right-6"
+        >
+          <div className="flex items-center justify-between gap-2 border-b border-border bg-primary/5 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-primary" />
+              <p className="font-display text-sm font-bold text-foreground">Assistente</p>
+            </div>
+            <button
+              onClick={() => setAberto(false)}
+              title="Fechar"
+              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <X size={14} />
+            </button>
           </div>
 
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
@@ -125,7 +142,7 @@ export default function AssistenteIA() {
             ))}
             {enviando && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 size={14} className="animate-spin" /> a pensar...
+                <Loader2 size={14} className="animate-spin" /> a escrever...
               </div>
             )}
             <div ref={fimDaListaRef} />

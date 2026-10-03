@@ -1,9 +1,15 @@
 // Edge Function: ai-assistant
 // Assistente de IA do painel: a profissional pergunta em linguagem natural
-// sobre a própria agenda, faturamento e clientes, e o Claude responde usando
-// "tool use" — chama as funções abaixo, que vão sempre buscar os dados pelo
-// ID confirmado no token de acesso (nunca pelo user_id que vier no pedido,
-// para uma conta nunca poder ler dados de outra).
+// sobre a própria agenda, pagamentos, custos fixos e clientes, e o Claude
+// responde usando "tool use" — chama as funções abaixo, que vão sempre
+// buscar os dados pelo ID confirmado no token de acesso (nunca pelo user_id
+// que vier no pedido, para uma conta nunca poder ler dados de outra; a
+// função usa a service role, que ignora RLS, por isso o filtro manual por
+// usuario_id em cada query faz o papel que o RLS faria para um utilizador
+// normal).
+//
+// Tools: listar_agendamentos, ver_pagamentos, ver_custos_fixos,
+// ver_faturamento, listar_clientes.
 //
 // Secret necessário (Supabase → Edge Functions → Secrets): ANTHROPIC_API_KEY.
 // Sem ele, a função responde com um erro claro em vez de tentar chamar a API.
@@ -52,8 +58,26 @@ const FERRAMENTAS = [
     },
   },
   {
+    name: "ver_pagamentos",
+    description:
+      "Lista os pagamentos já recebidos (atendimentos marcados como pagos) num mês específico, com cliente, procedimento, valor e forma de pagamento.",
+    input_schema: {
+      type: "object",
+      properties: {
+        mes: { type: "integer", description: "Mês do ano, de 1 a 12" },
+        ano: { type: "integer", description: "Ano com 4 dígitos, por exemplo 2026" },
+      },
+      required: ["mes", "ano"],
+    },
+  },
+  {
+    name: "ver_custos_fixos",
+    description: "Lista os custos fixos cadastrados (nome, categoria, valor mensal e se estão ativos) e o total mensal dos ativos.",
+    input_schema: { type: "object", properties: {} },
+  },
+  {
     name: "ver_faturamento",
-    description: "Devolve o total faturado (soma dos valores dos agendamentos) num mês específico.",
+    description: "Devolve o total recebido (soma dos pagamentos já confirmados) num mês específico.",
     input_schema: {
       type: "object",
       properties: {
@@ -69,6 +93,13 @@ const FERRAMENTAS = [
     input_schema: { type: "object", properties: {} },
   },
 ];
+
+/** Devolve o intervalo [início, fim) do mês em ISO, para filtrar por pago_em (timestamp). */
+function intervaloDoMes(mes: number, ano: number): [string, string] {
+  const inicio = new Date(ano, mes - 1, 1);
+  const fim = new Date(ano, mes, 1); // dia 1 do mês seguinte, exclusivo
+  return [inicio.toISOString(), fim.toISOString()];
+}
 
 /** Vai buscar o número ou texto de uma linha (a tabela guarda valores como texto em alguns casos antigos). */
 function paraNumero(v: unknown): number {
@@ -106,24 +137,65 @@ async function listarAgendamentos(uid: string, input: { data_inicio?: string; da
   };
 }
 
+async function verPagamentos(uid: string, input: { mes?: number; ano?: number }) {
+  const { mes, ano } = input;
+  if (!mes || !ano || mes < 1 || mes > 12) return { erro: "mes (1-12) e ano são obrigatórios." };
+  const [inicio, fim] = intervaloDoMes(mes, ano);
+
+  const { data, error } = await admin
+    .from("agendamentos")
+    .select("cliente, procedimento, valor, preco, forma_pagamento, pago_em")
+    .eq("usuario_id", uid)
+    .eq("pago", true)
+    .gte("pago_em", inicio)
+    .lt("pago_em", fim)
+    .order("pago_em", { ascending: false })
+    .limit(200);
+
+  if (error) return { erro: error.message };
+  return {
+    total: data?.length ?? 0,
+    pagamentos: (data ?? []).map((p) => ({
+      cliente: p.cliente || "Cliente",
+      procedimento: p.procedimento || "Sem procedimento",
+      valor: paraNumero(p.valor ?? p.preco ?? 0),
+      forma_pagamento: p.forma_pagamento,
+      pago_em: p.pago_em,
+    })),
+  };
+}
+
+async function verCustosFixos(uid: string) {
+  const { data, error } = await admin
+    .from("custos_fixos")
+    .select("nome, categoria, valor_mensal, ativo")
+    .eq("usuario_id", uid)
+    .order("valor_mensal", { ascending: false });
+
+  if (error) return { erro: error.message };
+  const custos = data ?? [];
+  const totalMensalAtivos = custos
+    .filter((c) => c.ativo)
+    .reduce((soma, c) => soma + paraNumero(c.valor_mensal), 0);
+  return { total: custos.length, total_mensal_ativos: Math.round(totalMensalAtivos * 100) / 100, custos };
+}
+
 async function verFaturamento(uid: string, input: { mes?: number; ano?: number }) {
   const { mes, ano } = input;
   if (!mes || !ano || mes < 1 || mes > 12) return { erro: "mes (1-12) e ano são obrigatórios." };
-
-  const inicio = `${ano}-${String(mes).padStart(2, "0")}-01`;
-  const fimData = new Date(ano, mes, 0); // último dia do mês
-  const fim = fimData.toISOString().slice(0, 10);
+  const [inicio, fim] = intervaloDoMes(mes, ano);
 
   const { data, error } = await admin
     .from("agendamentos")
     .select("valor, preco")
     .eq("usuario_id", uid)
-    .gte("data", inicio)
-    .lte("data", fim);
+    .eq("pago", true)
+    .gte("pago_em", inicio)
+    .lt("pago_em", fim);
 
   if (error) return { erro: error.message };
   const total = (data ?? []).reduce((soma, a) => soma + paraNumero(a.valor ?? a.preco ?? 0), 0);
-  return { mes, ano, total_faturado: Math.round(total * 100) / 100, numero_atendimentos: data?.length ?? 0 };
+  return { mes, ano, total_recebido: Math.round(total * 100) / 100, numero_pagamentos: data?.length ?? 0 };
 }
 
 async function listarClientes(uid: string) {
@@ -143,6 +215,10 @@ async function executarFerramenta(uid: string, nome: string, input: Record<strin
     switch (nome) {
       case "listar_agendamentos":
         return await listarAgendamentos(uid, input as { data_inicio?: string; data_fim?: string });
+      case "ver_pagamentos":
+        return await verPagamentos(uid, input as { mes?: number; ano?: number });
+      case "ver_custos_fixos":
+        return await verCustosFixos(uid);
       case "ver_faturamento":
         return await verFaturamento(uid, input as { mes?: number; ano?: number });
       case "listar_clientes":
@@ -157,10 +233,11 @@ async function executarFerramenta(uid: string, nome: string, input: Record<strin
 
 // ---------- Chamada à API da Anthropic, com o loop de tool use ----------
 
-const SYSTEM_PROMPT = `És o assistente do EstetiCalcHub, uma aplicação de gestão para profissionais de estética em Portugal.
-Respondes sempre em português de Portugal, de forma breve e direta.
-Usa as ferramentas disponíveis para consultar os dados reais da conta da profissional — nunca inventes números.
-Se não tiveres dados suficientes para responder, diz isso claramente em vez de supor.
+const SYSTEM_PROMPT = `És uma assistente de gestão para profissionais de estética e micropigmentação, no EstetiCalcHub.
+Tens acesso aos dados reais da profissional logada através das ferramentas disponíveis.
+Respondes sempre em português de Portugal, de forma direta e prática.
+Conheces toda a estrutura do app: agendamentos, clientes, pagamentos, custos fixos, relatórios, comissões e planeamento (Kanban) — mas só tens ferramentas para consultar agendamentos, pagamentos, custos fixos e clientes; para o resto, diz que ainda não tens acesso a esses dados.
+Usa sempre as ferramentas para responder com números — nunca inventes valores. Se não tiveres dados suficientes, diz isso claramente em vez de supor.
 Os valores monetários são em euros. A data de hoje é ${new Date().toISOString().slice(0, 10)}.`;
 
 type BlocoConteudo = Record<string, unknown>;
