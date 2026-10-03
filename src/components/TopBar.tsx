@@ -3,6 +3,7 @@ import { Search, Bell, LogOut, Settings, AlertTriangle, CalendarClock, UserX } f
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import AtalhosTeclado from './AtalhosTeclado';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -157,6 +158,9 @@ const TopBar = () => {
       </div>
 
       <div className="flex shrink-0 items-center gap-4">
+        {/* Atalhos de teclado */}
+        <AtalhosTeclado />
+
         {/* Ícone de Notificações */}
         <DropdownMenu>
           <DropdownMenuTrigger>
