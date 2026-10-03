@@ -31,6 +31,7 @@ import OptOut from './pages/OptOut';
 import NavbarLateral from './components/NavbarLateral';
 import TopBar from './components/TopBar';
 import BannerInstalarApp from './components/BannerInstalarApp';
+import AssistenteIA from './components/AssistenteIA';
 
 function RotaLogin({
   autenticado,
@@ -93,6 +94,8 @@ function LayoutPrivado() {
         onOpenChange={setPagamentoRapidoAberto}
         onSuccess={() => setPagamentoRapidoAberto(false)}
       />
+
+      <AssistenteIA />
     </div>
   );
 }
