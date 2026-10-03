@@ -4,9 +4,12 @@ import { Plus, Target, CheckCircle2, RefreshCw } from 'lucide-react';
 import Calendar from '../components/Calendar';
 import ListaAgendamentos from '../components/ListaAgendamentos';
 import { supabase } from '../supabase';
-import { getErrorMessage } from '@/lib/utils';
+import { getErrorMessage, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { usePlan } from '@/hooks/usePlan';
+import AvisoLimitePlano from '@/components/AvisoLimitePlano';
+import ModalUpgradePlano from '@/components/ModalUpgradePlano';
 
 interface Agendamento {
   id?: string | number;
@@ -33,6 +36,8 @@ const Agenda = () => {
   const [metaAtendimentos, setMetaAtendimentos] = useState<number>(30);
 
   const navigate = useNavigate();
+  const { agendamentosMes: limiteAgendamentos } = usePlan();
+  const [modalUpgradeAberto, setModalUpgradeAberto] = useState(false);
 
   const [mesExibido, setMesExibido] = useState<Date>(new Date());
   const anoAtual = mesExibido.getFullYear();
@@ -180,6 +185,16 @@ const Agenda = () => {
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)] lg:items-start">
+      {limiteAgendamentos.showWarning && (
+        <div className="lg:col-span-2">
+          <AvisoLimitePlano
+            restantes={limiteAgendamentos.restantes ?? 0}
+            rotuloSingular="agendamento"
+            rotuloPlural="agendamentos"
+          />
+        </div>
+      )}
+
       {/* Cabeçalho */}
       <header className="flex flex-wrap items-end justify-between gap-3 lg:col-span-2">
         <div>
@@ -200,14 +215,21 @@ const Agenda = () => {
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           </Button>
           <Button
-            onClick={() => navigate('/novo-agendamento')}
-            className="gap-2 bg-gradient-to-br from-primary to-primary-hover font-semibold text-primary-foreground hover:opacity-90"
+            onClick={() =>
+              limiteAgendamentos.isBlocked ? setModalUpgradeAberto(true) : navigate('/novo-agendamento')
+            }
+            className={cn(
+              'gap-2 bg-gradient-to-br from-primary to-primary-hover font-semibold text-primary-foreground hover:opacity-90',
+              limiteAgendamentos.isBlocked && 'opacity-60'
+            )}
           >
             <Plus size={16} />
             Novo Agendamento
           </Button>
         </div>
       </header>
+
+      <ModalUpgradePlano open={modalUpgradeAberto} onClose={() => setModalUpgradeAberto(false)} />
 
       {/* Coluna Esquerda: Calendário */}
       <div className="rounded-2xl border border-border bg-card p-6 shadow-lg shadow-black/20">

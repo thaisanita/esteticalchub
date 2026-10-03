@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getErrorMessage } from '@/lib/utils';
+import { getErrorMessage, cn } from '@/lib/utils';
+import { usePlan } from '@/hooks/usePlan';
+import AvisoLimitePlano from '@/components/AvisoLimitePlano';
+import ModalUpgradePlano from '@/components/ModalUpgradePlano';
 import {
   Users,
   Search,
@@ -47,6 +50,8 @@ function formatarDataCurta(dataISO: string | null): string {
 
 export default function Clientes() {
   const navigate = useNavigate();
+  const { clientes: limiteClientes } = usePlan();
+  const [modalUpgradeAberto, setModalUpgradeAberto] = useState(false);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [historicoPorCliente, setHistoricoPorCliente] = useState<
     Record<string, { primeiraVisita: string | null; ultimaVisita: string | null; procedimentos: string[] }>
@@ -271,6 +276,14 @@ export default function Clientes() {
 
   return (
     <div className="space-y-6">
+      {limiteClientes.showWarning && (
+        <AvisoLimitePlano
+          restantes={limiteClientes.restantes ?? 0}
+          rotuloSingular="cliente"
+          rotuloPlural="clientes"
+        />
+      )}
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground">Clientes</h2>
@@ -283,7 +296,10 @@ export default function Clientes() {
             <RefreshCw size={14} className={importando ? 'animate-spin' : ''} />
             {importando ? 'A importar...' : 'Importar'}
           </Button>
-          <Button onClick={() => setPainelAberto(true)} className="gap-1.5">
+          <Button
+            onClick={() => (limiteClientes.isBlocked ? setModalUpgradeAberto(true) : setPainelAberto(true))}
+            className={cn('gap-1.5', limiteClientes.isBlocked && 'opacity-60')}
+          >
             <Plus size={14} /> Nova Cliente
           </Button>
         </div>
@@ -444,6 +460,8 @@ export default function Clientes() {
           </table>
         </div>
       )}
+
+      <ModalUpgradePlano open={modalUpgradeAberto} onClose={() => setModalUpgradeAberto(false)} />
     </div>
   );
 }

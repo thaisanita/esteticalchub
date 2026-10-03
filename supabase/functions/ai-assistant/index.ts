@@ -11,6 +11,9 @@
 // Tools: listar_agendamentos, ver_pagamentos, ver_custos_fixos,
 // ver_faturamento, listar_clientes.
 //
+// Funcionalidade Pro: se profiles.plan não for 'pro', devolve 403 antes de
+// gastar qualquer chamada à Anthropic.
+//
 // Secret necessário (Supabase → Edge Functions → Secrets): ANTHROPIC_API_KEY.
 // Sem ele, a função responde com um erro claro em vez de tentar chamar a API.
 
@@ -324,6 +327,13 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: erroUser } = await admin.auth.getUser(token);
     if (erroUser || !user) return resposta({ erro: "Não autenticado." }, 401);
+
+    // O assistente é uma funcionalidade Pro — confere o plano sempre aqui no
+    // servidor (nunca só no frontend, que pode ser contornado).
+    const { data: perfil } = await admin.from("profiles").select("plan").eq("id", user.id).maybeSingle();
+    if ((perfil?.plan ?? "free") !== "pro") {
+      return resposta({ erro: "O assistente de IA está disponível apenas no plano Pro." }, 403);
+    }
 
     const corpo = await req.json().catch(() => ({}));
     const mensagem = typeof corpo.message === "string" ? corpo.message.trim() : "";

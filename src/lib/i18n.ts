@@ -22,6 +22,7 @@ export interface TextosNavbar {
   pagamentos: string;
   kanban: string;
   visaoGeral: string;
+  planos: string;
   configuracoes: string;
   sair: string;
 }
@@ -31,19 +32,19 @@ export const textosNavbar: Record<Idioma, TextosNavbar> = {
     agenda: 'Agenda', procedimentos: 'Procedimentos',
     porcentagem: 'Comissão', relatorios: 'Relatórios e Ganhos',
     custos: 'Custos', clientes: 'Clientes', pagamentos: 'Pagamentos', kanban: 'Planeamento', visaoGeral: 'Visão geral',
-    configuracoes: 'Configurações', sair: 'Sair',
+    planos: 'Planos', configuracoes: 'Configurações', sair: 'Sair',
   },
   'English (US)': {
     agenda: 'Schedule', procedimentos: 'Procedures',
     porcentagem: 'Commission', relatorios: 'Reports & Earnings',
     custos: 'Costs', clientes: 'Clients', pagamentos: 'Payments', kanban: 'Planning', visaoGeral: 'Overview',
-    configuracoes: 'Settings', sair: 'Logout',
+    planos: 'Plans', configuracoes: 'Settings', sair: 'Logout',
   },
   'Español (ES)': {
     agenda: 'Agenda', procedimentos: 'Procedimientos',
     porcentagem: 'Comisión', relatorios: 'Informes y Ganancias',
     custos: 'Costos', clientes: 'Clientes', pagamentos: 'Pagos', kanban: 'Planificación', visaoGeral: 'Resumen',
-    configuracoes: 'Configuración', sair: 'Salir',
+    planos: 'Planes', configuracoes: 'Configuración', sair: 'Salir',
   },
 };
 

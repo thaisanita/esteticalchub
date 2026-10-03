@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, X, Send, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Sparkles, X, Send, Loader2, Lock } from 'lucide-react';
 import { supabase } from '../supabase';
 import { cn } from '@/lib/utils';
+import { usePlan } from '@/hooks/usePlan';
 
 // supabase/functions/ai-assistant/index.ts — se o painel do Supabase gerar
 // um nome diferente ao publicar (como aconteceu com outras funções), troca
@@ -22,6 +24,8 @@ const MENSAGEM_BOAS_VINDAS: Mensagem = {
 };
 
 export default function AssistenteIA() {
+  const navigate = useNavigate();
+  const { isPro } = usePlan();
   const [aberto, setAberto] = useState(false);
   const [mensagens, setMensagens] = useState<Mensagem[]>([MENSAGEM_BOAS_VINDAS]);
   const [input, setInput] = useState('');
@@ -36,7 +40,7 @@ export default function AssistenteIA() {
 
   // Fecha ao clicar fora da janela (mas não ao clicar no próprio botão, que já alterna).
   useEffect(() => {
-    if (!aberto) return;
+    if (!aberto || !isPro) return;
     const aoClicarFora = (e: MouseEvent) => {
       const alvo = e.target as Node;
       if (painelRef.current?.contains(alvo) || botaoRef.current?.contains(alvo)) return;
@@ -95,17 +99,24 @@ export default function AssistenteIA() {
 
   return (
     <>
-      {/* Botão flutuante: fica por cima do botão de "pagamento rápido" */}
+      {/* Botão flutuante: fica por cima do botão de "pagamento rápido".
+          No plano grátis fica sempre visível, só que a abrir não o chat,
+          mas sim a página de planos (tooltip explica o motivo). */}
       <button
         ref={botaoRef}
-        onClick={() => setAberto((v) => !v)}
-        title="Assistente"
-        className="no-print fixed bottom-[9.5rem] right-5 z-[900] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-hover text-primary-foreground shadow-lg shadow-primary/40 transition-transform hover:scale-105 active:scale-95 md:bottom-[5.5rem] md:right-6"
+        onClick={() => (isPro ? setAberto((v) => !v) : navigate('/planos'))}
+        title={isPro ? 'Assistente' : 'Disponível no plano Pro'}
+        className={cn(
+          'no-print fixed bottom-[9.5rem] right-5 z-[900] flex h-14 w-14 items-center justify-center rounded-full text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95 md:bottom-[5.5rem] md:right-6',
+          isPro
+            ? 'bg-gradient-to-br from-primary to-primary-hover shadow-primary/40'
+            : 'bg-muted-foreground/50 shadow-black/20'
+        )}
       >
-        {aberto ? <X size={22} /> : <Sparkles size={22} />}
+        {aberto && isPro ? <X size={22} /> : isPro ? <Sparkles size={22} /> : <Lock size={20} />}
       </button>
 
-      {aberto && (
+      {aberto && isPro && (
         <div
           ref={painelRef}
           className="no-print fixed bottom-[16rem] right-5 z-[900] flex h-[28rem] w-[22rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/20 md:bottom-[9.5rem] md:right-6"

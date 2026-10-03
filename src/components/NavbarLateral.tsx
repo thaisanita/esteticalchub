@@ -18,6 +18,7 @@ import {
   HandCoins,
   LayoutDashboard,
   Activity,
+  Crown,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -114,6 +115,7 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
     { rota: '/clientes', texto: textos.clientes, Icone: Users },
     { rota: '/pagamentos', texto: textos.pagamentos, Icone: HandCoins },
     { rota: '/kanban', texto: textos.kanban, Icone: LayoutDashboard },
+    { rota: '/planos', texto: textos.planos, Icone: Crown },
   ];
 
   const itemClasses = (isAtivo: boolean) =>
@@ -356,6 +358,7 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
                   { rota: '/relatorios', texto: textos.relatorios, Icone: TrendingUp },
                   { rota: '/pagamentos', texto: textos.pagamentos, Icone: HandCoins },
                   { rota: '/kanban', texto: textos.kanban, Icone: LayoutDashboard },
+                  { rota: '/planos', texto: textos.planos, Icone: Crown },
                   { rota: '/configuracoes', texto: textos.configuracoes, Icone: Settings },
                 ].map(({ rota, texto, Icone }) => (
                   <button

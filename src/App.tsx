@@ -18,6 +18,7 @@ import Prontuario from './pages/Prontuario';
 import Pagamentos from './pages/Pagamentos';
 import Kanban from './pages/Kanban';
 import VisaoGeral from './pages/VisaoGeral';
+import Planos from './pages/Planos';
 import Config from './pages/Config';
 import AuthCallback from './pages/AuthCallback';
 import ConfirmacaoAtendimento from './pages/ConfirmacaoAtendimento';
@@ -164,6 +165,7 @@ export default function App() {
           <Route path="/pagamentos" element={<Pagamentos />} />
           <Route path="/kanban" element={<Kanban />} />
           <Route path="/visao-geral" element={<VisaoGeral />} />
+          <Route path="/planos" element={<Planos />} />
           <Route path="/configuracoes" element={<Config />} />
           <Route path="/config" element={<Navigate to="/configuracoes" replace />} />
         </Route>
