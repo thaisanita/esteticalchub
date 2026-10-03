@@ -20,7 +20,7 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 // linha por: "Agenda Estetica <lembretes@seudominio.com>"
 const FROM_EMAIL = "onboarding@resend.dev";
 const CRON_SECRET = Deno.env.get("CRON_SECRET")!;
-const APP_URL = Deno.env.get("APP_URL") ?? "https://agenda-estetica-web.vercel.app";
+const APP_URL = Deno.env.get("APP_URL") ?? "https://esteticalchub.pages.dev";
 
 // Robô de WhatsApp: opcional. Enquanto não estiverem definidos, as linhas de
 // canal 'whatsapp' ficam paradas na fila (não são tocadas nem dão erro).
