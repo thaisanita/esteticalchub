@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../supabase';
 
 export type Plano = 'free' | 'pro';
@@ -41,6 +41,14 @@ export function usePlan() {
   const [totalAgendamentosMes, setTotalAgendamentosMes] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  // Nome de canal único por instância do hook: o usePlan() é chamado em
+  // vários sítios ao mesmo tempo (botão do Assistente, Clientes, Agenda,
+  // Planos). O cliente do Supabase devolve o MESMO canal quando dois sítios
+  // pedem o mesmo nome — o segundo .on() chegava a um canal que o primeiro
+  // já tinha subscrito, daí o erro "cannot add postgres_changes callbacks
+  // ... after subscribe()". Um nome aleatório por montagem evita a colisão.
+  const nomeCanalRef = useRef(`use-plan-${Math.random().toString(36).slice(2)}`);
+
   const carregar = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -81,7 +89,7 @@ export function usePlan() {
     // das tabelas clientes/agendamentos/profiles na publicação supabase_realtime
     // (ver o SQL que já foi dado para a "Visão geral" — é a mesma necessidade).
     const canal = supabase
-      .channel('use-plan')
+      .channel(nomeCanalRef.current)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, carregar)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, carregar)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, carregar)
