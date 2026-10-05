@@ -68,7 +68,12 @@ export default function AssistenteIA() {
         { body: { message: texto, user_id: session.user.id } }
       );
 
-      if (error) throw new Error(error.message || 'Falha ao contactar o assistente.');
+      if (error) {
+        // O supabase-js só diz "non-2xx". A mensagem real (ex.: plano, chave em falta,
+        // erro da Anthropic) vem no corpo da resposta da função, em error.context.
+        const corpoErro = await (error as { context?: Response }).context?.json().catch(() => null);
+        throw new Error(corpoErro?.erro || error.message || 'Falha ao contactar o assistente.');
+      }
       if (data?.erro) throw new Error(data.erro);
 
       setMensagens((prev) => [
