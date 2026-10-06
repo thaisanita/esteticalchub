@@ -9,7 +9,8 @@
 // normal).
 //
 // Tools: listar_agendamentos, ver_pagamentos, ver_custos_fixos,
-// ver_faturamento, listar_clientes.
+// ver_faturamento, listar_clientes, criar_cliente (escrita: só com pedido
+// explícito da profissional, e sem duplicar clientes com o mesmo nome).
 //
 // Funcionalidade Pro: se profiles.plan não for 'pro', devolve 403 antes de
 // gastar qualquer chamada à Anthropic.
@@ -94,6 +95,21 @@ const FERRAMENTAS = [
     name: "listar_clientes",
     description: "Lista as clientes registadas pela profissional (nome, telefone e email).",
     input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "criar_cliente",
+    description:
+      "Cria uma nova cliente na conta da profissional. Usa SÓ quando a profissional pedir explicitamente para adicionar uma cliente. Nunca inventes telefone, email ou notas: envia só o que ela disse.",
+    input_schema: {
+      type: "object",
+      properties: {
+        nome: { type: "string", description: "Nome completo da cliente" },
+        telefone: { type: "string", description: "Telefone, com indicativo se for conhecido (ex.: +351 912 345 678)" },
+        email: { type: "string", description: "Email (opcional)" },
+        notas: { type: "string", description: "Observações (opcional)" },
+      },
+      required: ["nome"],
+    },
   },
 ];
 
@@ -213,9 +229,49 @@ async function listarClientes(uid: string) {
   return { total: data?.length ?? 0, clientes: data ?? [] };
 }
 
+async function criarCliente(
+  uid: string,
+  input: { nome?: string; telefone?: string; email?: string; notas?: string }
+) {
+  const nome = (input.nome ?? "").trim();
+  if (!nome) return { erro: "Falta o nome da cliente." };
+
+  // Não cria duplicados: se já existir uma cliente com o mesmo nome, avisa.
+  // (Escapa % e _ para não funcionarem como curingas no ilike.)
+  const nomeEscapado = nome.replace(/[%_\\]/g, "\\$&");
+  const { data: existentes, error: erroBusca } = await admin
+    .from("clientes")
+    .select("id, nome")
+    .eq("usuario_id", uid)
+    .ilike("nome", nomeEscapado)
+    .limit(1);
+
+  if (erroBusca) return { erro: erroBusca.message };
+  if (existentes && existentes.length > 0) {
+    return { criada: false, motivo: `Já existe uma cliente com o nome "${existentes[0].nome}".` };
+  }
+
+  const { data, error } = await admin
+    .from("clientes")
+    .insert({
+      usuario_id: uid,
+      nome,
+      telefone: input.telefone?.trim() || null,
+      email: input.email?.trim() || null,
+      notas: input.notas?.trim() || null,
+    })
+    .select("id, nome, telefone, email")
+    .single();
+
+  if (error) return { erro: error.message };
+  return { criada: true, cliente: data };
+}
+
 async function executarFerramenta(uid: string, nome: string, input: Record<string, unknown>) {
   try {
     switch (nome) {
+      case "criar_cliente":
+        return await criarCliente(uid, input as { nome?: string; telefone?: string; email?: string; notas?: string });
       case "listar_agendamentos":
         return await listarAgendamentos(uid, input as { data_inicio?: string; data_fim?: string });
       case "ver_pagamentos":
@@ -241,6 +297,7 @@ Tens acesso aos dados reais da profissional logada através das ferramentas disp
 Respondes sempre em português de Portugal, de forma direta e prática.
 Conheces toda a estrutura do app: agendamentos, clientes, pagamentos, custos fixos, relatórios, comissões e planeamento (Kanban) — mas só tens ferramentas para consultar agendamentos, pagamentos, custos fixos e clientes; para o resto, diz que ainda não tens acesso a esses dados.
 Usa sempre as ferramentas para responder com números — nunca inventes valores. Se não tiveres dados suficientes, diz isso claramente em vez de supor.
+Podes criar clientes com a ferramenta criar_cliente, mas só quando a profissional pedir. Se faltar o nome, pergunta antes de criar. Nunca inventes telefone ou email. Depois de criar, confirma o nome criado.
 Os valores monetários são em euros. A data de hoje é ${new Date().toISOString().slice(0, 10)}.`;
 
 type BlocoConteudo = Record<string, unknown>;
