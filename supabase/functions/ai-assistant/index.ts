@@ -8,9 +8,11 @@
 // usuario_id em cada query faz o papel que o RLS faria para um utilizador
 // normal).
 //
-// Tools: listar_agendamentos, ver_pagamentos, ver_custos_fixos,
-// ver_faturamento, listar_clientes, criar_cliente (escrita: só com pedido
-// explícito da profissional, e sem duplicar clientes com o mesmo nome).
+// Tools de leitura: listar_agendamentos, ver_pagamentos, ver_custos_fixos,
+// ver_faturamento, listar_clientes.
+// Tools de escrita (só com pedido explícito da profissional):
+// criar_cliente (sem duplicar pelo nome) e registar_pagamento (marca o
+// atendimento por pagar ou cria um já pago, como o "Pagamento rápido").
 //
 // Funcionalidade Pro: se profiles.plan não for 'pro', devolve 403 antes de
 // gastar qualquer chamada à Anthropic.
@@ -27,6 +29,9 @@ const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const MODELO = "claude-sonnet-5";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const MAX_IDAS_AO_MODELO = 6; // limite de voltas do loop de tool use, para nunca ficar presa
+
+// Mesmos valores que a app usa em forma_pagamento (página Pagamentos e Relatórios).
+const FORMAS_PAGAMENTO = ["dinheiro", "cartao", "mbway", "transferencia"];
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -111,6 +116,26 @@ const FERRAMENTAS = [
       required: ["nome"],
     },
   },
+  {
+    name: "registar_pagamento",
+    description:
+      "Regista o pagamento de um atendimento da cliente: marca como pago o atendimento por pagar dessa cliente na data indicada; se não existir nenhum por pagar, cria um atendimento já pago. Usa SÓ quando a profissional pedir explicitamente para registar um pagamento. Nunca inventes valor nem forma de pagamento.",
+    input_schema: {
+      type: "object",
+      properties: {
+        cliente: { type: "string", description: "Nome da cliente" },
+        valor: { type: "number", description: "Valor pago, em euros (maior que zero)" },
+        forma_pagamento: {
+          type: "string",
+          enum: FORMAS_PAGAMENTO,
+          description: "Forma de pagamento: dinheiro, cartao, mbway ou transferencia",
+        },
+        data: { type: "string", description: "Data do atendimento, formato AAAA-MM-DD (opcional; por omissão, hoje)" },
+        procedimento: { type: "string", description: "Procedimento (opcional; só usado se for criado um atendimento novo)" },
+      },
+      required: ["cliente", "valor", "forma_pagamento"],
+    },
+  },
 ];
 
 /** Devolve o intervalo [início, fim) do mês em ISO, para filtrar por pago_em (timestamp). */
@@ -128,6 +153,11 @@ function paraNumero(v: unknown): number {
     return Number.isFinite(n) ? n : 0;
   }
   return 0;
+}
+
+/** Escapa % e _ para não funcionarem como curingas em ilike. */
+function escaparIlike(texto: string): string {
+  return texto.replace(/[%_\\]/g, "\\$&");
 }
 
 async function listarAgendamentos(uid: string, input: { data_inicio?: string; data_fim?: string }) {
@@ -237,13 +267,11 @@ async function criarCliente(
   if (!nome) return { erro: "Falta o nome da cliente." };
 
   // Não cria duplicados: se já existir uma cliente com o mesmo nome, avisa.
-  // (Escapa % e _ para não funcionarem como curingas no ilike.)
-  const nomeEscapado = nome.replace(/[%_\\]/g, "\\$&");
   const { data: existentes, error: erroBusca } = await admin
     .from("clientes")
     .select("id, nome")
     .eq("usuario_id", uid)
-    .ilike("nome", nomeEscapado)
+    .ilike("nome", escaparIlike(nome))
     .limit(1);
 
   if (erroBusca) return { erro: erroBusca.message };
@@ -267,11 +295,111 @@ async function criarCliente(
   return { criada: true, cliente: data };
 }
 
+async function registarPagamento(
+  uid: string,
+  input: { cliente?: string; valor?: number; forma_pagamento?: string; data?: string; procedimento?: string }
+) {
+  const cliente = (input.cliente ?? "").trim();
+  const valor = paraNumero(input.valor);
+  const forma = input.forma_pagamento ?? "";
+
+  if (!cliente) return { erro: "Falta o nome da cliente." };
+  if (!(valor > 0)) return { erro: "O valor tem de ser maior que zero." };
+  if (!FORMAS_PAGAMENTO.includes(forma)) {
+    return { erro: `forma_pagamento tem de ser uma de: ${FORMAS_PAGAMENTO.join(", ")}.` };
+  }
+
+  const agora = new Date();
+  const dataHoje = agora.toISOString().slice(0, 10);
+  const data = input.data?.trim() || dataHoje;
+  const agoraIso = agora.toISOString();
+
+  // Atendimentos desta cliente, nesta data, que ainda não foram pagos.
+  const { data: porPagar, error: erroBusca } = await admin
+    .from("agendamentos")
+    .select("id, procedimento, hora")
+    .eq("usuario_id", uid)
+    .eq("pago", false)
+    .eq("data", data)
+    .ilike("cliente", escaparIlike(cliente));
+
+  if (erroBusca) return { erro: erroBusca.message };
+
+  // Mais do que um: não adivinha, pede para escolher.
+  if ((porPagar ?? []).length > 1) {
+    return {
+      registado: false,
+      motivo: "Há mais do que um atendimento por pagar desta cliente nesta data. Pergunta à profissional qual é (procedimento ou hora).",
+      opcoes: porPagar,
+    };
+  }
+
+  // Um só: marca-o como pago.
+  if ((porPagar ?? []).length === 1) {
+    const atendimento = porPagar![0];
+    const { error } = await admin
+      .from("agendamentos")
+      .update({ pago: true, forma_pagamento: forma, pago_em: agoraIso, valor, preco: valor })
+      .eq("id", atendimento.id)
+      .eq("usuario_id", uid);
+
+    if (error) return { erro: error.message };
+    return {
+      registado: true,
+      acao: "atendimento por pagar marcado como pago",
+      cliente,
+      data,
+      valor,
+      forma_pagamento: forma,
+    };
+  }
+
+  // Nenhum por pagar: cria um atendimento já pago, como o "Pagamento rápido" da app.
+  const { data: clienteExistente } = await admin
+    .from("clientes")
+    .select("id")
+    .eq("usuario_id", uid)
+    .ilike("nome", escaparIlike(cliente))
+    .limit(1)
+    .maybeSingle();
+
+  const hora = `${String(agora.getHours()).padStart(2, "0")}:${String(agora.getMinutes()).padStart(2, "0")}`;
+
+  const { error } = await admin.from("agendamentos").insert({
+    usuario_id: uid,
+    cliente,
+    cliente_id: clienteExistente?.id ?? null,
+    procedimento: input.procedimento?.trim() || "Atendimento rápido",
+    data,
+    hora,
+    preco: valor,
+    valor,
+    pago: true,
+    forma_pagamento: forma,
+    pago_em: agoraIso,
+  });
+
+  if (error) return { erro: error.message };
+  return {
+    registado: true,
+    acao: "atendimento novo criado já pago (não havia nenhum por pagar nesta data)",
+    cliente,
+    data,
+    valor,
+    forma_pagamento: forma,
+  };
+}
+
 async function executarFerramenta(uid: string, nome: string, input: Record<string, unknown>) {
   try {
     switch (nome) {
       case "criar_cliente":
         return await criarCliente(uid, input as { nome?: string; telefone?: string; email?: string; notas?: string });
+      case "registar_pagamento":
+        return await registarPagamento(
+          uid,
+          input as { cliente?: string; valor?: number; forma_pagamento?: string; data?: string; procedimento?: string }
+        );
       case "listar_agendamentos":
         return await listarAgendamentos(uid, input as { data_inicio?: string; data_fim?: string });
       case "ver_pagamentos":
@@ -295,9 +423,9 @@ async function executarFerramenta(uid: string, nome: string, input: Record<strin
 const SYSTEM_PROMPT = `És uma assistente de gestão para profissionais de estética e micropigmentação, no EstetiCalcHub.
 Tens acesso aos dados reais da profissional logada através das ferramentas disponíveis.
 Respondes sempre em português de Portugal, de forma direta e prática.
-Conheces toda a estrutura do app: agendamentos, clientes, pagamentos, custos fixos, relatórios, comissões e planeamento (Kanban) — mas só tens ferramentas para consultar agendamentos, pagamentos, custos fixos e clientes; para o resto, diz que ainda não tens acesso a esses dados.
+Conheces toda a estrutura do app: agendamentos, clientes, pagamentos, custos fixos, relatórios, comissões e planeamento (Kanban) — mas só tens ferramentas para consultar agendamentos, pagamentos, custos fixos e clientes, e para criar clientes e registar pagamentos; para o resto, diz que ainda não tens acesso a esses dados.
 Usa sempre as ferramentas para responder com números — nunca inventes valores. Se não tiveres dados suficientes, diz isso claramente em vez de supor.
-Podes criar clientes com a ferramenta criar_cliente, mas só quando a profissional pedir. Se faltar o nome, pergunta antes de criar. Nunca inventes telefone ou email. Depois de criar, confirma o nome criado.
+Podes criar clientes com criar_cliente e registar pagamentos com registar_pagamento, mas só quando a profissional pedir. Se faltar o nome, o valor ou a forma de pagamento, pergunta antes. Nunca inventes telefone, email, valor ou forma de pagamento. Se houver mais do que um atendimento por pagar possível, pergunta qual é. Depois de criar ou registar, confirma o que foi feito.
 Os valores monetários são em euros. A data de hoje é ${new Date().toISOString().slice(0, 10)}.`;
 
 type BlocoConteudo = Record<string, unknown>;
