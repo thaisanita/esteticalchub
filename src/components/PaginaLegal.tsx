@@ -15,9 +15,11 @@ interface Props {
   secoes: SecaoLegal[];
   /** Blocos extra (ex.: anexo, tabelas) mostrados depois das secções numeradas. */
   extra?: ReactNode;
+  /** Enquanto o texto não estiver revisto por um advogado, mostra o aviso de rascunho. */
+  rascunho?: boolean;
 }
 
-export default function PaginaLegal({ titulo, secoes, extra }: Props) {
+export default function PaginaLegal({ titulo, secoes, extra, rascunho = false }: Props) {
   const navigate = useNavigate();
   const identificacao = identificacaoPrestador();
 
@@ -41,7 +43,13 @@ export default function PaginaLegal({ titulo, secoes, extra }: Props) {
         </Button>
       </nav>
 
-      <div className="mx-auto max-w-3xl px-[6%] pb-8 pt-12">
+      
+      {rascunho && (
+        <div role="note" className="mx-auto mt-6 max-w-3xl rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-600">
+          RASCUNHO — rever antes de publicar. Este texto ainda não foi validado por um advogado.
+        </div>
+      )}
+<div className="mx-auto max-w-3xl px-[6%] pb-8 pt-12">
         <span className="mb-5 inline-block rounded-full bg-primary/10 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-widest text-primary">
           Documento Legal
         </span>

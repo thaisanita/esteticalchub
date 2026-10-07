@@ -224,5 +224,5 @@ const anexo = (
 );
 
 export default function Termos() {
-  return <PaginaLegal titulo="Termos de Uso e Serviço" secoes={secoes} extra={anexo} />;
+  return <PaginaLegal titulo="Termos de Uso e Serviço" secoes={secoes} extra={anexo} rascunho />;
 }

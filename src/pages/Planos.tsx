@@ -5,13 +5,11 @@ import { supabase } from '../supabase';
 import { usePlan, LIMITE_CLIENTES_FREE, LIMITE_AGENDAMENTOS_MES_FREE } from '@/hooks/usePlan';
 import { STRIPE_PRICE_IDS } from '@/config/stripe';
 
+// Só o que está bloqueado por plano no código. Exportar dados é um direito
+// (RGPD, portabilidade) e fica sempre disponível, também no grátis.
 const BENEFICIOS_PRO = [
-  'Tudo ilimitado',
-  'Relatórios dos últimos 12 meses',
+  'Clientes e agendamentos ilimitados',
   'Assistente IA',
-  'Página pública',
-  'Lembretes por email',
-  'Exportar dados',
 ];
 
 export default function Planos() {
@@ -136,7 +134,7 @@ export default function Planos() {
               agendamentos/mês
             </li>
             <li className="flex items-start gap-2">
-              <Check size={15} className="mt-0.5 shrink-0 text-primary" /> Relatórios do mês atual
+              <Check size={15} className="mt-0.5 shrink-0 text-primary" /> Exportar os teus dados
             </li>
           </ul>
           <button

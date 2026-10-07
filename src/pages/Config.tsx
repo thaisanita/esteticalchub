@@ -197,6 +197,18 @@ export default function Config() {
           </div>
         </div>
         <DadosEConta />
+
+        <div className="rounded-2xl border border-border bg-card p-5 text-xs text-muted-foreground">
+          <p className="mb-2 font-semibold text-foreground">Documentos legais</p>
+          <div className="flex flex-wrap gap-4">
+            <button type="button" onClick={() => navigate('/termos')} className="text-primary underline">
+              Termos de Uso
+            </button>
+            <button type="button" onClick={() => navigate('/privacidade')} className="text-primary underline">
+              Política de Privacidade
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Aviso de instalar app (útil para testar de novo) */}

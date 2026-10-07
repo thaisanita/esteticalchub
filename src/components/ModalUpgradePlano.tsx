@@ -1,12 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { X, Sparkles, Check } from 'lucide-react';
 
+// Mesma lista que a página Planos: só o que está bloqueado por plano.
 const BENEFICIOS_PRO = [
   'Clientes e agendamentos ilimitados',
-  'Relatórios dos últimos 12 meses',
   'Assistente IA',
-  'Página pública',
-  'Lembretes por email',
 ];
 
 interface ModalUpgradePlanoProps {

@@ -144,6 +144,7 @@ export default function App() {
         {/* Rotas Públicas */}
         <Route path="/confirmacao/:token" element={<ConfirmacaoAtendimento />} />
         <Route path="/p/:slug" element={<PaginaPublica />} />
+        <Route path="/termos" element={<Termos />} />
         <Route path="/termos-de-uso" element={<Termos />} />
         <Route path="/privacidade" element={<Privacidade />} />
         <Route path="/reset-password" element={<ResetPassword />} />

@@ -189,5 +189,5 @@ const secoes: SecaoLegal[] = [
 ];
 
 export default function Privacidade() {
-  return <PaginaLegal titulo="Política de Privacidade" secoes={secoes} />;
+  return <PaginaLegal titulo="Política de Privacidade" secoes={secoes} rascunho />;
 }
