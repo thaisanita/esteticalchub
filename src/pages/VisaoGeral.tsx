@@ -43,6 +43,7 @@ import {
   type Atendimento,
   type Dados,
 } from '@/lib/visaoGeral';
+import { SkeletonCartoes } from '@/components/ui/skeleton';
 
 const COR = '#8B5CF6';
 const TOOLTIP_STYLE = {
@@ -239,8 +240,9 @@ export default function VisaoGeral() {
 
   if (carregando || !dados || !calc) {
     return (
-      <div className="flex h-[300px] items-center justify-center text-sm font-medium text-muted-foreground">
-        A carregar a visão geral...
+      <div className="space-y-6">
+        <SkeletonCartoes quantidade={4} />
+        <div className="h-64 animate-pulse rounded-2xl border border-border bg-card" />
       </div>
     );
   }

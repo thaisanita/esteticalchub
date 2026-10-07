@@ -38,6 +38,7 @@ import {
   GripVertical,
   ChevronDown,
 } from 'lucide-react';
+import { SkeletonColunas } from '@/components/ui/skeleton';
 
 interface Quadro {
   id: string;
@@ -398,9 +399,7 @@ export default function Kanban() {
   // ---------------------------------------------------------------------
   if (loading) {
     return (
-      <div className="flex h-[300px] items-center justify-center text-sm font-medium text-muted-foreground">
-        A carregar...
-      </div>
+      <SkeletonColunas colunas={3} />
     );
   }
 

@@ -12,6 +12,7 @@ import {
   User,
   Loader2,
 } from 'lucide-react';
+import { SkeletonFormulario } from '@/components/ui/skeleton';
 
 interface Anamnese {
   alergias?: string;
@@ -146,9 +147,7 @@ export default function Prontuario() {
 
   if (loading) {
     return (
-      <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
-        A carregar prontuário...
-      </div>
+      <SkeletonFormulario campos={5} />
     );
   }
 

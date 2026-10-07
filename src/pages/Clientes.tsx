@@ -17,6 +17,7 @@ import {
   FileHeart,
   X,
 } from 'lucide-react';
+import { SkeletonLinhas } from '@/components/ui/skeleton';
 
 interface Cliente {
   id: string;
@@ -268,8 +269,8 @@ export default function Clientes() {
 
   if (loading) {
     return (
-      <div className="flex h-[300px] items-center justify-center text-sm font-medium text-muted-foreground">
-        A carregar clientes...
+      <div className="space-y-6">
+        <SkeletonLinhas linhas={6} />
       </div>
     );
   }

@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Printer, Trash2, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, FileText, Banknote, CreditCard, Smartphone, Landmark } from 'lucide-react';
-import { parseMoeda, cn } from '@/lib/utils';
+import { parseMoeda, cn, classeValorSinal } from '@/lib/utils';
 
 interface AgendamentoRel {
   id?: string | number;
@@ -305,9 +305,9 @@ const Relatorios = () => {
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Despesas</p>
                 <p className="font-display text-xl font-bold text-foreground">€ {relatorioMensal.totalDespesas.toFixed(2)}</p>
               </div>
-              <div className="rounded-2xl border border-success/25 bg-success/5 p-5 print:border print:shadow-none">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-success">Lucro Estimado</p>
-                <p className="font-display text-xl font-bold text-success">€ {relatorioMensal.lucroEstimado.toFixed(2)}</p>
+              <div className={cn('rounded-2xl border p-5 print:border print:shadow-none', relatorioMensal.lucroEstimado < 0 ? 'border-danger/25 bg-danger/5' : relatorioMensal.lucroEstimado > 0 ? 'border-success/25 bg-success/5' : 'border-border bg-card')}>
+                <p className={cn('mb-1 text-[10px] font-semibold uppercase tracking-wider', classeValorSinal(relatorioMensal.lucroEstimado))}>Lucro Estimado</p>
+                <p className={cn('font-display text-xl font-bold', classeValorSinal(relatorioMensal.lucroEstimado))}>€ {relatorioMensal.lucroEstimado.toFixed(2)}</p>
               </div>
               <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/20 print:border print:shadow-none">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Atendimentos</p>
@@ -459,10 +459,10 @@ const Relatorios = () => {
                 </span>
               )}
             </div>
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-success">
+            <p className={cn('mb-1.5 text-[11px] font-semibold uppercase tracking-wider', classeValorSinal(resumoDados.lucroRealAcumulado))}>
               Lucro Líquido (Ano)
             </p>
-            <p className="font-display text-[28px] font-bold text-success">
+            <p className={cn('font-display text-[28px] font-bold', classeValorSinal(resumoDados.lucroRealAcumulado))}>
               € {resumoDados.lucroRealAcumulado.toFixed(2)}
             </p>
           </div>
@@ -576,7 +576,7 @@ const Relatorios = () => {
                       {f.data_referencia || f.data}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{f.local}</td>
-                    <td className="px-4 py-3 font-bold text-success">
+                    <td className={cn('px-4 py-3 font-bold', classeValorSinal(parseFloat(String(f.lucro_liquido || 0))))}>
                       € {parseFloat(String(f.lucro_liquido || 0)).toFixed(2)}
                     </td>
                     <td className="no-print px-4 py-3 text-center">

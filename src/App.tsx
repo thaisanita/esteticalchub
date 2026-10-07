@@ -33,6 +33,7 @@ import NavbarLateral from './components/NavbarLateral';
 import TopBar from './components/TopBar';
 import BannerInstalarApp from './components/BannerInstalarApp';
 import AssistenteIA from './components/AssistenteIA';
+import BannerRede from './components/BannerRede';
 
 function RotaLogin({
   autenticado,
@@ -97,6 +98,8 @@ function LayoutPrivado() {
       />
 
       <AssistenteIA />
+
+      <BannerRede />
     </div>
   );
 }

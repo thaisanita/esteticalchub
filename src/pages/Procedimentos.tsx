@@ -17,6 +17,7 @@ import {
   UserX,
   TrendingUp
 } from 'lucide-react';
+import { SkeletonLinhas } from '@/components/ui/skeleton';
 
 interface Atendimento {
   id: string | number;
@@ -105,9 +106,7 @@ const Procedimentos = () => {
 
   if (loading && dataSelecionada) {
     return (
-      <div className="flex h-[300px] items-center justify-center text-sm font-medium text-muted-foreground">
-        A carregar os atendimentos do dia...
-      </div>
+      <SkeletonLinhas linhas={4} />
     );
   }
 

@@ -20,6 +20,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
+import { SkeletonLinhas } from '@/components/ui/skeleton';
 
 interface CustoFixo {
   id: string;
@@ -145,9 +146,7 @@ export default function CustosFixos() {
 
   if (loading) {
     return (
-      <div className="flex h-[300px] items-center justify-center text-sm font-medium text-muted-foreground">
-        A carregar custos fixos...
-      </div>
+      <SkeletonLinhas linhas={4} />
     );
   }
 

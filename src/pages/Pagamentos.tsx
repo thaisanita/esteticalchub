@@ -11,6 +11,7 @@ import {
   Smartphone,
   Landmark,
 } from 'lucide-react';
+import { SkeletonLinhas } from '@/components/ui/skeleton';
 
 interface PagamentoRegistado {
   id: string | number;
@@ -111,9 +112,7 @@ export default function Pagamentos() {
       </div>
 
       {loading ? (
-        <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
-          A carregar pagamentos...
-        </div>
+        <SkeletonLinhas linhas={5} />
       ) : pagamentos.length === 0 ? (
         <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
           Ainda não há pagamentos registados. Usa o botão "Registar Pagamento" acima, ou marca um agendamento como pago na Agenda.

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getErrorMessage } from '@/lib/utils';
 import { Loader2, Save, ExternalLink, ImagePlus, X } from 'lucide-react';
+import { SkeletonFormulario } from '@/components/ui/skeleton';
 
 const BUCKET = 'paginas-publicas';
 
@@ -129,9 +130,7 @@ export default function PaginaPublicaConfig() {
 
   if (carregando) {
     return (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Loader2 size={14} className="animate-spin" /> A carregar...
-      </div>
+      <SkeletonFormulario campos={4} />
     );
   }
 

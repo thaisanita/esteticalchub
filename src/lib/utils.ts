@@ -52,3 +52,12 @@ export function parseMoeda(valorDigitado: string | number | null | undefined): n
   // Nenhum separador parece ser decimal (ex: "1.000") — todos são de milhar.
   return parseFloat(limpo.replace(/[.,]/g, '')) || 0;
 }
+/**
+ * Cor de um valor monetário pelo sinal: verde se positivo, vermelho se
+ * negativo, neutra se for zero. Usar em lucros/saldos, não em faturação.
+ */
+export function classeValorSinal(valor: number): string {
+  if (valor > 0) return "text-success";
+  if (valor < 0) return "text-danger";
+  return "text-foreground";
+}

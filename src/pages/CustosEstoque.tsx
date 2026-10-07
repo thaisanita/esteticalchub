@@ -23,6 +23,7 @@ import {
   Trash2,
   Check
 } from 'lucide-react';
+import { SkeletonLinhas } from '@/components/ui/skeleton';
 
 interface Custo {
   id: string;
@@ -410,7 +411,7 @@ export default function CustosEstoque() {
         </div>
 
         {loading ? (
-          <p className="py-6 text-center text-xs text-muted-foreground">A carregar despesas...</p>
+          <SkeletonLinhas linhas={4} className="border-0 bg-transparent p-0" />
         ) : custosFiltrados.length === 0 ? (
           <p className="py-6 text-center text-xs text-muted-foreground">
             Nenhum registo de despesa encontrado para este mês.

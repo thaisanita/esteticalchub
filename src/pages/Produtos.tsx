@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { getErrorMessage, parseMoeda } from '@/lib/utils';
 import { Package, Plus, Trash2, TrendingUp, Users, Coins } from 'lucide-react';
+import { SkeletonLinhas } from '@/components/ui/skeleton';
 
 interface Produto {
   id: string;
@@ -116,9 +117,7 @@ export default function Produtos() {
 
   if (loading) {
     return (
-      <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
-        A carregar produtos...
-      </div>
+      <SkeletonLinhas linhas={5} />
     );
   }
 
