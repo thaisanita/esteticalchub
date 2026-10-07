@@ -41,6 +41,8 @@ interface MenuItem {
   texto: string;
   Icone: LucideIcon;
   subItems?: SubItem[];
+  /** Chave do grupo, para guardar se o submenu está aberto. */
+  grupo?: string;
 }
 
 interface NavbarLateralProps {
@@ -61,10 +63,11 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
 
   const expandido = fixado || emHover;
 
-  // Mantém o submenu aberto se estiver na tela de Dashboard ou Novo Agendamento
-  const [submenuAgendaAberto, setSubmenuAgendaAberto] = useState(
-    location.pathname === '/dashboard' || location.pathname === '/novo-agendamento'
-  );
+  // Estado de cada submenu (Agenda, Financeiro). Abre sozinho quando a rota atual está lá dentro.
+  const [submenusAbertos, setSubmenusAbertos] = useState<Record<string, boolean>>({
+    agenda: location.pathname === '/dashboard' || location.pathname === '/novo-agendamento',
+    financeiro: ['/pagamentos', '/custos', '/relatorios', '/porcentagem'].includes(location.pathname),
+  });
 
   const idioma = obterIdiomaAtual();
   const textos = textosNavbar[idioma] ?? textosNavbar['Português (PT)'];
@@ -87,7 +90,10 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
 
   useEffect(() => {
     if (location.pathname === '/dashboard' || location.pathname === '/novo-agendamento') {
-      setSubmenuAgendaAberto(true);
+      setSubmenusAbertos((prev) => ({ ...prev, agenda: true }));
+    }
+    if (['/pagamentos', '/custos', '/relatorios', '/porcentagem'].includes(location.pathname)) {
+      setSubmenusAbertos((prev) => ({ ...prev, financeiro: true }));
     }
   }, [location.pathname]);
 
@@ -111,17 +117,25 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
     {
       texto: textos.agenda,
       Icone: Calendar,
+      grupo: 'agenda',
       subItems: [
         { rota: '/dashboard', texto: 'Ver Agenda', Icone: CalendarDays },
         { rota: '/novo-agendamento', texto: 'Novo Agendamento', Icone: CalendarPlus },
       ],
     },
     { rota: '/procedimentos', texto: textos.procedimentos, Icone: ClipboardList },
-    { rota: '/porcentagem', texto: textos.porcentagem, Icone: Wallet },
-    { rota: '/relatorios', texto: textos.relatorios, Icone: TrendingUp },
-    { rota: '/custos', texto: textos.custos, Icone: Receipt },
+    {
+      texto: 'Financeiro',
+      Icone: Wallet,
+      grupo: 'financeiro',
+      subItems: [
+        { rota: '/pagamentos', texto: textos.pagamentos, Icone: HandCoins },
+        { rota: '/custos', texto: textos.custos, Icone: Receipt },
+        { rota: '/relatorios', texto: textos.relatorios, Icone: TrendingUp },
+        { rota: '/porcentagem', texto: textos.porcentagem, Icone: Wallet },
+      ],
+    },
     { rota: '/clientes', texto: textos.clientes, Icone: Users },
-    { rota: '/pagamentos', texto: textos.pagamentos, Icone: HandCoins },
     { rota: '/kanban', texto: textos.kanban, Icone: LayoutDashboard },
     { rota: '/planos', texto: textos.planos, Icone: Crown },
   ];
@@ -214,7 +228,9 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
               <div key={`menu-${idx}`} className="space-y-1">
                 <button
                   onClick={() =>
-                    expandido ? setSubmenuAgendaAberto((prev) => !prev) : irPara(item.subItems![0].rota)
+                    expandido
+                      ? setSubmenusAbertos((prev) => ({ ...prev, [item.grupo!]: !prev[item.grupo!] }))
+                      : irPara(item.subItems![0].rota)
                   }
                   title={!expandido ? item.texto : undefined}
                   className={cn(itemClasses(!!submenuAtivo), expandido && 'justify-between')}
@@ -228,7 +244,7 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
                       size={15}
                       className={cn(
                         'text-muted-foreground transition-transform duration-200',
-                        submenuAgendaAberto && 'rotate-180'
+                        submenusAbertos[item.grupo!] && 'rotate-180'
                       )}
                     />
                   )}
@@ -239,7 +255,7 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
                   <div
                     className={cn(
                       'grid transition-all duration-300 ease-in-out',
-                      submenuAgendaAberto ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                      submenusAbertos[item.grupo!] ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
                     )}
                   >
                     <div className="overflow-hidden">

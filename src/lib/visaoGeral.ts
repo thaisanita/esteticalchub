@@ -44,6 +44,7 @@ export function calcularVisao(dados: Dados, agoraData: Date = new Date()) {
 
     let fatAteHoje = 0, nAteHoje = 0, fatAgendado = 0, nAgendado = 0;
     let fatAntMesmoPeriodo = 0, nAntMesmoPeriodo = 0;
+    let fatMesAnteriorTotal = 0, nMesAnteriorTotal = 0;
     let fatHoje = 0, nHoje = 0;
     let proximo: Atendimento | null = null;
     const agora = hoje.toTimeString().slice(0, 5);
@@ -58,6 +59,10 @@ export function calcularVisao(dados: Dados, agoraData: Date = new Date()) {
       const chave = a.data.slice(0, 7);
       const dia = parseInt(a.data.slice(8, 10), 10);
       const passado = a.data <= hojeISO;
+      if (chave === chaveAnterior) {
+        fatMesAnteriorTotal += a.valor;
+        nMesAnteriorTotal += 1;
+      }
 
       const i = idxSerie.get(chave);
       if (i !== undefined) {
@@ -141,6 +146,7 @@ export function calcularVisao(dados: Dados, agoraData: Date = new Date()) {
       diaHoje,
       fatAteHoje, nAteHoje, fatAgendado, nAgendado, fatMesTotal,
       fatAntMesmoPeriodo, nAntMesmoPeriodo,
+      fatMesAnteriorTotal, nMesAnteriorTotal,
       ticket, ticketAnt,
       fatHoje, nHoje, proximo,
       serie, ritmo, emRisco, topProcedimentos,

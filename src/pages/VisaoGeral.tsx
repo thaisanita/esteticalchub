@@ -44,6 +44,7 @@ import {
   type Dados,
 } from '@/lib/visaoGeral';
 import { SkeletonCartoes } from '@/components/ui/skeleton';
+import ListaPrimeirosPassos from '@/components/ListaPrimeirosPassos';
 
 const COR = '#8B5CF6';
 const TOOLTIP_STYLE = {
@@ -92,12 +93,19 @@ function Variacao({
   anterior,
   className,
   rotulo = 'vs mesmo período do mês passado',
+  ignorar = false,
 }: {
   atual: number;
   anterior: number;
   className?: string;
   rotulo?: string;
+  /** Mês que mal começou: não compara, para não mostrar -100% ou +900% sem significado. */
+  ignorar?: boolean;
 }) {
+  // Base pequena (menos de 5 no período de comparação) ou início de mês: sem percentagens.
+  if (ignorar || (anterior > 0 && anterior < 5)) {
+    return <span className={cn('flex items-center gap-1 text-[11px] text-muted-foreground', className)}><Minus size={12} /> ainda cedo para comparar</span>;
+  }
   if (anterior === 0 && atual === 0) {
     return <span className={cn('flex items-center gap-1 text-[11px] text-muted-foreground', className)}><Minus size={12} /> sem dados no período anterior</span>;
   }
@@ -250,6 +258,11 @@ export default function VisaoGeral() {
   const variacaoTotal = calc.fatAntMesmoPeriodo
     ? ((calc.fatAteHoje - calc.fatAntMesmoPeriodo) / calc.fatAntMesmoPeriodo) * 100
     : null;
+  // Ritmo: atendimentos que faltam para igualar o mês passado (feitos + marcados).
+  const nMesAtual = calc.nAteHoje + calc.nAgendado;
+  const faltamParaIgualar = Math.max(calc.nMesAnteriorTotal - nMesAtual, 0);
+  // Vermelho só a partir do dia 15 e com uma diferença relevante (20% ou mais).
+  const alertaVermelho = calc.diaHoje >= 15 && variacaoTotal !== null && variacaoTotal <= -20;
   const cobreCustos = calc.fatMesTotal >= dados.custosFixosMensais;
   const pctCustos = dados.custosFixosMensais > 0 ? Math.min((calc.fatMesTotal / dados.custosFixosMensais) * 100, 100) : 0;
   const nMes = calc.nAteHoje + calc.nAgendado;
@@ -287,6 +300,8 @@ export default function VisaoGeral() {
         </div>
       </header>
 
+      <ListaPrimeirosPassos />
+
       {/* Resumo do crescimento */}
       {calc.totalGeral === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-8 text-center">
@@ -302,27 +317,28 @@ export default function VisaoGeral() {
       ) : (
         <div
           className={cn(
-            'flex items-center gap-3 rounded-2xl border p-4 text-sm font-medium',
-            variacaoTotal === null
-              ? 'border-border bg-card text-muted-foreground'
-              : variacaoTotal >= 0
-              ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-500'
-              : 'border-rose-500/30 bg-rose-500/5 text-rose-500'
+            'flex items-start gap-3 rounded-2xl border p-4 text-sm',
+            alertaVermelho
+              ? 'border-rose-500/30 bg-rose-500/5 text-rose-500'
+              : 'border-border bg-card text-foreground'
           )}
         >
-          {variacaoTotal !== null && variacaoTotal < 0 ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
-          {variacaoTotal === null
-            ? `Faturou ${euro(calc.fatAteHoje)} este mês até hoje. Ainda não há mês anterior para comparar.`
-            : `Até ao dia ${calc.diaHoje}, está ${Math.abs(variacaoTotal).toFixed(1)}% ${
-                variacaoTotal >= 0 ? 'acima' : 'abaixo'
-              } do mesmo período do mês passado (${euro(calc.fatAteHoje)} contra ${euro(calc.fatAntMesmoPeriodo)}).`}
+          <TrendingUp size={18} className={cn('mt-0.5 shrink-0', alertaVermelho ? 'text-rose-500' : 'text-primary')} />
+          <p>
+            {calc.nMesAnteriorTotal === 0
+              ? 'Ainda não há atendimentos no mês passado para comparar.'
+              : faltamParaIgualar > 0
+              ? `Faltam ${faltamParaIgualar} atendimento${faltamParaIgualar === 1 ? '' : 's'} para igualar o mês passado (${calc.nMesAnteriorTotal}). Já tens ${nMesAtual} entre feitos e marcados.`
+              : `Já igualaste o mês passado (${calc.nMesAnteriorTotal} atendimentos). Bom ritmo!`}
+            {alertaVermelho && ` Estás ${Math.abs(variacaoTotal ?? 0).toFixed(0)}% abaixo do mesmo período do mês passado.`}
+          </p>
         </div>
       )}
 
       {/* Números principais */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <CartaoKpi titulo="Faturado no mês" valor={euro(calc.fatAteHoje)} Icone={Euro}>
-          <Variacao atual={calc.fatAteHoje} anterior={calc.fatAntMesmoPeriodo} />
+          <Variacao ignorar={calc.diaHoje < 7} atual={calc.fatAteHoje} anterior={calc.fatAntMesmoPeriodo} />
           {calc.fatAgendado > 0 && (
             <p className="text-[11px] text-muted-foreground">
               Previsto até ao fim do mês: {euro(calc.fatMesTotal)}
@@ -330,14 +346,14 @@ export default function VisaoGeral() {
           )}
         </CartaoKpi>
         <CartaoKpi titulo="Atendimentos" valor={String(calc.nAteHoje)} Icone={CalendarCheck}>
-          <Variacao atual={calc.nAteHoje} anterior={calc.nAntMesmoPeriodo} />
+          <Variacao ignorar={calc.diaHoje < 7} atual={calc.nAteHoje} anterior={calc.nAntMesmoPeriodo} />
           {calc.nAgendado > 0 && <p className="text-[11px] text-muted-foreground">+ {calc.nAgendado} ainda agendados</p>}
         </CartaoKpi>
         <CartaoKpi titulo="Ticket médio" valor={euro(calc.ticket)} Icone={Receipt}>
-          <Variacao atual={calc.ticket} anterior={calc.ticketAnt} />
+          <Variacao ignorar={calc.diaHoje < 7} atual={calc.ticket} anterior={calc.ticketAnt} />
         </CartaoKpi>
         <CartaoKpi titulo="Clientes novas" valor={String(dados.clientesNovasMes)} Icone={UserPlus}>
-          <Variacao atual={dados.clientesNovasMes} anterior={dados.clientesNovasMesAnterior} rotulo="vs mês passado (completo)" />
+          <Variacao ignorar={calc.diaHoje < 7} atual={dados.clientesNovasMes} anterior={dados.clientesNovasMesAnterior} rotulo="vs mês passado (completo)" />
         </CartaoKpi>
       </div>
 
