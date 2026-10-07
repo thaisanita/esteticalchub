@@ -199,7 +199,7 @@ export default function Clientes() {
   }, [painelAberto]);
 
   const handleExcluir = async (id: string) => {
-    if (!window.confirm('Excluir esta cliente? O histórico de agendamentos dela não é apagado.')) return;
+    if (!window.confirm('Eliminar esta cliente? O histórico de agendamentos dela não é apagado.')) return;
     const { error } = await supabase.from('clientes').delete().eq('id', id);
     if (!error) carregarDados();
   };
@@ -224,14 +224,14 @@ export default function Clientes() {
   const handleExcluirSelecionadas = async () => {
     const quantidade = selecionadas.size;
     if (quantidade === 0) return;
-    if (!window.confirm(`Excluir ${quantidade} cliente${quantidade > 1 ? 's' : ''} selecionada${quantidade > 1 ? 's' : ''}? O histórico de agendamentos delas não é apagado.`)) return;
+    if (!window.confirm(`Eliminar ${quantidade} cliente${quantidade > 1 ? 's' : ''} selecionada${quantidade > 1 ? 's' : ''}? O histórico de agendamentos delas não é apagado.`)) return;
 
     const { error } = await supabase.from('clientes').delete().in('id', Array.from(selecionadas));
     if (!error) {
       setSelecionadas(new Set());
       carregarDados();
     } else {
-      alert('Erro ao excluir clientes: ' + getErrorMessage(error));
+      alert('Erro ao eliminar clientes: ' + getErrorMessage(error));
     }
   };
 
@@ -355,7 +355,7 @@ export default function Clientes() {
         {selecionadas.size > 0 && (
           <Button variant="outline" onClick={handleExcluirSelecionadas} className="gap-1.5 border-rose-500/30 text-rose-500 hover:bg-rose-500/10">
             <Trash2 size={14} />
-            Excluir {selecionadas.size} selecionada{selecionadas.size > 1 ? 's' : ''}
+            Eliminar {selecionadas.size} selecionada{selecionadas.size > 1 ? 's' : ''}
           </Button>
         )}
       </div>
@@ -450,7 +450,7 @@ export default function Clientes() {
                       <button onClick={() => handleEditar(c)} title="Editar" className="text-muted-foreground hover:text-primary transition-colors mr-3">
                         <Pencil size={15} />
                       </button>
-                      <button onClick={() => handleExcluir(c.id)} title="Excluir" className="text-muted-foreground hover:text-rose-500 transition-colors">
+                      <button onClick={() => handleExcluir(c.id)} title="Eliminar" className="text-muted-foreground hover:text-rose-500 transition-colors">
                         <Trash2 size={15} />
                       </button>
                     </td>

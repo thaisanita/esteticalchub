@@ -127,7 +127,7 @@ export default function DadosEConta() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
-          Descarregue uma cópia de todos os seus dados (clientes, agendamentos, custos, etc.) em formato JSON.
+          Descarrega uma cópia de todos os teus dados (clientes, agendamentos, custos, etc.) em formato JSON.
         </p>
         <Button size="sm" variant="outline" onClick={exportar} disabled={exportando} className="shrink-0 gap-1.5">
           {exportando ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
@@ -138,7 +138,7 @@ export default function DadosEConta() {
       <div className="space-y-2 rounded-xl border border-danger/30 bg-danger/5 p-3">
         <p className="text-xs font-semibold text-danger">Eliminar conta</p>
         <p className="text-[11px] text-muted-foreground">
-          Apaga definitivamente a sua conta e todos os dados (clientes, agendamentos, prontuários, ficheiros e
+          Elimina definitivamente a tua conta e todos os dados (clientes, agendamentos, prontuários, ficheiros e
           ligação ao WhatsApp). Não pode ser desfeito. Exporte primeiro, se quiser guardar uma cópia.
         </p>
         <Button size="sm" variant="destructive" onClick={abrirDialogo} className="gap-1.5">

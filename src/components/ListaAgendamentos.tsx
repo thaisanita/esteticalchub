@@ -109,7 +109,7 @@ const ListaAgendamentos = ({
           Nenhum agendamento
         </h4>
         <p className="max-w-[240px] text-[12px] text-muted-foreground">
-          Selecione um dia com marcação no calendário ao lado para ver os detalhes aqui.
+          Seleciona um dia com marcação no calendário ao lado para ver os detalhes aqui.
         </p>
       </div>
     );
@@ -228,7 +228,7 @@ const ListaAgendamentos = ({
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10"
-                    title="Excluir agendamento"
+                    title="Eliminar agendamento"
                   >
                     <Trash2 size={13} />
                   </Button>

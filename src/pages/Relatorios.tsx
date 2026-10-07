@@ -106,13 +106,13 @@ const Relatorios = () => {
 
   const handleExcluirAtendimento = async (id: string | number | undefined) => {
     if (!id) return;
-    if (!window.confirm('Excluir este atendimento? Esta ação não pode ser desfeita.')) return;
+    if (!window.confirm('Eliminar este atendimento? Esta ação não pode ser desfeita.')) return;
 
     const { error } = await supabase.from('agendamentos').delete().eq('id', id);
     if (!error) {
       setAgendamentos((prev) => prev.filter((ag) => ag.id !== id));
     } else {
-      alert('Erro ao excluir atendimento: ' + error.message);
+      alert('Erro ao eliminar atendimento: ' + error.message);
     }
   };
 
@@ -219,7 +219,7 @@ const Relatorios = () => {
   }
 
   // Margem calculada só sobre os dias já fechados (mesma base do lucro),
-  // para não dividir lucro de uma fração pelo faturamento do ano inteiro.
+  // para não dividir lucro de uma fração pelo faturação do ano inteiro.
   const margemLucro =
     resumoDados.brutoTotalFechado > 0
       ? (resumoDados.lucroRealAcumulado / resumoDados.brutoTotalFechado) * 100
@@ -369,7 +369,7 @@ const Relatorios = () => {
                         <td className="no-print px-4 py-3 text-center">
                           <button
                             onClick={() => handleExcluirAtendimento(ag.id)}
-                            title="Excluir atendimento"
+                            title="Eliminar atendimento"
                             className="text-muted-foreground hover:text-rose-500 transition-colors"
                           >
                             <Trash2 size={14} />
@@ -430,7 +430,7 @@ const Relatorios = () => {
               </div>
             </div>
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Faturamento Bruto (Ano)
+              Faturação Bruto (Ano)
             </p>
             <p className="font-display text-[28px] font-bold text-foreground">
               € {resumoDados.brutoTotalAno.toFixed(2)}
@@ -490,7 +490,7 @@ const Relatorios = () => {
           <div className="mb-5 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-foreground">Evolução Mensal</h3>
-              <p className="text-[11px] text-muted-foreground">Faturamento por mês, ano atual</p>
+              <p className="text-[11px] text-muted-foreground">Faturação por mês, ano atual</p>
             </div>
           </div>
           <div className="w-full" style={{ height: 380, minHeight: 380, width: '100%' }}>
@@ -525,7 +525,7 @@ const Relatorios = () => {
                   }}
                   labelStyle={{ color: '#FFFFFF', fontWeight: 600, marginBottom: 4 }}
                   itemStyle={{ color: '#8B5CF6' }}
-                  formatter={(value: number) => [`€ ${value.toFixed(2)}`, 'Faturamento']}
+                  formatter={(value: number) => [`€ ${value.toFixed(2)}`, 'Faturação']}
                   cursor={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }}
                 />
                 <Area
@@ -585,7 +585,7 @@ const Relatorios = () => {
                         className="inline-flex items-center gap-1 rounded-md bg-danger/10 px-2.5 py-1.5 text-[10px] font-semibold text-danger transition-colors hover:bg-danger/20"
                       >
                         <Trash2 size={11} />
-                        Excluir
+                        Eliminar
                       </button>
                     </td>
                   </tr>

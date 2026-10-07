@@ -4,7 +4,7 @@ import { supabase } from '../supabase';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
-  const [mensagem, setMensagem] = useState('Conectando sua agenda...');
+  const [mensagem, setMensagem] = useState('A ligar a tua agenda...');
   const processadoRef = useRef(false);
 
   useEffect(() => {

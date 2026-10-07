@@ -187,7 +187,7 @@ export default function Kanban() {
     if (!window.confirm(t.confExcluirQuadro)) return;
     const { error } = await supabase.from('quadros_kanban').delete().eq('id', quadroId);
     if (error) {
-      alert(`Erro ao excluir quadro: ${getErrorMessage(error)}`);
+      alert(`Erro ao eliminar quadro: ${getErrorMessage(error)}`);
       return;
     }
     const restantes = quadros.filter((q) => q.id !== quadroId);
@@ -236,7 +236,7 @@ export default function Kanban() {
     if (!window.confirm(t.confExcluirLista)) return;
     const { error } = await supabase.from('listas_kanban').delete().eq('id', listaId);
     if (error) {
-      alert(`Erro ao excluir lista: ${getErrorMessage(error)}`);
+      alert(`Erro ao eliminar lista: ${getErrorMessage(error)}`);
       return;
     }
     setListas((prev) => prev.filter((l) => l.id !== listaId));

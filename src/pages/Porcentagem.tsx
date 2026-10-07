@@ -191,7 +191,7 @@ const Porcentagem = () => {
       setDiasJaSalvos((prev) => [...new Set([...prev, dataParaFechamento])]);
       setPontoSelecionado('');
     } catch (error) {
-      alert('Erro ao salvar: ' + getErrorMessage(error));
+      alert('Erro ao guardar: ' + getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -222,7 +222,7 @@ const Porcentagem = () => {
             Comissão por Espaço
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Divide o faturamento do dia entre o espaço parceiro e o teu lucro
+            Divide o faturação do dia entre o espaço parceiro e o teu lucro
           </p>
         </div>
 
@@ -335,7 +335,7 @@ const Porcentagem = () => {
           </label>
           {locaisUnicos.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border bg-background/40 px-4 py-3 text-center text-xs text-muted-foreground">
-              {dataParaFechamento ? 'Nenhum espaço encontrado para este dia.' : 'Selecione um dia acima.'}
+              {dataParaFechamento ? 'Nenhum espaço encontrado para este dia.' : 'Seleciona um dia acima.'}
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
@@ -400,7 +400,7 @@ const Porcentagem = () => {
               € {totalBrutoLocal.toFixed(2)}
             </div>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
-              Faturamento no local
+              Faturação no local
             </p>
           </div>
         </div>
@@ -429,7 +429,7 @@ const Porcentagem = () => {
         <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-primary/30 bg-primary/5 p-5 shadow-lg shadow-primary/5">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-success">
-              <TrendingUp size={14} /> Seu Lucro
+              <TrendingUp size={14} /> O teu lucro
             </span>
             <span className="rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-semibold text-success">
               {100 - taxaEspaco}%
@@ -457,7 +457,7 @@ const Porcentagem = () => {
         ) : (
           <>
             <Sparkles size={16} />
-            Confirmar e Salvar Fechamento
+            Confirmar e Guardar Fechamento
             <ArrowRight size={16} />
           </>
         )}

@@ -261,7 +261,7 @@ export default function VisaoGeral() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-display text-[30px] font-semibold text-foreground">Visão geral</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">O crescimento do seu negócio, em tempo real.</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">O crescimento do teu negócio, em tempo real.</p>
         </div>
         <div className="flex items-center gap-2">
           <span
@@ -344,7 +344,7 @@ export default function VisaoGeral() {
       {/* Gráficos */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/10">
-          <h3 className="text-sm font-semibold text-foreground">Faturamento — últimos 12 meses</h3>
+          <h3 className="text-sm font-semibold text-foreground">Faturação — últimos 12 meses</h3>
           <p className="mb-3 text-[11px] text-muted-foreground">A parte clara é o que ainda está agendado.</p>
           <div style={{ height: 260 }}>
             <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
@@ -368,7 +368,7 @@ export default function VisaoGeral() {
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/10">
           <h3 className="text-sm font-semibold text-foreground">Ritmo do mês — este mês vs mês passado</h3>
-          <p className="mb-3 text-[11px] text-muted-foreground">Faturamento acumulado dia a dia.</p>
+          <p className="mb-3 text-[11px] text-muted-foreground">Faturação acumulado dia a dia.</p>
           <div style={{ height: 260 }}>
             <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
               <LineChart data={calc.ritmo} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
@@ -439,7 +439,7 @@ export default function VisaoGeral() {
             </>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Registe os seus custos fixos (renda, internet…) para ver quanto precisa faturar por mês.{' '}
+              Regista os teus custos fixos (renda, internet…) para ver quanto precisas de faturar por mês.{' '}
               <button onClick={() => navigate('/custos')} className="text-primary underline">Ir para Custos</button>
             </p>
           )}

@@ -25,6 +25,7 @@ import ConectarWhatsAppBot from '@/components/ConectarWhatsAppBot';
 import PaginaPublicaConfig from '@/components/PaginaPublicaConfig';
 import DadosEConta from '@/components/DadosEConta';
 import { CHAVE_BANNER_INSTALAR_FECHADO } from '@/components/BannerInstalarApp';
+import { URL_PUBLICO } from '@/lib/empresa';
 
 interface Usuario {
   email: string;
@@ -55,7 +56,7 @@ export default function Config() {
   const t = textosConfig[idioma] || textosConfig['Português (PT)'];
 
   const copiarLink = () => {
-    navigator.clipboard.writeText(window.location.origin);
+    navigator.clipboard.writeText(URL_PUBLICO);
     alert('Link do app copiado!');
   };
 
@@ -117,7 +118,7 @@ export default function Config() {
           <div>
             <div className="text-sm font-bold text-foreground">WhatsApp</div>
             <div className="mt-0.5 text-xs text-muted-foreground">
-              Ligue o seu WhatsApp para enviar lembretes automáticos às clientes.
+              Liga o teu WhatsApp para enviar lembretes automáticos às clientes.
             </div>
           </div>
         </div>
@@ -134,7 +135,7 @@ export default function Config() {
           <div>
             <div className="text-sm font-bold text-foreground">Página Pública</div>
             <div className="mt-0.5 text-xs text-muted-foreground">
-              Uma página pra receber tráfego de anúncios — a visitante escolhe falar no WhatsApp ou deixar os dados.
+              Uma página para receber tráfego de anúncios — a visitante escolhe falar no WhatsApp ou deixar os dados.
             </div>
           </div>
         </div>
@@ -165,7 +166,7 @@ export default function Config() {
         </Select>
       </div>
 
-      {/* Compartilhar */}
+      {/* Partilhar */}
       <button
         onClick={copiarLink}
         className="mb-3 flex w-full items-center justify-between rounded-2xl border border-primary/30 bg-card p-5 text-left transition-colors hover:bg-primary/5"
@@ -175,7 +176,7 @@ export default function Config() {
             <Link2 size={18} className="text-primary" />
           </div>
           <div>
-            <div className="text-sm font-bold text-primary">{t.compartilhar}</div>
+            <div className="text-sm font-bold text-primary">{t.partilhar}</div>
             <div className="mt-0.5 text-xs text-muted-foreground">{t.compartilharSub}</div>
           </div>
         </div>
@@ -191,14 +192,14 @@ export default function Config() {
           <div>
             <div className="text-sm font-bold text-foreground">Os meus dados</div>
             <div className="mt-0.5 text-xs text-muted-foreground">
-              Exporte uma cópia ou elimine a sua conta e todos os dados.
+              Exporta uma cópia ou elimina a tua conta e todos os dados.
             </div>
           </div>
         </div>
         <DadosEConta />
       </div>
 
-      {/* Aviso de instalar app (útil pra testar de novo) */}
+      {/* Aviso de instalar app (útil para testar de novo) */}
       <button
         onClick={mostrarAvisoInstalarNovamente}
         className="mb-3 flex w-full items-center justify-between rounded-2xl border border-border bg-card p-5 text-left transition-colors hover:bg-primary/5"

@@ -186,7 +186,7 @@ if (/not confirmed/i.test(error.message)) {
 
 setEmailNaoConfirmado(true);
 
-throw new Error('Confirme primeiro o seu email: enviámos-lhe uma ligação de confirmação. Veja também o spam.');
+throw new Error('Confirma primeiro o teu email: enviámos-lhe uma ligação de confirmação. Vê também o spam.');
 
 }
 
@@ -234,7 +234,7 @@ redirectTo: `${window.location.origin}/reset-password`,
 
 if (error) throw error;
 
-setMensagem(`Email de redefinição enviado para ${email}.\nVerifique sua caixa de entrada e spam.`);
+setMensagem(`Email de redefinição enviado para ${email}.\nVerifica a tua caixa de entrada e spam.`);
 
 } catch (err) {
 
@@ -280,7 +280,7 @@ const { error } = await (supabase.auth as any).resend({ type: 'signup', email })
 
 if (error) throw error;
 
-setMensagem('Email de confirmação reenviado! Verifique seu spam ou promoções.');
+setMensagem('Email de confirmação reenviado! Verifica o teu spam ou promoções.');
 
 } catch (err) {
 
@@ -316,7 +316,7 @@ const FEATURE_ITEMS = [
 
 { icon: FileText, texto: 'Fichas de Anamnese Digitais', from: '#0EA5E9', to: '#7C3AED' },
 
-{ icon: Wallet, texto: 'Controle de Faturamento', from: '#F59E0B', to: '#EC4899' },
+{ icon: Wallet, texto: 'Controlo de Faturação', from: '#F59E0B', to: '#EC4899' },
 
 ];
 
@@ -434,7 +434,7 @@ Plataforma Profissional
 
 <h1 className="font-display mb-4 text-[40px] leading-[1.15] text-foreground">
 
-Gestão inteligente para sua{' '}
+Gestão inteligente para a tua{' '}
 
 <em className="bg-gradient-to-r from-[#A855F7] via-[#EC4899] to-[#F59E0B] bg-clip-text italic text-transparent">
 
@@ -446,7 +446,7 @@ Clínica de Estética.
 
 <p className="text-base leading-relaxed text-muted-foreground">
 
-Organize agendamentos, clientes e finanças em um só lugar. Acesse de onde estiver com
+Organiza agendamentos, clientes e finanças num só lugar. Acede de onde estiveres com
 
 total segurança.
 
@@ -502,7 +502,7 @@ style={{ background: 'linear-gradient(135deg, #7C3AED, #EC4899)' }}
 
 <div className="relative text-[13px] text-muted-foreground">
 
-Tudo o que sua clínica precisa para crescer, centralizado em uma única tela.
+Tudo o que a tua clínica precisa para crescer, centralizado numa só tela.
 
 </div>
 
@@ -530,7 +530,7 @@ Recuperar Acesso
 
 <p className="mb-6 mt-2.5 text-sm leading-relaxed text-muted-foreground">
 
-Digite seu e-mail e enviaremos um link para você criar uma nova senha.
+Escreve o teu e-mail e enviamos-te um link para criares uma nova senha.
 
 </p>
 
@@ -540,7 +540,7 @@ Digite seu e-mail e enviaremos um link para você criar uma nova senha.
 
 type="email"
 
-placeholder="Seu e-mail cadastrado"
+placeholder="O teu e-mail registado"
 
 value={email}
 
@@ -658,7 +658,7 @@ type="email"
 
 name="email"
 
-placeholder="seu@email.com"
+placeholder="nome@email.com"
 
 value={email}
 
@@ -694,7 +694,7 @@ type={mostrarSenha ? 'text' : 'password'}
 
 name="password"
 
-placeholder={isRegistro ? 'Crie uma senha forte' : 'Sua senha'}
+placeholder={isRegistro ? 'Cria uma senha forte' : 'A tua senha'}
 
 value={senha}
 

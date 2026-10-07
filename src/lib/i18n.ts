@@ -1,5 +1,5 @@
 // Ficheiro único de traduções (PT/EN/ES) para todo o EstetiCalcHub.
-// Antes, cada página mantinha o seu próprio dicionário separado — o que
+// Antes, cada página mantinha o o teu próprio dicionário separado — o que
 // tornava fácil um ficheiro ficar desatualizado em relação aos outros.
 // Agora todas as traduções vivem aqui, organizadas por página.
 
@@ -64,7 +64,7 @@ export interface TextosConfig {
   statusConectadoSub: string;
   statusDesconectadoSub: string;
   btnSalvarNumero: string;
-  compartilhar: string;
+  partilhar: string;
   compartilharSub: string;
   agendaLabel: string;
   agendaSub: string;
@@ -77,25 +77,25 @@ export interface TextosConfig {
 export const textosConfig: Record<Idioma, TextosConfig> = {
   'Português (PT)': {
     titulo: 'Configurações',
-    subtitulo: 'Personalize a sua experiência',
+    subtitulo: 'Personaliza a a tua experiência',
     perfilStatus: 'Conectado',
     idiomaLabel: 'Idioma',
-    idiomaSub: 'Selecione sua região',
+    idiomaSub: 'Seleciona a tua região',
     whatsappLabel: 'WhatsApp de Envio de Mensagens',
-    whatsappSub: 'Cadastre o seu número para enviar os lembretes e confirmações automáticos',
-    whatsappInputLabel: 'Seu WhatsApp (com DDI e DDD)',
+    whatsappSub: 'Cadastre o o teu número para enviar os lembretes e confirmações automáticos',
+    whatsappInputLabel: 'O teu WhatsApp (com DDI e DDD)',
     whatsappPlaceholder: '+351 912 345 678 ou +55 11 99999-9999',
     statusConectado: 'WhatsApp Configurado',
     statusDesconectado: 'Número não configurado',
-    statusConectadoSub: 'Seu número está pronto para enviar notificações para os clientes.',
-    statusDesconectadoSub: 'Insira e salve o seu número de WhatsApp abaixo.',
-    btnSalvarNumero: 'Salvar Número',
-    compartilhar: 'Compartilhar Link',
-    compartilharSub: 'Copiar URL do aplicativo',
+    statusConectadoSub: 'O teu número está pronto para enviar notificações para os clientes.',
+    statusDesconectadoSub: 'Insere e guarda o teu número de WhatsApp abaixo.',
+    btnSalvarNumero: 'Guardar Número',
+    partilhar: 'Partilhar Link',
+    compartilharSub: 'Copiar URL do aplicação',
     agendaLabel: 'Sincronização de Agenda',
     agendaSub: 'Conectar com Google Calendar',
     btnAgenda: 'Conectar Google',
-    btnSalvar: 'Salvar Alterações',
+    btnSalvar: 'Guardar Alterações',
     btnVoltar: 'Voltar para Agenda',
     alerta: 'Configurações salvas com sucesso!',
   },
@@ -114,7 +114,7 @@ export const textosConfig: Record<Idioma, TextosConfig> = {
     statusConectadoSub: 'Your number is ready to send notifications to clients.',
     statusDesconectadoSub: 'Enter and save your WhatsApp number below.',
     btnSalvarNumero: 'Save Number',
-    compartilhar: 'Share Link',
+    partilhar: 'Share Link',
     compartilharSub: 'Copy app URL',
     agendaLabel: 'Calendar Sync',
     agendaSub: 'Connect with Google Calendar',
@@ -138,7 +138,7 @@ export const textosConfig: Record<Idioma, TextosConfig> = {
     statusConectadoSub: 'Su número está listo para enviar notificaciones a los clientes.',
     statusDesconectadoSub: 'Ingrese y guarde su número de WhatsApp a continuación.',
     btnSalvarNumero: 'Guardar Número',
-    compartilhar: 'Compartir Enlace',
+    partilhar: 'Compartir Enlace',
     compartilharSub: 'Copiar URL de la aplicación',
     agendaLabel: 'Sincronización de Agenda',
     agendaSub: 'Conectar con Google Calendar',
@@ -172,7 +172,7 @@ export const textosProcedimentos: Record<Idioma, TextosProcedimentos> = {
     vazio: 'Nenhum agendamento para esta data.', faltou: 'Falta', editar: 'Editar', total: 'Total Faturado no Dia',
     btnVoltar: 'Voltar à Agenda', btnNovo: 'Novo Agendamento',
     confFalta: 'Confirmar falta? O valor deste atendimento será zerado.',
-    confExcluir: 'Tem certeza que deseja excluir este atendimento?', formatoData: 'pt-PT', selecione: 'Selecione uma data',
+    confExcluir: 'Tens a certeza de que queres eliminar este atendimento?', formatoData: 'pt-PT', selecione: 'Seleciona uma data',
   },
   'English (US)': {
     titulo: 'Appointments of the Day', encontrado: 'appointment', encontrados: 'appointments',
@@ -213,16 +213,16 @@ export interface TextosKanban {
 
 export const textosKanban: Record<Idioma, TextosKanban> = {
   'Português (PT)': {
-    titulo: 'Planeamento', subtitulo: 'Organize ideias, tarefas e projetos do seu negócio.',
+    titulo: 'Planeamento', subtitulo: 'Organize ideias, tarefas e projetos do o teu negócio.',
     novoQuadro: 'Novo Quadro', novoQuadroTitulo: 'Criar novo quadro', nomeQuadroPlaceholder: 'Ex.: Marketing',
     criar: 'Criar', cancelar: 'Cancelar',
     novaLista: 'Nova lista', nomeListaPlaceholder: 'Nome da lista',
     adicionarCartao: '+ Adicionar cartão', tituloCartaoPlaceholder: 'Título do cartão',
     descricaoPlaceholder: 'Descrição (opcional)...',
-    vazio: 'Ainda não tem nenhum quadro.', vazioSub: 'Crie um quadro para começar a organizar as suas ideias.',
-    confExcluirQuadro: 'Excluir este quadro e todo o seu conteúdo?',
-    confExcluirLista: 'Excluir esta lista e todos os seus cartões?',
-    confExcluirCartao: 'Excluir este cartão?',
+    vazio: 'Ainda não tens nenhum quadro.', vazioSub: 'Cria um quadro para começar a organizar as tuas ideias.',
+    confExcluirQuadro: 'Eliminar este quadro e todo o o teu conteúdo?',
+    confExcluirLista: 'Eliminar esta lista e todos os os teus cartões?',
+    confExcluirCartao: 'Eliminar este cartão?',
   },
   'English (US)': {
     titulo: 'Planning', subtitulo: 'Organize ideas, tasks and projects for your business.',

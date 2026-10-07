@@ -92,14 +92,14 @@ export default function LandingPage() {
         </div>
 
         <h1 className="font-display text-4xl sm:text-6xl font-extrabold tracking-tight text-foreground leading-[1.12] max-w-4xl mx-auto">
-          Sua clínica organizada, agendamentos pontuais e{' '}
+          A tua clínica organizada, agendamentos pontuais e{' '}
           <span className="bg-gradient-to-r from-[#A855F7] via-[#EC4899] to-[#F59E0B] bg-clip-text text-transparent">
-            lucro real sob controle.
+            lucro real sob controlo.
           </span>
         </h1>
 
         <WordsStagger className="justify-center text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          Centralize o cálculo exato de custos de insumos, comissões, faturamento e agenda em uma única plataforma feita para profissionais independentes e clínicas.
+          Centraliza o cálculo exato de custos de insumos, comissões, faturação e agenda numa única plataforma feita para profissionais independentes e clínicas.
         </WordsStagger>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
@@ -131,7 +131,7 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left p-1 sm:p-2">
               <div className="rounded-xl border border-border bg-background p-4 space-y-3">
                 <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                  <span>Faturamento Mensal</span>
+                  <span>Faturação Mensal</span>
                   <DollarSign size={16} className="text-emerald-500" />
                 </div>
                 <div className="text-2xl font-bold font-display text-foreground">€ 4.850,00</div>
@@ -209,7 +209,7 @@ export default function LandingPage() {
               </div>
               <h3 className="font-display text-xl font-bold text-foreground">Agenda Visual e Inteligente</h3>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Visualize seus compromissos por dia ou mês. Evite choques de horário e acompanhe o status de cada cliente (confirmado, finalizado ou cancelado) instantaneamente.
+                Visualiza os teus compromissos por dia ou mês. Evita choques de horário e acompanha o estado de cada cliente (confirmado, finalizado ou cancelado) instantaneamente.
               </p>
             </div>
             <div className="rounded-xl border border-border/80 bg-background/50 p-3 text-xs text-muted-foreground flex items-center justify-between">
@@ -244,7 +244,7 @@ export default function LandingPage() {
             </div>
             <h3 className="font-display text-xl font-bold text-foreground">Divisão de Porcentagens & Parcerias</h3>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Se você trabalha em espaço compartilhado ou tem parceiros na clínica, o sistema calcula a divisão percentual exata de cada procedimento automaticamente.
+              Se trabalhas em espaço partilhado ou tens parceiros na clínica, o sistema calcula a divisão percentual exata de cada procedimento automaticamente.
             </p>
           </div>
         </div>
@@ -254,10 +254,10 @@ export default function LandingPage() {
       <section className="relative z-10 max-w-4xl mx-auto px-6 pb-20 text-center">
         <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-b from-primary/10 to-transparent p-8 sm:p-12 space-y-5 backdrop-blur-md">
           <h2 className="font-display text-2xl sm:text-4xl font-bold text-foreground">
-            Comece a organizar sua clínica hoje
+            Começa a organizar a tua clínica hoje
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
-            Crie sua conta em segundos e tenha total controle dos seus agendamentos e finanças.
+            Cria a tua conta em segundos e tens controlo total dos teus agendamentos e finanças.
           </p>
           <Button 
             onClick={irParaRegistro}

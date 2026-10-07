@@ -89,8 +89,8 @@ export default function CustosEstoque() {
       setCustos(dataCustos);
     }
 
-    // 2. Faturamento do Mês/Ano Selecionado — soma de todos os agendamentos
-    // desse mês, fechados ou não (cada atendimento realizado é faturamento).
+    // 2. Faturação do Mês/Ano Selecionado — soma de todos os agendamentos
+    // desse mês, fechados ou não (cada atendimento realizado é faturação).
     const prefixoMesAno = `${anoSelecionado}-${mesSelecionado}`;
 
     let queryAgendamentos = supabase.from('agendamentos').select('valor, preco, data');
@@ -143,7 +143,7 @@ export default function CustosEstoque() {
         setDataVencimento('');
         carregarDados();
       } else {
-        alert('Erro ao salvar despesa: ' + error.message);
+        alert('Erro ao guardar despesa: ' + error.message);
       }
     } catch (err) {
       console.error(err);
@@ -178,7 +178,7 @@ export default function CustosEstoque() {
   };
 
   const handleExcluirCusto = async (id: string) => {
-    if (!confirm('Deseja realmente excluir este lançamento?')) return;
+    if (!confirm('Queres mesmo eliminar este lançamento?')) return;
 
     try {
       const { error } = await supabase.from('se_custos').delete().eq('id', id);
@@ -186,7 +186,7 @@ export default function CustosEstoque() {
         setCustos((prev) => prev.filter((item) => item.id !== id));
       }
     } catch (err) {
-      console.error('Erro ao excluir:', err);
+      console.error('Erro ao eliminar:', err);
     }
   };
 
@@ -260,7 +260,7 @@ export default function CustosEstoque() {
 
       {/* Cards de Resumo de Caixa e Reserva */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {/* Entradas (Faturamento) */}
+        {/* Entradas (Faturação) */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/10">
           <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             <TrendingUp size={14} className="text-emerald-500" />
@@ -467,7 +467,7 @@ export default function CustosEstoque() {
                     type="button"
                     onClick={() => handleExcluirCusto(item.id)}
                     className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-500"
-                    title="Excluir custo"
+                    title="Eliminar custo"
                   >
                     <Trash2 size={14} />
                   </button>

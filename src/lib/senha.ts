@@ -40,7 +40,7 @@ export function avaliarSenha(senha: string, email = ''): AvaliacaoSenha {
         !SENHAS_COMUNS.has(baixa) &&
         !partesEmail.some((parte) => baixa.includes(parte)) &&
         !/^(.)\1+$/.test(senha),
-      texto: 'Não é uma senha comum nem contém o seu email',
+      texto: 'Não é uma senha comum nem contém o o teu email',
     },
   ];
 

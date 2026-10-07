@@ -23,6 +23,7 @@ import {
   Package,
   Target
 } from 'lucide-react';
+import { URL_PUBLICO } from '@/lib/empresa';
 
 interface NovoAgendamentoProps {
   setAgendamentos?: (novosDados: unknown[]) => void;
@@ -333,7 +334,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
         .eq('id', clienteIdDaCliente)
         .maybeSingle();
       if (cli?.opt_out_token) {
-        rodape = `\n\nPara deixar de receber lembretes: ${window.location.origin}/opt-out?token=${cli.opt_out_token}`;
+        rodape = `\n\nPara deixar de receber lembretes: ${URL_PUBLICO}/opt-out?token=${cli.opt_out_token}`;
       }
     }
 
@@ -492,8 +493,8 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
       // Redireciona de volta para a lista de procedimentos na data do agendamento
       navigate(`/procedimentos?date=${dataAgendamento}`);
     } catch (err) {
-      console.error('Erro ao salvar agendamento:', err);
-      alert(`Erro ao salvar agendamento: ${getErrorMessage(err)}`);
+      console.error('Erro ao guardar agendamento:', err);
+      alert(`Erro ao guardar agendamento: ${getErrorMessage(err)}`);
     } finally {
       setSalvando(false);
     }
@@ -894,7 +895,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
             className="flex-[2] h-12 bg-gradient-to-r from-primary to-primary/90 font-semibold text-primary-foreground shadow-lg shadow-primary/25 hover:opacity-95 rounded-xl gap-2"
           >
             <Save size={16} />
-            {salvando ? 'A guardar...' : idParaEditar ? 'Salvar Alterações' : 'Confirmar Agendamento'}
+            {salvando ? 'A guardar...' : idParaEditar ? 'Guardar Alterações' : 'Confirmar Agendamento'}
           </Button>
         </div>
       </form>

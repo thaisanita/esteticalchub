@@ -182,7 +182,7 @@ const AppointmentForm = ({ initialDate }: AppointmentFormProps) => {
       await saveAppointment(dataToSave);
       navigate('/agenda');
     } catch (error) {
-      alert(`Erro ao salvar: ${getErrorMessage(error)}`);
+      alert(`Erro ao guardar: ${getErrorMessage(error)}`);
       setFormData((prev) => ({ ...prev, loading: false }));
     }
   };
@@ -256,7 +256,7 @@ const AppointmentForm = ({ initialDate }: AppointmentFormProps) => {
           <Label htmlFor="procedure">Procedimento</Label>
           <Select value={formData.procedure} onValueChange={handleProcedureChange} required>
             <SelectTrigger id="procedure">
-              <SelectValue placeholder="Selecione..." />
+              <SelectValue placeholder="Seleciona..." />
             </SelectTrigger>
             <SelectContent>
               {procedures.map((proc) => (
@@ -341,7 +341,7 @@ const AppointmentForm = ({ initialDate }: AppointmentFormProps) => {
             disabled={formData.loading}
             className="flex-1 bg-gradient-to-br from-primary to-primary-hover font-semibold text-primary-foreground hover:opacity-90"
           >
-            {formData.loading ? 'Salvar...' : formData.id ? 'Atualizar Agendamento' : 'Confirmar'}
+            {formData.loading ? 'Guardar...' : formData.id ? 'Atualizar Agendamento' : 'Confirmar'}
           </Button>
           <Button
             type="button"

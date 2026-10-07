@@ -101,7 +101,7 @@ export default function ConectarWhatsAppBot() {
       {status === 'conectado' ? (
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-xs text-emerald-600">
-            <CheckCircle2 size={16} /> Conectado — os lembretes serão enviados pelo seu número.
+            <CheckCircle2 size={16} /> Conectado — os lembretes serão enviados pelo o teu número.
           </div>
           <Button size="sm" variant="outline" onClick={desconectar} disabled={carregando}>
             Desconectar

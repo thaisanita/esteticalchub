@@ -50,7 +50,7 @@ export default function Produtos() {
 
     setProdutos(data || []);
 
-    // Para os esgotados, calcula quantas clientes / faturamento / lucro geraram
+    // Para os esgotados, calcula quantas clientes / faturação / lucro geraram
     const esgotados = (data || []).filter((p) => p.esgotado_em);
     const novosResumos: Record<string, ResumoLote> = {};
 
@@ -110,7 +110,7 @@ export default function Produtos() {
   };
 
   const handleExcluir = async (id: string) => {
-    if (!window.confirm('Excluir este produto? O histórico de uso dele não é apagado.')) return;
+    if (!window.confirm('Eliminar este produto? O histórico de uso dele não é apagado.')) return;
     const { error } = await supabase.from('produtos').delete().eq('id', id);
     if (!error) carregarDados();
   };

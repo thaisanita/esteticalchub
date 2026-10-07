@@ -21,5 +21,13 @@ export const EMPRESA = {
 
 export const DATA_ATUALIZACAO_LEGAL = 'Setembro de 2026';
 
+/**
+ * Domínio público do site: usado em links de páginas públicas, partilha,
+ * lembretes (opt-out) e textos. Quando tiver domínio próprio, muda-se só aqui
+ * (e em index.html, public/sitemap.xml, public/robots.txt e no secret APP_URL).
+ */
+export const DOMINIO_PUBLICO = 'esteticalchub.pages.dev';
+export const URL_PUBLICO = `https://${DOMINIO_PUBLICO}`;
+
 export const identificacaoPrestador = () =>
   [EMPRESA.titular, EMPRESA.nif && `NIF ${EMPRESA.nif}`, EMPRESA.morada].filter(Boolean).join(' · ');

@@ -137,7 +137,7 @@ const Procedimentos = () => {
             <div>
               <p className="text-sm font-semibold text-foreground">{textos.vazio}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Clique no botão abaixo para adicionar o primeiro atendimento deste dia.
+                Clica no botão abaixo para adicionar o primeiro atendimento deste dia.
               </p>
             </div>
           </div>
@@ -223,7 +223,7 @@ const Procedimentos = () => {
         })}
       </div>
 
-      {/* Totalizador de Faturamento do Dia */}
+      {/* Totalizador de Faturação do Dia */}
       {agendamentos.length > 0 && (
         <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 flex items-center justify-between shadow-lg shadow-black/10">
           <div className="flex items-center gap-3">

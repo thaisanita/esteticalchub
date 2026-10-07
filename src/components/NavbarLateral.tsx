@@ -52,7 +52,8 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [nomeNegocio, setNomeNegocio] = useState('Meu Negócio');
+  // Nome do negócio vem da Página Pública (fonte real). Null = ainda não definido.
+  const [nomeNegocio, setNomeNegocio] = useState<string | null>(null);
   const [aberto, setAberto] = useState(false);
   const [maisAberto, setMaisAberto] = useState(false);
   const [emHover, setEmHover] = useState(false);
@@ -69,8 +70,15 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
   const textos = textosNavbar[idioma] ?? textosNavbar['Português (PT)'];
 
   useEffect(() => {
-    const nomeSalvo = localStorage.getItem('nome_negocio');
-    if (nomeSalvo) setNomeNegocio(nomeSalvo);
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('paginas_publicas')
+        .select('nome_negocio')
+        .eq('usuario_id', user.id)
+        .maybeSingle();
+      setNomeNegocio(data?.nome_negocio?.trim() || null);
+    });
 
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
@@ -167,9 +175,11 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
           {expandido && (
             <div className="flex flex-col overflow-hidden">
               <span className="truncate text-xs font-bold uppercase tracking-wider text-foreground group-hover:text-primary transition-colors">
-                {nomeNegocio}
+                {nomeNegocio ?? 'Meu negócio'}
               </span>
-              <span className="text-[10px] text-muted-foreground">Estética & Gestão</span>
+              <span className="text-[10px] text-muted-foreground">
+                {nomeNegocio ? 'EstetiCalcHub' : 'Estética & Gestão'}
+              </span>
             </div>
           )}
         </div>

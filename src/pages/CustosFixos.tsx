@@ -70,8 +70,8 @@ export default function CustosFixos() {
       console.error('Erro ao buscar custos fixos:', erroCustos.message);
     }
 
-    // 2. Faturamento do mês atual — soma de todos os agendamentos do mês,
-    // fechados ou não (cada atendimento realizado é faturamento).
+    // 2. Faturação do mês atual — soma de todos os agendamentos do mês,
+    // fechados ou não (cada atendimento realizado é faturação).
     const hoje = new Date();
     const prefixoMesAno = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
 
@@ -131,7 +131,7 @@ export default function CustosFixos() {
   };
 
   const excluir = async (id: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir este custo fixo?')) return;
+    if (!window.confirm('Tens a certeza de que queres eliminar este custo fixo?')) return;
     const { error } = await supabase.from('custos_fixos').delete().eq('id', id);
     if (!error) carregarDados();
   };
@@ -240,7 +240,7 @@ export default function CustosFixos() {
       <div className="space-y-2">
         {custos.length === 0 && (
           <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-            Ainda não há custos fixos registados. Adicione o primeiro acima.
+            Ainda não há custos fixos registados. Adiciona o primeiro acima.
           </div>
         )}
         {custos.map((c) => (
@@ -272,7 +272,7 @@ export default function CustosFixos() {
               </button>
               <button
                 onClick={() => excluir(c.id)}
-                title="Excluir"
+                title="Eliminar"
                 className="text-muted-foreground hover:text-rose-500 transition-colors"
               >
                 <Trash2 size={16} />

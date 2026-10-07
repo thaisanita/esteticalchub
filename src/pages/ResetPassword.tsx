@@ -63,7 +63,7 @@ const ResetPassword = () => {
       return;
     }
     if (novaSenha !== confirmarSenha) {
-      setErro('As senhas não coincidem. Verifique e tente novamente.');
+      setErro('As senhas não coincidem. Verifica e tenta novamente.');
       return;
     }
 
@@ -139,9 +139,9 @@ const ResetPassword = () => {
           Nova Senha
         </span>
 
-        <h2 className="font-display text-2xl font-bold text-foreground">Crie uma nova senha</h2>
+        <h2 className="font-display text-2xl font-bold text-foreground">Cria uma nova senha</h2>
         <p className="mb-7 mt-2 text-sm leading-relaxed text-muted-foreground">
-          Escolha uma senha segura para a sua conta.
+          Escolhe uma senha segura para a tua conta.
         </p>
 
         <form onSubmit={handleReset} className="flex flex-col gap-5">
@@ -242,7 +242,7 @@ const ResetPassword = () => {
             disabled={carregando}
             className="w-full bg-gradient-to-br from-primary to-primary-hover font-semibold text-primary-foreground shadow-lg shadow-primary/30 hover:opacity-90"
           >
-            {carregando ? 'A guardar...' : 'Salvar nova senha'}
+            {carregando ? 'A guardar...' : 'Guardar nova senha'}
           </Button>
         </form>
 

@@ -121,7 +121,7 @@ const Agenda = () => {
 
   // Função para EXCLUIR um agendamento no Supabase
   const handleDeletarAgendamento = async (id: string | number) => {
-    if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
+    if (!confirm('Tens a certeza de que queres eliminar este agendamento?')) return;
 
     try {
       const { error } = await supabase
@@ -134,7 +134,7 @@ const Agenda = () => {
       // Remove localmente sem precisar dar F5
       setAgendamentos((prev) => prev.filter((ag) => ag.id !== id));
     } catch (err) {
-      alert(`Erro ao excluir: ${getErrorMessage(err)}`);
+      alert(`Erro ao eliminar: ${getErrorMessage(err)}`);
     }
   };
 
@@ -155,7 +155,7 @@ const Agenda = () => {
         { onConflict: 'usuario_id,ano,mes' }
       );
 
-    if (error) console.error('Erro ao salvar meta do mês:', error.message);
+    if (error) console.error('Erro ao guardar meta do mês:', error.message);
   };
 
   const manipularSelecaoDia = (data: string) => {

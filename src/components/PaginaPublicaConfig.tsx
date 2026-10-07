@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { getErrorMessage } from '@/lib/utils';
 import { Loader2, Save, ExternalLink, ImagePlus, X } from 'lucide-react';
 import { SkeletonFormulario } from '@/components/ui/skeleton';
+import { DOMINIO_PUBLICO, URL_PUBLICO } from '@/lib/empresa';
 
 const BUCKET = 'paginas-publicas';
 
@@ -94,7 +95,7 @@ export default function PaginaPublicaConfig() {
     setFotos((prev) => prev.filter((f) => f !== url));
   };
 
-  const salvar = async () => {
+  const guardar = async () => {
     setErro(null);
     if (!slug.trim() || !nomeNegocio.trim()) {
       setErro('Preenche pelo menos o link (slug) e o nome do negócio.');
@@ -134,7 +135,7 @@ export default function PaginaPublicaConfig() {
     );
   }
 
-  const linkPublico = slug ? `${window.location.origin}/p/${slug}` : null;
+  const linkPublico = slug ? `${URL_PUBLICO}/p/${slug}` : null;
 
   return (
     <div className="space-y-3">
@@ -159,7 +160,7 @@ export default function PaginaPublicaConfig() {
         </div>
         <div className="space-y-1">
           <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Link (agendaestetica.app/p/...)
+            Link ({DOMINIO_PUBLICO}/p/...)
           </label>
           <Input
             value={slug}
@@ -234,7 +235,7 @@ export default function PaginaPublicaConfig() {
 
       {erro && <p className="text-xs text-danger">{erro}</p>}
 
-      <Button onClick={salvar} disabled={salvando} size="sm" className="gap-1.5">
+      <Button onClick={guardar} disabled={salvando} size="sm" className="gap-1.5">
         {salvando ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
         {existe ? 'Guardar alterações' : 'Criar página'}
       </Button>
