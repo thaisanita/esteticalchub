@@ -88,10 +88,11 @@ const Relatorios = () => {
       const [resAg, resFech] = await Promise.all([
         // CORRIGIDO: usava 'user_id', alterado para 'usuario_id'
         supabase.from('agendamentos').select('*').eq('usuario_id', user.id),
+        // fechamentos só tem a coluna user_id (não usuario_id) — confirmado no schema.
         supabase
           .from('fechamentos')
           .select('*')
-          .eq('usuario_id', user.id)
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false }),
       ]);
 
@@ -124,7 +125,7 @@ const Relatorios = () => {
         .from('fechamentos')
         .delete()
         .eq('id', id)
-        .eq('usuario_id', user.id);
+        .eq('user_id', user.id);
       if (!error) setFechamentos((prev) => prev.filter((f) => f.id !== id));
     }
   };

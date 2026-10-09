@@ -24,13 +24,17 @@ const CORS = {
 };
 
 // Ordem importa: primeiro o que depende de outras tabelas.
+// "fechamentos" fica de fora de propósito: a coluna de dono dessa tabela é
+// "user_id", não "usuario_id" como todas as outras — é apagada à parte, mais
+// abaixo. Sem isto, as linhas de fechamentos nunca eram apagadas (o erro de
+// "coluna não existe" era ignorado em silêncio) e ficavam órfãs depois de uma
+// conta ser eliminada.
 const TABELAS_POR_USUARIO = [
   "cartoes_kanban",
   "listas_kanban",
   "quadros_kanban",
   "fila_notificacoes",
   "produto_usos",
-  "fechamentos",
   "se_custos",
   "prontuarios",
   "agendamentos",
@@ -122,6 +126,13 @@ Deno.serve(async (req) => {
         falhas.push(`${tabela}: ${error.message}`);
       }
     }
+
+    // fechamentos: coluna de dono diferente (user_id), ver nota acima.
+    const { error: erroFechamentos } = await admin.from("fechamentos").delete().eq("user_id", uid);
+    if (erroFechamentos && !/does not exist|schema cache|column/i.test(erroFechamentos.message)) {
+      falhas.push(`fechamentos: ${erroFechamentos.message}`);
+    }
+
     await admin.from("profiles").delete().eq("id", uid);
 
     // 5. A conta de acesso — tenta SEMPRE, mesmo que algo acima tenha falhado

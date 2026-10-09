@@ -105,11 +105,11 @@ const Porcentagem = () => {
         }
       }
 
-      // CORRIGIDO: Busca fechamentos pelo usuario_id correto
+      // fechamentos só tem as colunas user_id e data_referencia (não usuario_id/data) — confirmado no schema.
       const { data: fechamentos, error: erroFechamentos } = await supabase
         .from('fechamentos')
-        .select('data_referencia, data')
-        .or(`usuario_id.eq.${user.id},user_id.eq.${user.id}`);
+        .select('data_referencia')
+        .eq('user_id', user.id);
 
       if (!erroFechamentos && fechamentos) {
         const datasSalvas = [
@@ -175,14 +175,13 @@ const Porcentagem = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // fechamentos não tem colunas "data" nem "usuario_id" — só data_referencia e user_id.
       const { error } = await supabase.from('fechamentos').insert([{
         local: pontoSelecionado,
         data_referencia: dataParaFechamento,
-        data: dataParaFechamento,
         faturamento_bruto: totalBrutoLocal,
         comissao_paga: parseFloat(valorParaEspaco),
         lucro_liquido: parseFloat(meuLucroReal),
-        usuario_id: user.id,
         user_id: user.id,
       }]);
 
