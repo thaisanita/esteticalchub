@@ -63,10 +63,9 @@ export default function Convite() {
 
         {estado === 'por-autenticar' && (
           <>
-            <h1 className="mb-1 font-display text-lg font-bold text-foreground">Convite para a equipa</h1>
+            <h1 className="mb-1 font-display text-lg font-bold text-foreground">Convite para uma agenda</h1>
             <p className="mb-5 text-sm text-muted-foreground">
-              Entra com o Google para aceitares o convite e passares a partilhar a agenda e as clientes com a
-              equipa.
+              Entra com o Google para aceitares o convite e passares a ver essa agenda e as clientes dela.
             </p>
             <Button onClick={entrarComGoogle} className="w-full">
               Continuar com Google
@@ -82,7 +81,7 @@ export default function Convite() {
 
         {estado === 'aceite' && (
           <p className="flex items-center justify-center gap-2 text-sm font-semibold text-success">
-            <CheckCircle2 size={16} /> Bem-vinda à equipa! A abrir a agenda…
+            <CheckCircle2 size={16} /> Convite aceite! A abrir a agenda…
           </p>
         )}
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2, Users } from 'lucide-react';
+import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { parseMoeda } from '@/lib/utils';
 import RegistoPagamentoRapido, { type AgendamentoParaPagar } from './RegistoPagamentoRapido';
@@ -20,6 +20,14 @@ interface Appointment {
   pago?: boolean;
   cliente_id?: string;
   usuario_id?: string;
+  agenda_id?: string;
+}
+
+interface AgendaInfo {
+  id: string;
+  nome: string;
+  cor: string;
+  principal: boolean;
 }
 
 interface ListaAgendamentosProps {
@@ -28,8 +36,8 @@ interface ListaAgendamentosProps {
   onDelete?: (id: string | number) => void;
   onEdit?: (appt: Appointment) => void;
   onPago?: () => void;
-  /** ID da profissional autenticada, para marcar os atendimentos de colegas na agenda partilhada. */
-  meuId?: string | null;
+  /** Agendas a que a profissional pertence, por ID, para mostrar a cor/nome de cada atendimento. */
+  mapaAgendas?: Map<string, AgendaInfo>;
 }
 
 const ListaAgendamentos = ({
@@ -38,7 +46,7 @@ const ListaAgendamentos = ({
   onDelete,
   onEdit,
   onPago,
-  meuId,
+  mapaAgendas,
 }: ListaAgendamentosProps) => {
   const [pagamentoAberto, setPagamentoAberto] = useState(false);
   const [agendamentoParaPagar, setAgendamentoParaPagar] = useState<AgendamentoParaPagar | null>(null);
@@ -171,15 +179,14 @@ const ListaAgendamentos = ({
                   )}
                   <div className="flex min-w-0 flex-col">
                     <div className="flex min-w-0 items-center gap-1.5">
-                      <strong className="truncate text-[13px] text-foreground">{cliente}</strong>
-                      {meuId && appt.usuario_id && appt.usuario_id !== meuId && (
+                      {appt.agenda_id && mapaAgendas && mapaAgendas.size > 1 && (
                         <span
-                          title="Atendimento de uma colega de equipa"
-                          className="flex shrink-0 items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground"
-                        >
-                          <Users size={9} /> Colega
-                        </span>
+                          title={mapaAgendas.get(appt.agenda_id)?.nome ?? 'Agenda'}
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: mapaAgendas.get(appt.agenda_id)?.cor ?? '#999' }}
+                        />
                       )}
+                      <strong className="truncate text-[13px] text-foreground">{cliente}</strong>
                     </div>
                     {procedimento && (
                       <span className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">

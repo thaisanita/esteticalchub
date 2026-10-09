@@ -21,6 +21,14 @@ interface Agendamento {
   hora?: string;
   procedimento?: string;
   usuario_id?: string;
+  agenda_id?: string;
+}
+
+interface AgendaInfo {
+  id: string;
+  nome: string;
+  cor: string;
+  principal: boolean;
 }
 
 const getLocalDateString = (date = new Date()) => {
@@ -35,8 +43,9 @@ const Agenda = () => {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(false);
   const [metaAtendimentos, setMetaAtendimentos] = useState<number>(30);
-  // Para distinguir "os meus" atendimentos dos da colega, na agenda partilhada.
-  const [meuId, setMeuId] = useState<string | null>(null);
+  // Agendas a que pertenço (TimeTree-style) e quais estão visíveis no calendário.
+  const [agendasDisponiveis, setAgendasDisponiveis] = useState<AgendaInfo[]>([]);
+  const [agendasVisiveis, setAgendasVisiveis] = useState<Set<string>>(new Set());
 
   const navigate = useNavigate();
   const { agendamentosMes: limiteAgendamentos } = usePlan();
@@ -76,12 +85,36 @@ const Agenda = () => {
     carregarMeta();
   }, [carregarMeta]);
 
+  // Lista de agendas a que pertenço, para o seletor com caixas de marcar.
+  useEffect(() => {
+    const carregarAgendas = async () => {
+      const { data } = await supabase
+        .from('agendas')
+        .select('id, nome, cor, principal')
+        .order('principal', { ascending: false })
+        .order('nome');
+      if (data) {
+        setAgendasDisponiveis(data);
+        setAgendasVisiveis((prev) => (prev.size === 0 ? new Set(data.map((a) => a.id)) : prev));
+      }
+    };
+    carregarAgendas();
+  }, []);
+
+  const alternarAgendaVisivel = (agendaId: string) => {
+    setAgendasVisiveis((prev) => {
+      const nova = new Set(prev);
+      if (nova.has(agendaId)) nova.delete(agendaId);
+      else nova.add(agendaId);
+      return nova;
+    });
+  };
+
 
   const carregarAgendamentos = useCallback(async () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      setMeuId(user?.id ?? null);
 
       let lista: Agendamento[] = [];
 
@@ -182,11 +215,22 @@ const Agenda = () => {
     return { realizados, porcentagem };
   }, [agendamentos, metaAtendimentos, anoAtual, mesAtual]);
 
+  // Só as agendas marcadas como visíveis entram no calendário e na lista do dia.
+  const agendamentosVisiveis = useMemo(
+    () => agendamentos.filter((ag) => !ag.agenda_id || agendasVisiveis.has(ag.agenda_id)),
+    [agendamentos, agendasVisiveis]
+  );
+
+  const mapaAgendas = useMemo(
+    () => new Map(agendasDisponiveis.map((a) => [a.id, a])),
+    [agendasDisponiveis]
+  );
+
   const agendamentosDoDia = useMemo(() => {
-    return agendamentos
+    return agendamentosVisiveis
       .filter((ag) => ag.data === dataSelecionada)
       .sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
-  }, [agendamentos, dataSelecionada]);
+  }, [agendamentosVisiveis, dataSelecionada]);
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)] lg:items-start">
@@ -238,7 +282,32 @@ const Agenda = () => {
 
       {/* Coluna Esquerda: Calendário */}
       <div className="rounded-2xl border border-border bg-card p-6 shadow-lg shadow-black/20">
-        <Calendar onDaySelect={manipularSelecaoDia} onMonthChange={setMesExibido} agendamentos={agendamentos} />
+        {agendasDisponiveis.length > 1 && (
+          <div className="mb-4 flex flex-wrap gap-2.5 border-b border-border pb-4">
+            {agendasDisponiveis.map((a) => (
+              <label
+                key={a.id}
+                className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground"
+              >
+                <input
+                  type="checkbox"
+                  checked={agendasVisiveis.has(a.id)}
+                  onChange={() => alternarAgendaVisivel(a.id)}
+                  className="sr-only"
+                />
+                <span
+                  className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-2"
+                  style={{
+                    borderColor: a.cor,
+                    backgroundColor: agendasVisiveis.has(a.id) ? a.cor : 'transparent',
+                  }}
+                />
+                <span className={agendasVisiveis.has(a.id) ? 'text-foreground' : ''}>{a.nome}</span>
+              </label>
+            ))}
+          </div>
+        )}
+        <Calendar onDaySelect={manipularSelecaoDia} onMonthChange={setMesExibido} agendamentos={agendamentosVisiveis} />
       </div>
 
       {/* Coluna Direita: Lista de Agendamentos */}
@@ -250,7 +319,7 @@ const Agenda = () => {
             onDelete={handleDeletarAgendamento}
             onEdit={handleEditarAgendamento}
             onPago={carregarAgendamentos}
-            meuId={meuId}
+            mapaAgendas={mapaAgendas}
           />
         </div>
 

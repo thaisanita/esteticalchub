@@ -19,12 +19,13 @@ import {
   Phone,
   Download,
   ShieldCheck,
+  Users,
 } from 'lucide-react';
 import { textosConfig, obterIdiomaAtual, type Idioma } from '@/lib/i18n';
 import ConectarWhatsAppBot from '@/components/ConectarWhatsAppBot';
 import PaginaPublicaConfig from '@/components/PaginaPublicaConfig';
 import DadosEConta from '@/components/DadosEConta';
-import ConvidarProfissional from '@/components/ConvidarProfissional';
+
 import { CHAVE_BANNER_INSTALAR_FECHADO } from '@/components/BannerInstalarApp';
 import { URL_PUBLICO } from '@/lib/empresa';
 
@@ -184,7 +185,23 @@ export default function Config() {
         <ChevronRight size={16} className="text-primary" />
       </button>
 
-      <ConvidarProfissional />
+      <button
+        onClick={() => navigate('/agendas')}
+        className="mb-3 flex w-full items-center justify-between rounded-2xl border border-border bg-card p-5 text-left transition-colors hover:bg-primary/5"
+      >
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <Users size={18} className="text-primary" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-foreground">Minhas agendas</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              Cria agendas, convida profissionais e gere quem partilha cada uma.
+            </div>
+          </div>
+        </div>
+        <ChevronRight size={16} className="text-primary" />
+      </button>
 
       {/* Os meus dados (RGPD): exportar e eliminar conta */}
       <div className="mb-3 rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">

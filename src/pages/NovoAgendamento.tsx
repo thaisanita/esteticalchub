@@ -24,6 +24,13 @@ import {
   Target
 } from 'lucide-react';
 import { URL_PUBLICO } from '@/lib/empresa';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface NovoAgendamentoProps {
   setAgendamentos?: (novosDados: unknown[]) => void;
@@ -49,6 +56,10 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   const [horaFim, setHoraFim] = useState('10:00');
   const [preco, setPreco] = useState('');
   const [pontoAtendimento, setPontoAtendimento] = useState('');
+  // Em que agenda este agendamento fica guardado (TimeTree-style: várias
+  // agendas possíveis, Principal por omissão).
+  const [agendaId, setAgendaId] = useState<string>('');
+  const [agendas, setAgendas] = useState<{ id: string; nome: string; cor: string; principal: boolean }[]>([]);
   
   // Configurações de Notificação
   const [lembrete1Dia, setLembrete1Dia] = useState(true);
@@ -266,6 +277,25 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     localStorage.setItem(chave, JSON.stringify(nova));
   };
 
+  // Lista de agendas a que a profissional pertence, para escolher onde guardar.
+  useEffect(() => {
+    const buscarAgendas = async () => {
+      const { data } = await supabase
+        .from('agendas')
+        .select('id, nome, cor, principal')
+        .order('principal', { ascending: false })
+        .order('nome', { ascending: true });
+      if (data) {
+        setAgendas(data);
+        if (!idParaEditar) {
+          const principal = data.find((a) => a.principal);
+          if (principal) setAgendaId(principal.id);
+        }
+      }
+    };
+    buscarAgendas();
+  }, [idParaEditar]);
+
   useEffect(() => {
     const buscarDados = async () => {
       if (idParaEditar) {
@@ -290,6 +320,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
                 : ''
             );
             setPontoAtendimento(data.ponto_atendimento || data.pontoAtendimento || '');
+            if (data.agenda_id) setAgendaId(data.agenda_id);
             setDataAgendamento(data.data || '');
             setHoraInicio(data.hora || '09:00');
             if (data.hora_fim) setHoraFim(data.hora_fim);
@@ -437,6 +468,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
               nome: cliente.trim(),
               telefone: telefoneCliente.trim() || null,
               email: emailCliente.trim() || null,
+              agenda_id: agendaId || null,
             }])
             .select('id')
             .single();
@@ -456,6 +488,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
         preco: valorFormatado,
         valor: valorFormatado,
         ponto_atendimento: pontoAtendimento.trim(),
+        agenda_id: agendaId || null,
         usuario_id: user.id,
         canal_notificacao: canalNotificacao,
         lembrete_1dia: lembrete1Dia,
@@ -542,6 +575,33 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
                 className="h-10 bg-background/50 border-border font-medium"
               />
             </div>
+
+            {agendas.length > 1 && (
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Calendar size={13} className="text-primary" />
+                  Agenda
+                </label>
+                <Select value={agendaId} onValueChange={setAgendaId}>
+                  <SelectTrigger className="h-10 bg-background/50 border-border">
+                    <SelectValue placeholder="Escolhe a agenda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {agendas.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: a.cor }}
+                          />
+                          {a.nome}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
