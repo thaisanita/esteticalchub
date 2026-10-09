@@ -27,6 +27,7 @@ import Termos from './pages/Termos';
 import Privacidade from './pages/Privacidade';
 import ResetPassword from './pages/ResetPassword';
 import OptOut from './pages/OptOut';
+import Convite from './pages/Convite';
 
 // Menu lateral das áreas privadas
 import NavbarLateral from './components/NavbarLateral';
@@ -149,6 +150,7 @@ export default function App() {
         <Route path="/privacidade" element={<Privacidade />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/opt-out" element={<OptOut />} />
+        <Route path="/convite/:token" element={<Convite />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
 
         {/* Áreas Privadas do App — todas dentro do LayoutPrivado (menu lateral) */}

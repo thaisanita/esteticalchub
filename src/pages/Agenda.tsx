@@ -20,6 +20,7 @@ interface Agendamento {
   pontoAtendimento?: string;
   hora?: string;
   procedimento?: string;
+  usuario_id?: string;
 }
 
 const getLocalDateString = (date = new Date()) => {
@@ -34,6 +35,8 @@ const Agenda = () => {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(false);
   const [metaAtendimentos, setMetaAtendimentos] = useState<number>(30);
+  // Para distinguir "os meus" atendimentos dos da colega, na agenda partilhada.
+  const [meuId, setMeuId] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const { agendamentosMes: limiteAgendamentos } = usePlan();
@@ -78,14 +81,16 @@ const Agenda = () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      setMeuId(user?.id ?? null);
 
       let lista: Agendamento[] = [];
 
       if (user) {
+        // Agenda partilhada: sem filtro por usuario_id — o RLS já mostra os
+        // agendamentos de toda a equipa, não só os meus.
         const { data, error } = await supabase
           .from('agendamentos')
           .select('*')
-          .eq('usuario_id', user.id)
           .order('hora', { ascending: true });
 
         if (!error && data) {
@@ -239,12 +244,13 @@ const Agenda = () => {
       {/* Coluna Direita: Lista de Agendamentos */}
       <div className="flex flex-col gap-4">
         <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/20">
-          <ListaAgendamentos 
-            appointments={agendamentosDoDia} 
+          <ListaAgendamentos
+            appointments={agendamentosDoDia}
             loading={loading}
             onDelete={handleDeletarAgendamento}
             onEdit={handleEditarAgendamento}
             onPago={carregarAgendamentos}
+            meuId={meuId}
           />
         </div>
 

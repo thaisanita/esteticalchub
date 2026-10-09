@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2 } from 'lucide-react';
+import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { parseMoeda } from '@/lib/utils';
 import RegistoPagamentoRapido, { type AgendamentoParaPagar } from './RegistoPagamentoRapido';
@@ -19,6 +19,7 @@ interface Appointment {
   telefone?: string;
   pago?: boolean;
   cliente_id?: string;
+  usuario_id?: string;
 }
 
 interface ListaAgendamentosProps {
@@ -27,6 +28,8 @@ interface ListaAgendamentosProps {
   onDelete?: (id: string | number) => void;
   onEdit?: (appt: Appointment) => void;
   onPago?: () => void;
+  /** ID da profissional autenticada, para marcar os atendimentos de colegas na agenda partilhada. */
+  meuId?: string | null;
 }
 
 const ListaAgendamentos = ({
@@ -35,6 +38,7 @@ const ListaAgendamentos = ({
   onDelete,
   onEdit,
   onPago,
+  meuId,
 }: ListaAgendamentosProps) => {
   const [pagamentoAberto, setPagamentoAberto] = useState(false);
   const [agendamentoParaPagar, setAgendamentoParaPagar] = useState<AgendamentoParaPagar | null>(null);
@@ -166,7 +170,17 @@ const ListaAgendamentos = ({
                     </span>
                   )}
                   <div className="flex min-w-0 flex-col">
-                    <strong className="truncate text-[13px] text-foreground">{cliente}</strong>
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <strong className="truncate text-[13px] text-foreground">{cliente}</strong>
+                      {meuId && appt.usuario_id && appt.usuario_id !== meuId && (
+                        <span
+                          title="Atendimento de uma colega de equipa"
+                          className="flex shrink-0 items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground"
+                        >
+                          <Users size={9} /> Colega
+                        </span>
+                      )}
+                    </div>
                     {procedimento && (
                       <span className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
                         <Sparkles size={10} className="shrink-0 text-primary" />

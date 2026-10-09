@@ -24,6 +24,7 @@ import { textosConfig, obterIdiomaAtual, type Idioma } from '@/lib/i18n';
 import ConectarWhatsAppBot from '@/components/ConectarWhatsAppBot';
 import PaginaPublicaConfig from '@/components/PaginaPublicaConfig';
 import DadosEConta from '@/components/DadosEConta';
+import ConvidarProfissional from '@/components/ConvidarProfissional';
 import { CHAVE_BANNER_INSTALAR_FECHADO } from '@/components/BannerInstalarApp';
 import { URL_PUBLICO } from '@/lib/empresa';
 
@@ -182,6 +183,8 @@ export default function Config() {
         </div>
         <ChevronRight size={16} className="text-primary" />
       </button>
+
+      <ConvidarProfissional />
 
       {/* Os meus dados (RGPD): exportar e eliminar conta */}
       <div className="mb-3 rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
