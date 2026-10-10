@@ -47,6 +47,7 @@ interface ClienteComHistorico extends Cliente {
   primeiraVisita: string | null;
   ultimaVisita: string | null;
   procedimentos: string[];
+  totalFaltas: number;
 }
 
 const DIAS_ATENCAO = 90; // 3 meses
@@ -70,7 +71,7 @@ export default function Clientes() {
   const [modalUpgradeAberto, setModalUpgradeAberto] = useState(false);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [historicoPorCliente, setHistoricoPorCliente] = useState<
-    Record<string, { primeiraVisita: string | null; ultimaVisita: string | null; procedimentos: string[] }>
+    Record<string, { primeiraVisita: string | null; ultimaVisita: string | null; procedimentos: string[]; totalFaltas: number }>
   >({});
   const [busca, setBusca] = useState('');
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
@@ -134,19 +135,22 @@ export default function Clientes() {
 
     const stats: Record<
       string,
-      { primeiraVisita: string | null; ultimaVisita: string | null; procedimentos: Set<string> }
+      { primeiraVisita: string | null; ultimaVisita: string | null; procedimentos: Set<string>; faltas: number }
     > = {};
 
     (agendamentos || []).forEach((ag) => {
       const chave = ag.cliente_id || `nome:${(ag.cliente || '').trim().toLowerCase()}`;
       if (!chave || chave === 'nome:') return;
-      if (!stats[chave]) stats[chave] = { primeiraVisita: null, ultimaVisita: null, procedimentos: new Set() };
+      if (!stats[chave]) stats[chave] = { primeiraVisita: null, ultimaVisita: null, procedimentos: new Set(), faltas: 0 };
       if (!stats[chave].primeiraVisita || ag.data < stats[chave].primeiraVisita!) stats[chave].primeiraVisita = ag.data;
       if (!stats[chave].ultimaVisita || ag.data > stats[chave].ultimaVisita!) stats[chave].ultimaVisita = ag.data;
       if (ag.procedimento) stats[chave].procedimentos.add(ag.procedimento);
+      // O botão "Faltou" (na Agenda e em Procedimentos) marca a falta escrevendo
+      // "(FALTOU)" no texto do procedimento — é essa marca que contamos aqui.
+      if (ag.procedimento && ag.procedimento.includes('(FALTOU)')) stats[chave].faltas += 1;
     });
 
-    const mapa: Record<string, { primeiraVisita: string | null; ultimaVisita: string | null; procedimentos: string[] }> = {};
+    const mapa: Record<string, { primeiraVisita: string | null; ultimaVisita: string | null; procedimentos: string[]; totalFaltas: number }> = {};
     (dataClientes || []).forEach((c) => {
       const porId = stats[c.id];
       const porNome = stats[`nome:${c.nome.trim().toLowerCase()}`];
@@ -162,6 +166,7 @@ export default function Clientes() {
         primeiraVisita: datasPrimeira.length ? datasPrimeira.sort()[0] : null,
         ultimaVisita: datasUltima.length ? datasUltima.sort().reverse()[0] : null,
         procedimentos: Array.from(procedimentos),
+        totalFaltas: (porId?.faltas || 0) + (porNome?.faltas || 0),
       };
     });
 
@@ -180,6 +185,7 @@ export default function Clientes() {
         primeiraVisita: historicoPorCliente[c.id]?.primeiraVisita || null,
         ultimaVisita: historicoPorCliente[c.id]?.ultimaVisita || null,
         procedimentos: historicoPorCliente[c.id]?.procedimentos || [],
+        totalFaltas: historicoPorCliente[c.id]?.totalFaltas || 0,
       }))
       .filter((c) => c.nome.toLowerCase().includes(busca.toLowerCase()))
       .sort((a, b) => (b.ultimaVisita || '').localeCompare(a.ultimaVisita || ''));
@@ -512,9 +518,19 @@ export default function Clientes() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatarDataCurta(c.retorno_previsto)}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${corStatus}`}>
-                        {status}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${corStatus}`}>
+                          {status}
+                        </span>
+                        {c.totalFaltas > 0 && (
+                          <span
+                            title={`${c.totalFaltas} falta${c.totalFaltas > 1 ? 's' : ''} sem aviso`}
+                            className="rounded-full border border-rose-500/20 bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-500"
+                          >
+                            ⚠ {c.totalFaltas} falta{c.totalFaltas > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground max-w-[200px] truncate" title={c.notas || ''}>
                       {c.notas || '—'}
