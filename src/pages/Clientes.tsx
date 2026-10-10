@@ -4,6 +4,13 @@ import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getErrorMessage, cn } from '@/lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { usePlan } from '@/hooks/usePlan';
 import AvisoLimitePlano from '@/components/AvisoLimitePlano';
 import ModalUpgradePlano from '@/components/ModalUpgradePlano';
@@ -26,6 +33,14 @@ interface Cliente {
   email: string | null;
   notas: string | null;
   retorno_previsto: string | null;
+  agenda_id: string | null;
+}
+
+interface AgendaInfo {
+  id: string;
+  nome: string;
+  cor: string;
+  principal: boolean;
 }
 
 interface ClienteComHistorico extends Cliente {
@@ -71,13 +86,37 @@ export default function Clientes() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const painelRef = useRef<HTMLFormElement>(null);
+  // Agendas a que pertenço (para escolher onde a cliente fica, e mostrar a cor na lista).
+  const [agendas, setAgendas] = useState<AgendaInfo[]>([]);
+  const [agendaId, setAgendaId] = useState<string>('');
+
+  useEffect(() => {
+    const carregarAgendas = async () => {
+      const { data } = await supabase
+        .from('agendas')
+        .select('id, nome, cor, principal')
+        .order('principal', { ascending: false })
+        .order('nome');
+      if (data) {
+        setAgendas(data);
+        if (!agendaId) {
+          const principal = data.find((a) => a.principal);
+          if (principal) setAgendaId(principal.id);
+        }
+      }
+    };
+    carregarAgendas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const mapaAgendas = useMemo(() => new Map(agendas.map((a) => [a.id, a])), [agendas]);
 
   const carregarDados = useCallback(async () => {
     setLoading(true);
 
     const { data: dataClientes, error: erroClientes } = await supabase
       .from('clientes')
-      .select('id, nome, telefone, email, notas, retorno_previsto')
+      .select('id, nome, telefone, email, notas, retorno_previsto, agenda_id')
       .order('nome', { ascending: true });
 
     if (erroClientes) {
@@ -154,6 +193,8 @@ export default function Clientes() {
     setRetornoPrevisto('');
     setEditandoId(null);
     setPainelAberto(false);
+    const principal = agendas.find((a) => a.principal);
+    if (principal) setAgendaId(principal.id);
   };
 
   const handleSalvar = async (e: React.FormEvent) => {
@@ -167,6 +208,7 @@ export default function Clientes() {
       email: email.trim() || null,
       notas: notas.trim() || null,
       retorno_previsto: retornoPrevisto || null,
+      agenda_id: agendaId || null,
     };
 
     const { error } = editandoId
@@ -189,6 +231,7 @@ export default function Clientes() {
     setEmail(c.email || '');
     setNotas(c.notas || '');
     setRetornoPrevisto(c.retorno_previsto || '');
+    if (c.agenda_id) setAgendaId(c.agenda_id);
     setPainelAberto(true);
   };
 
@@ -327,6 +370,28 @@ export default function Clientes() {
               </label>
               <Input type="date" value={retornoPrevisto} onChange={(e) => setRetornoPrevisto(e.target.value)} />
             </div>
+            {agendas.length > 1 && (
+              <div className="space-y-1 sm:col-span-2">
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Agenda
+                </label>
+                <Select value={agendaId} onValueChange={setAgendaId}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Escolhe a agenda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {agendas.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        <span className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: a.cor }} />
+                          {a.nome}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <textarea
             placeholder="Observações (alergias, preferências, notas...)"
@@ -422,6 +487,13 @@ export default function Clientes() {
                           <Users size={13} />
                         </div>
                         {c.nome}
+                        {c.agenda_id && mapaAgendas.size > 1 && (
+                          <span
+                            title={mapaAgendas.get(c.agenda_id)?.nome ?? 'Agenda'}
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: mapaAgendas.get(c.agenda_id)?.cor ?? '#999' }}
+                          />
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{c.telefone || '—'}</td>
