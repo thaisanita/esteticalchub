@@ -307,7 +307,12 @@ const Agenda = () => {
             ))}
           </div>
         )}
-        <Calendar onDaySelect={manipularSelecaoDia} onMonthChange={setMesExibido} agendamentos={agendamentosVisiveis} />
+        <Calendar
+          onDaySelect={manipularSelecaoDia}
+          onMonthChange={setMesExibido}
+          agendamentos={agendamentosVisiveis}
+          mapaAgendas={mapaAgendas}
+        />
       </div>
 
       {/* Coluna Direita: Lista de Agendamentos */}

@@ -19,12 +19,22 @@ interface Agendamento {
   preco: number | string;
   ponto_atendimento?: string;
   pontoAtendimento?: string;
+  agenda_id?: string;
+}
+
+interface AgendaInfo {
+  id: string;
+  nome: string;
+  cor: string;
+  principal: boolean;
 }
 
 interface CalendarProps {
   onDaySelect: (data: string) => void;
   onMonthChange?: (data: Date) => void;
   agendamentos?: Agendamento[];
+  /** Agendas a que a profissional pertence, por ID, para colorir cada nome pela agenda dele. */
+  mapaAgendas?: Map<string, AgendaInfo>;
 }
 
 // Utilitário para gerar data YYYY-MM-DD no fuso horário local
@@ -35,7 +45,7 @@ const getLocalDateString = (date = new Date()) => {
   return `${ano}-${mes}-${dia}`;
 };
 
-const Calendar = ({ onDaySelect, onMonthChange, agendamentos = [] }: CalendarProps) => {
+const Calendar = ({ onDaySelect, onMonthChange, agendamentos = [], mapaAgendas }: CalendarProps) => {
   const navigate = useNavigate();
   const todayStr = useMemo(() => getLocalDateString(), []);
   
@@ -161,7 +171,12 @@ const Calendar = ({ onDaySelect, onMonthChange, agendamentos = [] }: CalendarPro
                 {agendadosPorLocal[localNome].map((ag, cIdx) => (
                   <span
                     key={cIdx}
-                    className="block text-center text-[9px] leading-tight text-foreground/80"
+                    className="block text-center text-[9px] font-semibold leading-tight text-foreground/80"
+                    style={
+                      ag.agenda_id && mapaAgendas && mapaAgendas.size > 1
+                        ? { color: mapaAgendas.get(ag.agenda_id)?.cor }
+                        : undefined
+                    }
                   >
                     {formatarNomeCurto(ag.cliente).toLowerCase()}
                   </span>
