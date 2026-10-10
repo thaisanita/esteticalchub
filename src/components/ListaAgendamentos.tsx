@@ -206,7 +206,16 @@ const ListaAgendamentos = ({
                           style={{ backgroundColor: mapaAgendas.get(appt.agenda_id)?.cor ?? '#999' }}
                         />
                       )}
-                      <strong className="truncate text-[13px] text-foreground">{cliente}</strong>
+                      <strong
+                        className="truncate text-[13px] text-foreground"
+                        style={
+                          appt.agenda_id && mapaAgendas && mapaAgendas.size > 1
+                            ? { color: mapaAgendas.get(appt.agenda_id)?.cor }
+                            : undefined
+                        }
+                      >
+                        {cliente}
+                      </strong>
                     </div>
                     {procedimento && (
                       <span className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">

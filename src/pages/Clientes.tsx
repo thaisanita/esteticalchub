@@ -486,7 +486,15 @@ export default function Clientes() {
                         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
                           <Users size={13} />
                         </div>
-                        {c.nome}
+                        <span
+                          style={
+                            c.agenda_id && mapaAgendas.size > 1
+                              ? { color: mapaAgendas.get(c.agenda_id)?.cor }
+                              : undefined
+                          }
+                        >
+                          {c.nome}
+                        </span>
                         {c.agenda_id && mapaAgendas.size > 1 && (
                           <span
                             title={mapaAgendas.get(c.agenda_id)?.nome ?? 'Agenda'}
