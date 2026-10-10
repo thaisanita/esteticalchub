@@ -122,6 +122,7 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
       subItems: [
         { rota: '/dashboard', texto: 'Ver Agenda', Icone: CalendarDays },
         { rota: '/novo-agendamento', texto: 'Novo Agendamento', Icone: CalendarPlus },
+        { rota: '/agendas', texto: 'Minhas agendas', Icone: Layers },
       ],
     },
     { rota: '/procedimentos', texto: textos.procedimentos, Icone: ClipboardList },
@@ -137,7 +138,6 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
       ],
     },
     { rota: '/clientes', texto: textos.clientes, Icone: Users },
-    { rota: '/agendas', texto: 'Minhas agendas', Icone: Layers },
     { rota: '/kanban', texto: textos.kanban, Icone: LayoutDashboard },
     { rota: '/planos', texto: textos.planos, Icone: Crown },
   ];
