@@ -19,6 +19,7 @@ import {
   LayoutDashboard,
   Activity,
   Crown,
+  Layers,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -136,6 +137,7 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
       ],
     },
     { rota: '/clientes', texto: textos.clientes, Icone: Users },
+    { rota: '/agendas', texto: 'Minhas agendas', Icone: Layers },
     { rota: '/kanban', texto: textos.kanban, Icone: LayoutDashboard },
     { rota: '/planos', texto: textos.planos, Icone: Crown },
   ];
@@ -384,6 +386,7 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
                   { rota: '/relatorios', texto: textos.relatorios, Icone: TrendingUp },
                   { rota: '/pagamentos', texto: textos.pagamentos, Icone: HandCoins },
                   { rota: '/kanban', texto: textos.kanban, Icone: LayoutDashboard },
+                  { rota: '/agendas', texto: 'Minhas agendas', Icone: Layers },
                   { rota: '/planos', texto: textos.planos, Icone: Crown },
                   { rota: '/configuracoes', texto: textos.configuracoes, Icone: Settings },
                 ].map(({ rota, texto, Icone }) => (
