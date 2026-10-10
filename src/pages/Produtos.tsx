@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getErrorMessage, parseMoeda } from '@/lib/utils';
-import { Package, Plus, Trash2, TrendingUp, Users, Coins } from 'lucide-react';
+import { Package, Plus, Trash2, TrendingUp, Users, Coins, PackagePlus } from 'lucide-react';
 import { SkeletonLinhas } from '@/components/ui/skeleton';
 
 interface Produto {
@@ -39,6 +39,11 @@ export default function Produtos() {
   const [quantidade, setQuantidade] = useState('');
   const [custo, setCusto] = useState('');
   const [salvando, setSalvando] = useState(false);
+  // Repor estoque: qual produto está com o formulário aberto, e quanto chegou.
+  const [repondoId, setRepondoId] = useState<string | null>(null);
+  const [quantidadeChegou, setQuantidadeChegou] = useState('');
+  const [custoChegou, setCustoChegou] = useState('');
+  const [aRepor, setARepor] = useState(false);
 
   const carregarDados = useCallback(async () => {
     setLoading(true);
@@ -109,6 +114,38 @@ export default function Produtos() {
     setSalvando(false);
   };
 
+  const abrirRepor = (id: string) => {
+    setRepondoId(id);
+    setQuantidadeChegou('');
+    setCustoChegou('');
+  };
+
+  const confirmarReposicao = async (p: Produto) => {
+    const qtd = parseMoeda(quantidadeChegou);
+    if (!qtd || qtd <= 0) {
+      alert('Indica a quantidade que chegou.');
+      return;
+    }
+    setARepor(true);
+    const { error } = await supabase
+      .from('produtos')
+      .update({
+        quantidade_total: p.quantidade_total + qtd,
+        quantidade_restante: p.quantidade_restante + qtd,
+        custo_compra: p.custo_compra + parseMoeda(custoChegou),
+        esgotado_em: null, // voltou a ter estoque
+      })
+      .eq('id', p.id);
+
+    if (!error) {
+      setRepondoId(null);
+      carregarDados();
+    } else {
+      alert('Erro ao repor estoque: ' + getErrorMessage(error));
+    }
+    setARepor(false);
+  };
+
   const handleExcluir = async (id: string) => {
     if (!window.confirm('Eliminar este produto? O histórico de uso dele não é apagado.')) return;
     const { error } = await supabase.from('produtos').delete().eq('id', id);
@@ -175,6 +212,13 @@ export default function Produtos() {
                   <span className="text-xs font-medium text-muted-foreground tabular-nums">
                     {p.quantidade_restante} / {p.quantidade_total} {p.unidade_medida}
                   </span>
+                  <button
+                    onClick={() => abrirRepor(p.id)}
+                    title="Repor estoque"
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <PackagePlus size={15} />
+                  </button>
                   <button onClick={() => handleExcluir(p.id)} className="text-muted-foreground hover:text-rose-500 transition-colors">
                     <Trash2 size={14} />
                   </button>
@@ -186,6 +230,38 @@ export default function Produtos() {
                   style={{ width: `${percentual}%` }}
                 />
               </div>
+
+              {repondoId === p.id && (
+                <div className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold uppercase text-muted-foreground">
+                      Chegou ({p.unidade_medida})
+                    </label>
+                    <Input
+                      value={quantidadeChegou}
+                      onChange={(e) => setQuantidadeChegou(e.target.value)}
+                      placeholder="0"
+                      className="h-8 w-24 text-sm"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold uppercase text-muted-foreground">Custo (€, opcional)</label>
+                    <Input
+                      value={custoChegou}
+                      onChange={(e) => setCustoChegou(e.target.value)}
+                      placeholder="0,00"
+                      className="h-8 w-24 text-sm"
+                    />
+                  </div>
+                  <Button size="sm" className="h-8" disabled={aRepor} onClick={() => confirmarReposicao(p)}>
+                    {aRepor ? 'A repor...' : 'Confirmar'}
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8" onClick={() => setRepondoId(null)}>
+                    Cancelar
+                  </Button>
+                </div>
+              )}
             </div>
           );
         })}
@@ -198,7 +274,16 @@ export default function Produtos() {
             const resumo = resumos[p.id];
             return (
               <div key={p.id} className="rounded-xl border border-border bg-card p-4 shadow-sm opacity-90">
-                <p className="text-sm font-semibold text-foreground mb-2">{p.nome}</p>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-foreground">{p.nome}</p>
+                  <button
+                    onClick={() => abrirRepor(p.id)}
+                    title="Repor estoque"
+                    className="flex shrink-0 items-center gap-1 rounded-lg border border-primary/30 px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
+                  >
+                    <PackagePlus size={13} /> Repor
+                  </button>
+                </div>
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div>
                     <Users size={14} className="mx-auto mb-1 text-primary" />
@@ -216,6 +301,38 @@ export default function Produtos() {
                     <p className="text-[10px] text-muted-foreground">reinvestir sugerido</p>
                   </div>
                 </div>
+
+                {repondoId === p.id && (
+                  <div className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-semibold uppercase text-muted-foreground">
+                        Chegou ({p.unidade_medida})
+                      </label>
+                      <Input
+                        value={quantidadeChegou}
+                        onChange={(e) => setQuantidadeChegou(e.target.value)}
+                        placeholder="0"
+                        className="h-8 w-24 text-sm"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-semibold uppercase text-muted-foreground">Custo (€, opcional)</label>
+                      <Input
+                        value={custoChegou}
+                        onChange={(e) => setCustoChegou(e.target.value)}
+                        placeholder="0,00"
+                        className="h-8 w-24 text-sm"
+                      />
+                    </div>
+                    <Button size="sm" className="h-8" disabled={aRepor} onClick={() => confirmarReposicao(p)}>
+                      {aRepor ? 'A repor...' : 'Confirmar'}
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8" onClick={() => setRepondoId(null)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                )}
               </div>
             );
           })}
