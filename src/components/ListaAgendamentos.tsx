@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2 } from 'lucide-react';
+import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { parseMoeda } from '@/lib/utils';
+import { supabase } from '../supabase';
 import RegistoPagamentoRapido, { type AgendamentoParaPagar } from './RegistoPagamentoRapido';
 
 interface Appointment {
@@ -101,6 +102,25 @@ const ListaAgendamentos = ({
       : `https://wa.me/?text=${mensagemEncoded}`;
 
     window.open(url, '_blank');
+  };
+
+  // Marca como falta: zera o valor e deixa uma marca no procedimento, como já
+  // acontece em Procedimentos.tsx ("Atendimentos do Dia").
+  const marcarFalta = async (appt: Appointment) => {
+    if (!appt.id) return;
+    if (!window.confirm('Confirmar falta? O valor deste atendimento será zerado.')) return;
+
+    const procedimentoAtual = appt.procedimento || appt.procedure || '';
+    const novoProcedimento = procedimentoAtual.includes('(FALTOU)')
+      ? procedimentoAtual
+      : `${procedimentoAtual} (FALTOU)`.trim();
+
+    const { error } = await supabase
+      .from('agendamentos')
+      .update({ preco: 0, valor: 0, procedimento: novoProcedimento })
+      .eq('id', appt.id);
+
+    if (!error) onPago?.();
   };
 
   if (loading) {
@@ -208,15 +228,29 @@ const ListaAgendamentos = ({
                       <CheckCircle2 size={12} /> Pago
                     </span>
                   ) : (
-                    <Button
-                      onClick={() => abrirPagamento(appt)}
-                      size="sm"
-                      className="h-7 gap-1 px-2 text-[11px] font-semibold"
-                      title="Marcar como pago"
-                    >
-                      <Euro size={12} />
-                      Pago
-                    </Button>
+                    <>
+                      <Button
+                        onClick={() => abrirPagamento(appt)}
+                        size="sm"
+                        className="h-7 gap-1 px-2 text-[11px] font-semibold"
+                        title="Marcar como pago"
+                      >
+                        <Euro size={12} />
+                        Pago
+                      </Button>
+                      {!(appt.procedimento || appt.procedure || '').includes('(FALTOU)') && (
+                        <Button
+                          onClick={() => marcarFalta(appt)}
+                          size="sm"
+                          variant="outline"
+                          className="h-7 gap-1 border-rose-500/30 px-2 text-[11px] font-semibold text-rose-500 hover:bg-rose-500/10"
+                          title="Confirmar falta (zera o valor)"
+                        >
+                          <UserX size={12} />
+                          Faltou
+                        </Button>
+                      )}
+                    </>
                   )
                 )}
 
