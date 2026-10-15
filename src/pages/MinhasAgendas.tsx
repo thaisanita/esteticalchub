@@ -12,13 +12,23 @@ import {
   ChevronUp,
   Crown,
   X,
+  Home,
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { confirmar } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn, getErrorMessage } from '@/lib/utils';
 import { URL_PUBLICO } from '@/lib/empresa';
+
+type TipoAtendimento = 'estudio' | 'domicilio' | 'ambos';
+
+const OPCOES_TIPO_ATENDIMENTO: { value: TipoAtendimento; label: string }[] = [
+  { value: 'estudio', label: 'Só em estúdio/gabinete' },
+  { value: 'domicilio', label: 'Só ao domicílio' },
+  { value: 'ambos', label: 'Estúdio e domicílio' },
+];
 
 interface Agenda {
   id: string;
@@ -26,6 +36,7 @@ interface Agenda {
   cor: string;
   principal: boolean;
   papel: 'dona' | 'membro';
+  tipo_atendimento: TipoAtendimento;
 }
 
 interface Membro {
@@ -66,7 +77,11 @@ export default function MinhasAgendas() {
 
       const [{ data: membros, error: erroMembros }, { data: dadosAgendas, error: erroAgendas }] = await Promise.all([
         supabase.from('agenda_membros').select('agenda_id, papel').eq('user_id', user.id),
-        supabase.from('agendas').select('id, nome, cor, principal').order('principal', { ascending: false }).order('nome'),
+        supabase
+          .from('agendas')
+          .select('id, nome, cor, principal, tipo_atendimento')
+          .order('principal', { ascending: false })
+          .order('nome'),
       ]);
       if (erroMembros) throw erroMembros;
       if (erroAgendas) throw erroAgendas;
@@ -118,6 +133,15 @@ export default function MinhasAgendas() {
     const { error } = await supabase.from('agendas').update({ cor }).eq('id', agendaId);
     if (!error) {
       setAgendas((prev) => prev.map((a) => (a.id === agendaId ? { ...a, cor } : a)));
+    }
+  };
+
+  const mudarTipoAtendimento = async (agendaId: string, tipo: TipoAtendimento) => {
+    const { error } = await supabase.from('agendas').update({ tipo_atendimento: tipo }).eq('id', agendaId);
+    if (!error) {
+      setAgendas((prev) => prev.map((a) => (a.id === agendaId ? { ...a, tipo_atendimento: tipo } : a)));
+    } else {
+      setErro(getErrorMessage(error));
     }
   };
 
@@ -300,6 +324,33 @@ export default function MinhasAgendas() {
                 ))}
               </div>
             )}
+
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Home size={13} className="shrink-0" />
+              {agenda.papel === 'dona' ? (
+                <Select
+                  value={agenda.tipo_atendimento ?? 'estudio'}
+                  onValueChange={(v) => mudarTipoAtendimento(agenda.id, v as TipoAtendimento)}
+                  items={OPCOES_TIPO_ATENDIMENTO}
+                >
+                  <SelectTrigger className="h-7 w-auto text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {OPCOES_TIPO_ATENDIMENTO.map((op) => (
+                      <SelectItem key={op.value} value={op.value}>
+                        {op.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span>
+                  {OPCOES_TIPO_ATENDIMENTO.find((op) => op.value === agenda.tipo_atendimento)?.label ??
+                    'Só em estúdio/gabinete'}
+                </span>
+              )}
+            </div>
 
             <div className="flex flex-wrap items-center gap-2">
               <button
