@@ -5,7 +5,7 @@ import { supabase } from '../supabase';
 import { getErrorMessage, parseMoeda } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { usePlano } from '@/hooks/usePlano';
+import { usePlano, FUNCIONALIDADES_PRO_ATIVAS } from '@/hooks/usePlano';
 import ModalFuncaoPro from '@/components/ModalFuncaoPro';
 import SeloPro from '@/components/SeloPro';
 import { 
@@ -905,19 +905,21 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
           <div className="space-y-1.5">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Receber por</p>
             <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={!telefoneCliente.trim()}
-                onClick={() => (isPro ? setCanalNotificacao('whatsapp') : setModalProAberto(true))}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                  canalNotificacao === 'whatsapp'
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border text-muted-foreground hover:border-primary/30'
-                }`}
-              >
-                <Phone size={14} /> WhatsApp
-                {!isPro && <SeloPro className="ml-0.5" />}
-              </button>
+              {FUNCIONALIDADES_PRO_ATIVAS && (
+                <button
+                  type="button"
+                  disabled={!telefoneCliente.trim()}
+                  onClick={() => (isPro ? setCanalNotificacao('whatsapp') : setModalProAberto(true))}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                    canalNotificacao === 'whatsapp'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground hover:border-primary/30'
+                  }`}
+                >
+                  <Phone size={14} /> WhatsApp
+                  {!isPro && <SeloPro className="ml-0.5" />}
+                </button>
+              )}
               <button
                 type="button"
                 disabled={!emailCliente.trim()}
@@ -931,9 +933,13 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
                 <Mail size={14} /> Email
               </button>
             </div>
-            {!telefoneCliente.trim() && !emailCliente.trim() && (
-              <p className="text-[11px] text-amber-500">Preenche o WhatsApp ou o email da cliente acima para poderes enviar lembretes.</p>
-            )}
+            {FUNCIONALIDADES_PRO_ATIVAS
+              ? !telefoneCliente.trim() && !emailCliente.trim() && (
+                  <p className="text-[11px] text-amber-500">Preenche o WhatsApp ou o email da cliente acima para poderes enviar lembretes.</p>
+                )
+              : !emailCliente.trim() && (
+                  <p className="text-[11px] text-amber-500">Preenche o email da cliente acima para poderes enviar lembretes.</p>
+                )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">

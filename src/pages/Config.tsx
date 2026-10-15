@@ -29,7 +29,7 @@ import ConectarWhatsAppBot from '@/components/ConectarWhatsAppBot';
 import PaginaPublicaConfig from '@/components/PaginaPublicaConfig';
 import TrafegoPagoConfig from '@/components/TrafegoPagoConfig';
 import DadosEConta from '@/components/DadosEConta';
-import { usePlano, type ProFeature } from '@/hooks/usePlano';
+import { usePlano, FUNCIONALIDADES_PRO_ATIVAS, type ProFeature } from '@/hooks/usePlano';
 import ModalFuncaoPro from '@/components/ModalFuncaoPro';
 import SeloPro from '@/components/SeloPro';
 
@@ -125,30 +125,32 @@ export default function Config() {
       )}
 
       {/* Bloco WhatsApp — conectar o robô automático (Pro) */}
-      <div className="mb-3 rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
-        <div className="flex items-start gap-3.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
-            <Phone size={18} className="text-primary" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <div className="text-sm font-bold text-foreground">WhatsApp</div>
-              {!isPro && <SeloPro />}
+      {FUNCIONALIDADES_PRO_ATIVAS && (
+        <div className="mb-3 rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
+              <Phone size={18} className="text-primary" />
             </div>
-            <div className="mt-0.5 text-xs text-muted-foreground">
-              Liga o teu WhatsApp para enviar lembretes automáticos às clientes.
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <div className="text-sm font-bold text-foreground">WhatsApp</div>
+                {!isPro && <SeloPro />}
+              </div>
+              <div className="mt-0.5 text-xs text-muted-foreground">
+                Liga o teu WhatsApp para enviar lembretes automáticos às clientes.
+              </div>
             </div>
           </div>
-        </div>
 
-        {isPro ? (
-          <ConectarWhatsAppBot />
-        ) : (
-          <Button size="sm" variant="outline" onClick={() => setModalProAberto('lembretes_whatsapp')} className="gap-1.5">
-            <Lock size={14} /> Disponível no plano Pro
-          </Button>
-        )}
-      </div>
+          {isPro ? (
+            <ConectarWhatsAppBot />
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => setModalProAberto('lembretes_whatsapp')} className="gap-1.5">
+              <Lock size={14} /> Disponível no plano Pro
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Página Pública (captação de leads via anúncios) */}
       <div className="mb-3 rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">

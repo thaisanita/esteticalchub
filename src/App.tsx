@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Euro } from 'lucide-react';
 import { Toaster } from 'sonner';
 import { supabase } from './supabase';
+import { FUNCIONALIDADES_PRO_ATIVAS } from './hooks/usePlano';
 import RegistoPagamentoRapido from './components/RegistoPagamentoRapido';
 import ConfirmDialogHost from './components/ConfirmDialog';
 
@@ -178,7 +179,10 @@ export default function App() {
           <Route path="/trafego-pago" element={<TrafegoPago />} />
           <Route path="/kanban" element={<Kanban />} />
           <Route path="/visao-geral" element={<VisaoGeral />} />
-          <Route path="/planos" element={<Planos />} />
+          <Route
+            path="/planos"
+            element={FUNCIONALIDADES_PRO_ATIVAS ? <Planos /> : <Navigate to="/dashboard" replace />}
+          />
           <Route path="/agendas" element={<MinhasAgendas />} />
           <Route path="/configuracoes" element={<Config />} />
           <Route path="/config" element={<Navigate to="/configuracoes" replace />} />

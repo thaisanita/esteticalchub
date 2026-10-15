@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { textosNavbar, obterIdiomaAtual } from '@/lib/i18n';
+import { FUNCIONALIDADES_PRO_ATIVAS } from '@/hooks/usePlano';
 
 interface SubItem {
   rota: string;
@@ -141,7 +142,7 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
     },
     { rota: '/clientes', texto: textos.clientes, Icone: Users },
     { rota: '/kanban', texto: textos.kanban, Icone: LayoutDashboard },
-    { rota: '/planos', texto: textos.planos, Icone: Crown },
+    ...(FUNCIONALIDADES_PRO_ATIVAS ? [{ rota: '/planos', texto: textos.planos, Icone: Crown }] : []),
   ];
 
   const itemClasses = (isAtivo: boolean) =>
@@ -390,7 +391,7 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
                   { rota: '/trafego-pago', texto: 'Tráfego pago', Icone: Megaphone },
                   { rota: '/kanban', texto: textos.kanban, Icone: LayoutDashboard },
                   { rota: '/agendas', texto: 'Minhas agendas', Icone: Layers },
-                  { rota: '/planos', texto: textos.planos, Icone: Crown },
+                  ...(FUNCIONALIDADES_PRO_ATIVAS ? [{ rota: '/planos', texto: textos.planos, Icone: Crown }] : []),
                   { rota: '/configuracoes', texto: textos.configuracoes, Icone: Settings },
                 ].map(({ rota, texto, Icone }) => (
                   <button

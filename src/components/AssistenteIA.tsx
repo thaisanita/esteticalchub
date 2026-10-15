@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { Sparkles, X, Send, Loader2, Lock } from 'lucide-react';
 import { supabase } from '../supabase';
 import { cn } from '@/lib/utils';
-import { usePlano } from '@/hooks/usePlano';
+import { usePlano, FUNCIONALIDADES_PRO_ATIVAS } from '@/hooks/usePlano';
 import ModalFuncaoPro from './ModalFuncaoPro';
 
 // supabase/functions/ai-assistant/index.ts — se o painel do Supabase gerar
@@ -103,6 +103,10 @@ export default function AssistenteIA() {
       enviar();
     }
   };
+
+  // Desligado temporariamente (ver FUNCIONALIDADES_PRO_ATIVAS em usePlano.ts) —
+  // o botão flutuante fica completamente escondido, o código fica intacto.
+  if (!FUNCIONALIDADES_PRO_ATIVAS) return null;
 
   return (
     <>

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { parseMoeda, formatarHora } from '@/lib/utils';
 import { supabase } from '../supabase';
 import { confirmar } from './ConfirmDialog';
-import { usePlano } from '@/hooks/usePlano';
+import { usePlano, FUNCIONALIDADES_PRO_ATIVAS } from '@/hooks/usePlano';
 import ModalFuncaoPro from './ModalFuncaoPro';
 import SeloPro from './SeloPro';
 import RegistoPagamentoRapido, { type AgendamentoParaPagar } from './RegistoPagamentoRapido';
@@ -293,17 +293,19 @@ const ListaAgendamentos = ({
                   )
                 )}
 
-                <Button
-                  onClick={() => (isPro ? enviarLembreteWhatsApp(appt) : setModalProAberto(true))}
-                  size="sm"
-                  variant="outline"
-                  className="h-7 gap-1 border-emerald-500/30 px-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
-                  title={isPro ? 'Enviar lembrete pelo WhatsApp' : 'Disponível no plano Pro'}
-                >
-                  <MessageCircle size={12} />
-                  Lembrete
-                  {!isPro && <SeloPro />}
-                </Button>
+                {FUNCIONALIDADES_PRO_ATIVAS && (
+                  <Button
+                    onClick={() => (isPro ? enviarLembreteWhatsApp(appt) : setModalProAberto(true))}
+                    size="sm"
+                    variant="outline"
+                    className="h-7 gap-1 border-emerald-500/30 px-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
+                    title={isPro ? 'Enviar lembrete pelo WhatsApp' : 'Disponível no plano Pro'}
+                  >
+                    <MessageCircle size={12} />
+                    Lembrete
+                    {!isPro && <SeloPro />}
+                  </Button>
+                )}
 
                 {onEdit && (
                   <Button
