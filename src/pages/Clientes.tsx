@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getErrorMessage, cn } from '@/lib/utils';
+import { getErrorMessage, cn, atendeDomicilio, linkGoogleMaps } from '@/lib/utils';
 import { confirmar } from '@/components/ConfirmDialog';
 import {
   Select,
@@ -22,6 +22,8 @@ import {
   RefreshCw,
   FileHeart,
   X,
+  MapPin,
+  ExternalLink,
 } from 'lucide-react';
 import { SkeletonLinhas } from '@/components/ui/skeleton';
 
@@ -33,6 +35,7 @@ interface Cliente {
   notas: string | null;
   retorno_previsto: string | null;
   agenda_id: string | null;
+  morada: string | null;
 }
 
 interface AgendaInfo {
@@ -40,6 +43,7 @@ interface AgendaInfo {
   nome: string;
   cor: string;
   principal: boolean;
+  tipo_atendimento?: 'estudio' | 'domicilio' | 'ambos';
 }
 
 interface ClienteComHistorico extends Cliente {
@@ -81,6 +85,7 @@ export default function Clientes() {
   const [email, setEmail] = useState('');
   const [notas, setNotas] = useState('');
   const [retornoPrevisto, setRetornoPrevisto] = useState('');
+  const [morada, setMorada] = useState('');
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const painelRef = useRef<HTMLFormElement>(null);
@@ -92,7 +97,7 @@ export default function Clientes() {
     const carregarAgendas = async () => {
       const { data } = await supabase
         .from('agendas')
-        .select('id, nome, cor, principal')
+        .select('id, nome, cor, principal, tipo_atendimento')
         .order('principal', { ascending: false })
         .order('nome');
       if (data) {
@@ -114,7 +119,7 @@ export default function Clientes() {
 
     const { data: dataClientes, error: erroClientes } = await supabase
       .from('clientes')
-      .select('id, nome, telefone, email, notas, retorno_previsto, agenda_id')
+      .select('id, nome, telefone, email, notas, retorno_previsto, agenda_id, morada')
       .order('nome', { ascending: true });
 
     if (erroClientes) {
@@ -192,6 +197,7 @@ export default function Clientes() {
     setEmail('');
     setNotas('');
     setRetornoPrevisto('');
+    setMorada('');
     setEditandoId(null);
     setPainelAberto(false);
     const principal = agendas.find((a) => a.principal);
@@ -210,6 +216,7 @@ export default function Clientes() {
       notas: notas.trim() || null,
       retorno_previsto: retornoPrevisto || null,
       agenda_id: agendaId || null,
+      morada: morada.trim() || null,
     };
 
     const { error } = editandoId
@@ -233,6 +240,7 @@ export default function Clientes() {
     setEmail(c.email || '');
     setNotas(c.notas || '');
     setRetornoPrevisto(c.retorno_previsto || '');
+    setMorada(c.morada || '');
     if (c.agenda_id) setAgendaId(c.agenda_id);
     setPainelAberto(true);
   };
@@ -411,6 +419,19 @@ export default function Clientes() {
                 </Select>
               </div>
             )}
+            {atendeDomicilio(mapaAgendas.get(agendaId)?.tipo_atendimento) && (
+              <div className="space-y-1 sm:col-span-2">
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                  <MapPin size={12} className="text-primary" />
+                  Morada (para atendimento ao domicílio)
+                </label>
+                <Input
+                  placeholder="Rua, número, código postal"
+                  value={morada}
+                  onChange={(e) => setMorada(e.target.value)}
+                />
+              </div>
+            )}
           </div>
           <textarea
             placeholder="Observações (alergias, preferências, notas...)"
@@ -523,7 +544,25 @@ export default function Clientes() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{c.telefone || '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                      {c.telefone || '—'}
+                      {c.morada && atendeDomicilio(mapaAgendas.get(c.agenda_id || '')?.tipo_atendimento) && (
+                        <span className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground/70">
+                          <MapPin size={10} className="shrink-0" />
+                          <span className="max-w-[140px] truncate" title={c.morada}>{c.morada}</span>
+                          <a
+                            href={linkGoogleMaps(c.morada)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="shrink-0 text-primary hover:underline"
+                            title="Abrir no mapa"
+                          >
+                            <ExternalLink size={10} />
+                          </a>
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatarDataCurta(c.primeiraVisita)}</td>
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatarDataCurta(c.ultimaVisita)}</td>
                     <td className="px-4 py-3 text-muted-foreground max-w-[220px] truncate" title={c.procedimentos.join(', ')}>
