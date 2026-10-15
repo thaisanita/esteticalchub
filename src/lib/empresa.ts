@@ -8,10 +8,10 @@
 export const EMPRESA = {
   nomeComercial: 'EstetiCalcHub',
   /** Nome do ENI ou denominação social. Ex.: "Maria Silva, ENI" ou "EstetiCalcHub, Unipessoal, Lda." */
-  titular: '',
-  nif: '',
+  titular: 'Thais Anita Guimarães Marinho',
+  nif: '309512182',
   /** Morada completa da sede / do estabelecimento. */
-  morada: '',
+  morada: 'Ganfei, 4930-371 Valença',
   email: 'suporte.esteticalchub@gmail.com',
   /** Comarca para o foro, ex.: "Lisboa". Se vazio, usa-se "os tribunais portugueses competentes". */
   foro: '',
