@@ -1,8 +1,13 @@
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { parseMoeda } from '@/lib/utils';
+import { parseMoeda, formatarHora } from '@/lib/utils';
 import { supabase } from '../supabase';
+import { confirmar } from './ConfirmDialog';
+import { usePlano } from '@/hooks/usePlano';
+import ModalFuncaoPro from './ModalFuncaoPro';
+import SeloPro from './SeloPro';
 import RegistoPagamentoRapido, { type AgendamentoParaPagar } from './RegistoPagamentoRapido';
 
 interface Appointment {
@@ -22,6 +27,7 @@ interface Appointment {
   cliente_id?: string;
   usuario_id?: string;
   agenda_id?: string;
+  faltou?: boolean;
 }
 
 interface AgendaInfo {
@@ -49,6 +55,8 @@ const ListaAgendamentos = ({
   onPago,
   mapaAgendas,
 }: ListaAgendamentosProps) => {
+  const { isPro } = usePlano();
+  const [modalProAberto, setModalProAberto] = useState(false);
   const [pagamentoAberto, setPagamentoAberto] = useState(false);
   const [agendamentoParaPagar, setAgendamentoParaPagar] = useState<AgendamentoParaPagar | null>(null);
 
@@ -69,6 +77,7 @@ const ListaAgendamentos = ({
 
     return appointments.reduce(
       (acc, appt) => {
+        if (appt.faltou) return acc;
         const precoRaw = appt.valor ?? appt.price ?? 0;
         const percentRaw = appt.percent_produto ?? appt.productPercent ?? 0;
 
@@ -90,7 +99,7 @@ const ListaAgendamentos = ({
   // Função para enviar o lembrete via WhatsApp
   const enviarLembreteWhatsApp = (appt: Appointment) => {
     const nomeCliente = appt.cliente || appt.clientName || 'Cliente';
-    const horario = appt.hora || appt.time || 'horário agendado';
+    const horario = formatarHora(appt.hora || appt.time) || 'horário agendado';
     const procedimento = appt.procedimento || appt.procedure || 'atendimento';
 
     const texto = `Olá, ${nomeCliente}! 👋 Passando para lembrar do seu agendamento de *${procedimento}* hoje às *${horario}*. Podemos confirmar? ✨`;
@@ -104,23 +113,31 @@ const ListaAgendamentos = ({
     window.open(url, '_blank');
   };
 
-  // Marca como falta: zera o valor e deixa uma marca no procedimento, como já
-  // acontece em Procedimentos.tsx ("Atendimentos do Dia").
+  // Marca como falta: guarda o estado num campo próprio, sem apagar o valor
+  // original nem mexer no texto do procedimento — dá para desfazer depois.
   const marcarFalta = async (appt: Appointment) => {
     if (!appt.id) return;
-    if (!window.confirm('Confirmar falta? O valor deste atendimento será zerado.')) return;
+    const ok = await confirmar('Confirmar falta deste atendimento?');
+    if (!ok) return;
 
-    const procedimentoAtual = appt.procedimento || appt.procedure || '';
-    const novoProcedimento = procedimentoAtual.includes('(FALTOU)')
-      ? procedimentoAtual
-      : `${procedimentoAtual} (FALTOU)`.trim();
+    const { error } = await supabase.from('agendamentos').update({ faltou: true }).eq('id', appt.id);
+    if (!error) {
+      toast.success('Falta registada.');
+      onPago?.();
+    } else {
+      toast.error('Erro ao registar falta: ' + error.message);
+    }
+  };
 
-    const { error } = await supabase
-      .from('agendamentos')
-      .update({ preco: 0, valor: 0, procedimento: novoProcedimento })
-      .eq('id', appt.id);
-
-    if (!error) onPago?.();
+  const desfazerFalta = async (appt: Appointment) => {
+    if (!appt.id) return;
+    const { error } = await supabase.from('agendamentos').update({ faltou: false }).eq('id', appt.id);
+    if (!error) {
+      toast.success('Falta desfeita.');
+      onPago?.();
+    } else {
+      toast.error('Erro ao desfazer falta: ' + error.message);
+    }
   };
 
   if (loading) {
@@ -194,7 +211,7 @@ const ListaAgendamentos = ({
                 <div className="flex min-w-0 items-center gap-2.5">
                   {hora && (
                     <span className="shrink-0 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-bold text-primary">
-                      {hora}
+                      {formatarHora(hora)}
                     </span>
                   )}
                   <div className="flex min-w-0 flex-col">
@@ -236,6 +253,21 @@ const ListaAgendamentos = ({
                     <span className="flex h-7 items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 text-[11px] font-semibold text-emerald-500">
                       <CheckCircle2 size={12} /> Pago
                     </span>
+                  ) : appt.faltou ? (
+                    <>
+                      <span className="flex h-7 items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 text-[11px] font-semibold text-rose-500">
+                        <UserX size={12} /> Faltou
+                      </span>
+                      <Button
+                        onClick={() => desfazerFalta(appt)}
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 px-2 text-[11px] font-semibold"
+                        title="Desfazer falta"
+                      >
+                        Desfazer
+                      </Button>
+                    </>
                   ) : (
                     <>
                       <Button
@@ -247,31 +279,30 @@ const ListaAgendamentos = ({
                         <Euro size={12} />
                         Pago
                       </Button>
-                      {!(appt.procedimento || appt.procedure || '').includes('(FALTOU)') && (
-                        <Button
-                          onClick={() => marcarFalta(appt)}
-                          size="sm"
-                          variant="outline"
-                          className="h-7 gap-1 border-rose-500/30 px-2 text-[11px] font-semibold text-rose-500 hover:bg-rose-500/10"
-                          title="Confirmar falta (zera o valor)"
-                        >
-                          <UserX size={12} />
-                          Faltou
-                        </Button>
-                      )}
+                      <Button
+                        onClick={() => marcarFalta(appt)}
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 border-rose-500/30 px-2 text-[11px] font-semibold text-rose-500 hover:bg-rose-500/10"
+                        title="Confirmar falta"
+                      >
+                        <UserX size={12} />
+                        Faltou
+                      </Button>
                     </>
                   )
                 )}
 
                 <Button
-                  onClick={() => enviarLembreteWhatsApp(appt)}
+                  onClick={() => (isPro ? enviarLembreteWhatsApp(appt) : setModalProAberto(true))}
                   size="sm"
                   variant="outline"
                   className="h-7 gap-1 border-emerald-500/30 px-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
-                  title="Enviar lembrete pelo WhatsApp"
+                  title={isPro ? 'Enviar lembrete pelo WhatsApp' : 'Disponível no plano Pro'}
                 >
                   <MessageCircle size={12} />
                   Lembrete
+                  {!isPro && <SeloPro />}
                 </Button>
 
                 {onEdit && (
@@ -309,6 +340,8 @@ const ListaAgendamentos = ({
         agendamento={agendamentoParaPagar}
         onSuccess={() => onPago?.()}
       />
+
+      <ModalFuncaoPro open={modalProAberto} onOpenChange={setModalProAberto} funcao="lembretes_whatsapp" />
     </div>
   );
 };

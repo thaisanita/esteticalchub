@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { supabase } from '../supabase';
+import { EVENTO_PAGAMENTO_REGISTADO } from '@/lib/eventos';
+import { confirmar } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { textosProcedimentos, obterIdiomaAtual } from '@/lib/i18n';
-import { parseMoeda } from '@/lib/utils';
+import { parseMoeda, formatarHora } from '@/lib/utils';
 import { 
   Clock, 
   User, 
@@ -30,6 +33,7 @@ interface Atendimento {
   preco?: number | string;
   ponto_atendimento?: string;
   pontoAtendimento?: string;
+  faltou?: boolean;
 }
 
 const Procedimentos = () => {
@@ -62,32 +66,47 @@ const Procedimentos = () => {
 
   useEffect(() => {
     buscarAtendimentos();
+    window.addEventListener(EVENTO_PAGAMENTO_REGISTADO, buscarAtendimentos);
+    return () => window.removeEventListener(EVENTO_PAGAMENTO_REGISTADO, buscarAtendimentos);
   }, [dataSelecionada, buscarAtendimentos]);
 
-  const marcarFalta = async (id: string | number, procedimentoAtual: string) => {
-    if (window.confirm(textos.confFalta)) {
-      const tagFalta = idioma === 'English (US)' ? '(NO-SHOW)' : '(FALTOU)';
-      const novoProcedimento = procedimentoAtual.includes(tagFalta)
-        ? procedimentoAtual
-        : `${procedimentoAtual} ${tagFalta}`;
-      
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ preco: 0, valor: 0, procedimento: novoProcedimento })
-        .eq('id', id);
+  const marcarFalta = async (id: string | number) => {
+    const ok = await confirmar(textos.confFalta);
+    if (!ok) return;
 
-      if (!error) buscarAtendimentos();
+    const { error } = await supabase.from('agendamentos').update({ faltou: true }).eq('id', id);
+    if (!error) {
+      toast.success('Falta registada.');
+      buscarAtendimentos();
+    } else {
+      toast.error('Erro ao registar falta: ' + error.message);
+    }
+  };
+
+  const desfazerFalta = async (id: string | number) => {
+    const { error } = await supabase.from('agendamentos').update({ faltou: false }).eq('id', id);
+    if (!error) {
+      toast.success('Falta desfeita.');
+      buscarAtendimentos();
+    } else {
+      toast.error('Erro ao desfazer falta: ' + error.message);
     }
   };
 
   const excluirAgendamento = async (id: string | number) => {
-    if (window.confirm(textos.confExcluir)) {
-      const { error } = await supabase.from('agendamentos').delete().eq('id', id);
-      if (!error) buscarAtendimentos();
+    const ok = await confirmar({ descricao: textos.confExcluir, destrutivo: true, textoConfirmar: 'Eliminar' });
+    if (!ok) return;
+    const { error } = await supabase.from('agendamentos').delete().eq('id', id);
+    if (!error) {
+      toast.success('Atendimento eliminado.');
+      buscarAtendimentos();
+    } else {
+      toast.error('Erro ao eliminar: ' + error.message);
     }
   };
 
   const totalFaturado = agendamentos.reduce((acc, item) => {
+    if (item.faltou) return acc;
     const valor = parseMoeda(item.preco ?? item.valor ?? 0);
     return acc + (valor || 0);
   }, 0);
@@ -145,7 +164,7 @@ const Procedimentos = () => {
 
         {agendamentos.map((item) => {
           const valorNum = parseMoeda(item.preco ?? item.valor ?? 0);
-          const isFalta = valorNum === 0;
+          const isFalta = !!item.faltou;
           const localAtendimento = item.ponto_atendimento || item.pontoAtendimento;
 
           return (
@@ -161,7 +180,7 @@ const Procedimentos = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-1 text-xs font-semibold text-muted-foreground border border-border">
                       <Clock size={12} className="text-primary" />
-                      {item.hora} {item.hora_fim ? `- ${item.hora_fim}` : ''}
+                      {formatarHora(item.hora)}{item.hora_fim ? ` - ${formatarHora(item.hora_fim)}` : ''}
                     </span>
                     {localAtendimento && (
                       <span className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-1 text-xs font-medium text-muted-foreground border border-border">
@@ -192,9 +211,18 @@ const Procedimentos = () => {
                   </div>
 
                   <div className="flex items-center gap-1">
-                    {!isFalta && (
+                    {isFalta ? (
                       <button
-                        onClick={() => marcarFalta(item.id, item.procedimento)}
+                        onClick={() => desfazerFalta(item.id)}
+                        title="Desfazer falta"
+                        className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+                      >
+                        <UserX size={12} />
+                        <span className="hidden sm:inline">Desfazer</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => marcarFalta(item.id)}
                         title={textos.confFalta}
                         className="inline-flex items-center gap-1 rounded-lg border border-rose-500/20 bg-rose-500/10 px-2.5 py-1.5 text-xs font-medium text-rose-500 transition-colors hover:bg-rose-500/20"
                       >

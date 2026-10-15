@@ -34,7 +34,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { supabase } from '../supabase';
-import { parseMoeda, cn } from '@/lib/utils';
+import { parseMoeda, cn, formatarHora } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   calcularVisao,
@@ -65,7 +65,7 @@ async function buscarTodosAtendimentos(desde: string, usuarioId: string): Promis
   for (let inicio = 0; inicio < 20000; inicio += TAMANHO) {
     const { data, error } = await supabase
       .from('agendamentos')
-      .select('id, data, hora, valor, preco, cliente_id, cliente, procedimento')
+      .select('id, data, hora, valor, preco, cliente_id, cliente, procedimento, faltou')
       .eq('usuario_id', usuarioId)
       .gte('data', desde)
       .order('data', { ascending: true })
@@ -81,6 +81,7 @@ async function buscarTodosAtendimentos(desde: string, usuarioId: string): Promis
         cliente_id: a.cliente_id ?? null,
         cliente: a.cliente || 'Cliente',
         procedimento: a.procedimento || 'Sem procedimento',
+        faltou: !!a.faltou,
       });
     }
     if (data.length < TAMANHO) break;
@@ -193,11 +194,13 @@ export default function VisaoGeral() {
       const { data: listas } = await supabase.from('listas_kanban').select('id').eq('quadro_id', quadro.data.id);
       const ids = (listas ?? []).map((l) => l.id);
       if (ids.length) {
-        const { count } = await supabase
+        const { count, error } = await supabase
           .from('cartoes_kanban')
-          .select('id', { count: 'exact', head: true })
+          .select('id', { count: 'exact' })
           .in('lista_id', ids)
-          .gte('criado_em', desde7d);
+          .gte('criado_em', desde7d)
+          .limit(1);
+        if (error) console.error('Erro ao contar leads:', error.message);
         leads7d = count ?? 0;
       }
     }
@@ -429,7 +432,7 @@ export default function VisaoGeral() {
             {calc.proximo
               ? `Próximo: ${calc.proximo.cliente} — ${calc.proximo.procedimento}, ${
                   calc.proximo.data === isoLocal(new Date()) ? 'hoje' : calc.proximo.data.split('-').reverse().join('/')
-                }${calc.proximo.hora ? ` às ${calc.proximo.hora}` : ''}`
+                }${calc.proximo.hora ? ` às ${formatarHora(calc.proximo.hora)}` : ''}`
               : 'Sem mais atendimentos agendados.'}
           </p>
         </div>

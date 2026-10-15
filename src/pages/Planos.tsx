@@ -2,18 +2,25 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Check, Sparkles, Loader2 } from 'lucide-react';
 import { supabase } from '../supabase';
-import { usePlan, LIMITE_CLIENTES_FREE, LIMITE_AGENDAMENTOS_MES_FREE } from '@/hooks/usePlan';
+import { usePlano } from '@/hooks/usePlano';
 import { STRIPE_PRICE_IDS } from '@/config/stripe';
 
-// Só o que está bloqueado por plano no código. Exportar dados é um direito
-// (RGPD, portabilidade) e fica sempre disponível, também no grátis.
-const BENEFICIOS_PRO = [
+// As 3 únicas funções exclusivas do Pro (ver PRO_FEATURES em usePlano.ts).
+// Tudo o resto da app é grátis e sem limites.
+const BENEFICIOS_GRATIS = [
   'Clientes e agendamentos ilimitados',
+  'Relatórios, custos e stock',
+  'Agendas partilhadas',
+];
+
+const BENEFICIOS_PRO = [
+  'Tudo do plano Grátis',
   'Assistente IA',
+  'Lembretes automáticos por WhatsApp',
 ];
 
 export default function Planos() {
-  const { plano, loading: carregandoPlano } = usePlan();
+  const { plano, loading: carregandoPlano } = usePlano();
   const [searchParams] = useSearchParams();
   const [expiraEm, setExpiraEm] = useState<string | null>(null);
   const [aCarregarCheckout, setACarregarCheckout] = useState<'mensal' | 'anual' | null>(null);
@@ -126,13 +133,11 @@ export default function Planos() {
           <h3 className="font-display text-lg font-bold text-foreground">Grátis</h3>
           <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">€0</p>
           <ul className="mt-4 flex-1 space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-start gap-2">
-              <Check size={15} className="mt-0.5 shrink-0 text-primary" /> Até {LIMITE_CLIENTES_FREE} clientes
-            </li>
-            <li className="flex items-start gap-2">
-              <Check size={15} className="mt-0.5 shrink-0 text-primary" /> Até {LIMITE_AGENDAMENTOS_MES_FREE}{' '}
-              agendamentos/mês
-            </li>
+            {BENEFICIOS_GRATIS.map((beneficio) => (
+              <li key={beneficio} className="flex items-start gap-2">
+                <Check size={15} className="mt-0.5 shrink-0 text-primary" /> {beneficio}
+              </li>
+            ))}
             <li className="flex items-start gap-2">
               <Check size={15} className="mt-0.5 shrink-0 text-primary" /> Exportar os teus dados
             </li>

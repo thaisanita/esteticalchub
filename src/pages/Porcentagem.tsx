@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ interface AgendamentoPorc {
   pontoAtendimento?: string;
   valor?: number | string;
   preco?: number | string;
+  faltou?: boolean;
 }
 
 const MESES = [
@@ -156,7 +158,7 @@ const Porcentagem = () => {
   const totalBrutoLocal = useMemo(() => {
     if (!pontoSelecionado) return 0;
     return agendamentos
-      .filter((ag) => (ag.ponto_atendimento || ag.pontoAtendimento) === pontoSelecionado)
+      .filter((ag) => (ag.ponto_atendimento || ag.pontoAtendimento) === pontoSelecionado && !ag.faltou)
       .reduce((sum, ag) => {
         const valorRaw = ag.valor ?? ag.preco ?? 0;
         const valor = parseMoeda(valorRaw);
@@ -189,8 +191,9 @@ const Porcentagem = () => {
 
       setDiasJaSalvos((prev) => [...new Set([...prev, dataParaFechamento])]);
       setPontoSelecionado('');
+      toast.success('Fecho guardado.');
     } catch (error) {
-      alert('Erro ao guardar: ' + getErrorMessage(error));
+      toast.error('Erro ao guardar: ' + getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -227,7 +230,11 @@ const Porcentagem = () => {
 
         {/* Seletores de Mês e Ano */}
         <div className="flex items-center gap-2">
-          <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
+          <Select
+            value={mesSelecionado}
+            onValueChange={setMesSelecionado}
+            items={MESES.map((m) => ({ value: m.value, label: m.label }))}
+          >
             <SelectTrigger className="w-[120px] h-9 text-xs">
               <SelectValue />
             </SelectTrigger>

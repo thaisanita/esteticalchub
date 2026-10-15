@@ -37,10 +37,14 @@ export default function ListaPrimeirosPassos() {
 
       const resultados = await Promise.all(
         PASSOS.map(async (passo) => {
-          const { count } = await supabase
+          // GET com .limit(1) em vez de HEAD: pedidos HEAD com count:'exact'
+          // deram 503 em produção quando disparados em paralelo.
+          const { count, error } = await supabase
             .from(passo.tabela)
-            .select('id', { count: 'exact', head: true })
-            .eq('usuario_id', user.id);
+            .select('id', { count: 'exact' })
+            .eq('usuario_id', user.id)
+            .limit(1);
+          if (error) console.error(`Erro ao verificar "${passo.chave}":`, error.message);
           return [passo.chave, (count ?? 0) > 0] as const;
         })
       );

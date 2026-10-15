@@ -53,6 +53,15 @@ export function parseMoeda(valorDigitado: string | number | null | undefined): n
   return parseFloat(limpo.replace(/[.,]/g, '')) || 0;
 }
 /**
+ * Formata uma hora vinda da base de dados (ex.: "09:00:00", tipo `time` do
+ * Postgres) para o formato curto HH:mm mostrado na interface.
+ */
+export function formatarHora(hora: string | null | undefined): string {
+  if (!hora) return '';
+  return hora.slice(0, 5);
+}
+
+/**
  * Cor de um valor monetário pelo sinal: verde se positivo, vermelho se
  * negativo, neutra se for zero. Usar em lucros/saldos, não em faturação.
  */

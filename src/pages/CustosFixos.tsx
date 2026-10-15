@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { parseMoeda } from '@/lib/utils';
+import { confirmar } from '@/components/ConfirmDialog';
 import {
   Select,
   SelectContent,
@@ -98,7 +100,7 @@ export default function CustosFixos() {
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nome.trim() || !valorMensal) {
-      alert('Preenche o nome e o valor mensal do custo fixo.');
+      toast.error('Preenche o nome e o valor mensal do custo fixo.');
       return;
     }
     setSalvando(true);
@@ -116,8 +118,9 @@ export default function CustosFixos() {
       setValorMensal('');
       setCategoria('outro');
       carregarDados();
+      toast.success('Custo fixo guardado.');
     } else {
-      alert('Erro ao guardar custo fixo: ' + error.message);
+      toast.error('Erro ao guardar custo fixo: ' + error.message);
     }
     setSalvando(false);
   };
@@ -131,9 +134,19 @@ export default function CustosFixos() {
   };
 
   const excluir = async (id: string) => {
-    if (!window.confirm('Tens a certeza de que queres eliminar este custo fixo?')) return;
+    const ok = await confirmar({
+      descricao: 'Tens a certeza de que queres eliminar este custo fixo?',
+      destrutivo: true,
+      textoConfirmar: 'Eliminar',
+    });
+    if (!ok) return;
     const { error } = await supabase.from('custos_fixos').delete().eq('id', id);
-    if (!error) carregarDados();
+    if (!error) {
+      carregarDados();
+      toast.success('Custo fixo eliminado.');
+    } else {
+      toast.error('Erro ao eliminar: ' + error.message);
+    }
   };
 
   const totalMensal = custos
@@ -213,7 +226,11 @@ export default function CustosFixos() {
             onChange={(e) => setNome(e.target.value)}
             className="sm:col-span-1"
           />
-          <Select value={categoria} onValueChange={setCategoria}>
+          <Select
+            value={categoria}
+            onValueChange={setCategoria}
+            items={CATEGORIAS.map((c) => ({ value: c.value, label: c.label }))}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>

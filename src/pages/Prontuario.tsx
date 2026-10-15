@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { getErrorMessage } from '@/lib/utils';
@@ -17,17 +18,47 @@ import { SkeletonFormulario } from '@/components/ui/skeleton';
 interface Anamnese {
   alergias?: string;
   condicoes_pele?: string;
-  gravidez_amamentacao?: boolean;
+  gravidez_amamentacao?: boolean | null;
   medicacao_atual?: string;
   doencas_autoimunes_cronicas?: string;
-  cirurgia_recente?: boolean;
+  cirurgia_recente?: boolean | null;
   cirurgia_recente_detalhes?: string;
-  acidos_tratamentos_ativos?: boolean;
+  acidos_tratamentos_ativos?: boolean | null;
   acidos_tratamentos_detalhes?: string;
   procedimento_anterior_reacao?: string;
 }
 
 const BUCKET = 'prontuarios';
+
+const CAMPOS_TEXTO_ANAMNESE: (keyof Anamnese)[] = [
+  'alergias',
+  'condicoes_pele',
+  'medicacao_atual',
+  'doencas_autoimunes_cronicas',
+  'cirurgia_recente_detalhes',
+  'acidos_tratamentos_detalhes',
+  'procedimento_anterior_reacao',
+];
+
+const CAMPOS_SIM_NAO_ANAMNESE: (keyof Anamnese)[] = [
+  'gravidez_amamentacao',
+  'cirurgia_recente',
+  'acidos_tratamentos_ativos',
+];
+
+/** Garante que todos os campos vão para o JSON gravado, mesmo os que a
+ * profissional não tocou — texto fica "Não relatado / Não aplicável",
+ * sim/não fica null (não respondido, distinto de "Não"). */
+function completarAnamnese(anamnese: Anamnese): Anamnese {
+  const completa: Anamnese = { ...anamnese };
+  for (const campo of CAMPOS_TEXTO_ANAMNESE) {
+    if (!completa[campo]) (completa[campo] as string) = 'Não relatado / Não aplicável';
+  }
+  for (const campo of CAMPOS_SIM_NAO_ANAMNESE) {
+    if (completa[campo] === undefined) (completa[campo] as boolean | null) = null;
+  }
+  return completa;
+}
 
 export default function Prontuario() {
   const { clienteId } = useParams();
@@ -106,7 +137,7 @@ export default function Prontuario() {
         setContratoUrl(url);
       }
     } catch (err) {
-      alert('Erro ao enviar ficheiro: ' + getErrorMessage(err));
+      toast.error('Erro ao enviar ficheiro: ' + getErrorMessage(err));
     } finally {
       setEnviando(false);
     }
@@ -120,7 +151,7 @@ export default function Prontuario() {
 
       const payload = {
         cliente_id: clienteId,
-        anamnese,
+        anamnese: completarAnamnese(anamnese),
         foto_url: fotoPath,
         contrato_url: contratoPath,
         consentimento_confirmado: consentimento,
@@ -132,10 +163,10 @@ export default function Prontuario() {
         : await supabase.from('prontuarios').insert([payload]);
 
       if (error) throw error;
-      alert('Prontuário guardado com sucesso.');
+      toast.success('Prontuário guardado com sucesso.');
       carregarDados();
     } catch (err) {
-      alert('Erro ao guardar prontuário: ' + getErrorMessage(err));
+      toast.error('Erro ao guardar prontuário: ' + getErrorMessage(err));
     } finally {
       setSalvando(false);
     }
@@ -269,7 +300,7 @@ function CampoTexto({ label, valor, onChange }: { label: string; valor?: string;
   );
 }
 
-function CampoSimNao({ label, valor, onChange }: { label: string; valor?: boolean; onChange: (v: boolean) => void }) {
+function CampoSimNao({ label, valor, onChange }: { label: string; valor?: boolean | null; onChange: (v: boolean) => void }) {
   return (
     <div className="space-y-1.5">
       <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</label>

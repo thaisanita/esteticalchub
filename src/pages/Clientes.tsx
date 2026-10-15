@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getErrorMessage, cn } from '@/lib/utils';
+import { confirmar } from '@/components/ConfirmDialog';
 import {
   Select,
   SelectContent,
@@ -11,9 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { usePlan } from '@/hooks/usePlan';
-import AvisoLimitePlano from '@/components/AvisoLimitePlano';
-import ModalUpgradePlano from '@/components/ModalUpgradePlano';
 import {
   Users,
   Search,
@@ -67,8 +66,6 @@ function formatarDataCurta(dataISO: string | null): string {
 
 export default function Clientes() {
   const navigate = useNavigate();
-  const { clientes: limiteClientes } = usePlan();
-  const [modalUpgradeAberto, setModalUpgradeAberto] = useState(false);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [historicoPorCliente, setHistoricoPorCliente] = useState<
     Record<string, { primeiraVisita: string | null; ultimaVisita: string | null; procedimentos: string[]; totalFaltas: number }>
@@ -130,7 +127,7 @@ export default function Clientes() {
 
     const { data: agendamentos } = await supabase
       .from('agendamentos')
-      .select('cliente, cliente_id, data, procedimento')
+      .select('cliente, cliente_id, data, procedimento, faltou')
       .order('data', { ascending: true });
 
     const stats: Record<
@@ -145,9 +142,7 @@ export default function Clientes() {
       if (!stats[chave].primeiraVisita || ag.data < stats[chave].primeiraVisita!) stats[chave].primeiraVisita = ag.data;
       if (!stats[chave].ultimaVisita || ag.data > stats[chave].ultimaVisita!) stats[chave].ultimaVisita = ag.data;
       if (ag.procedimento) stats[chave].procedimentos.add(ag.procedimento);
-      // O botão "Faltou" (na Agenda e em Procedimentos) marca a falta escrevendo
-      // "(FALTOU)" no texto do procedimento — é essa marca que contamos aqui.
-      if (ag.procedimento && ag.procedimento.includes('(FALTOU)')) stats[chave].faltas += 1;
+      if (ag.faltou) stats[chave].faltas += 1;
     });
 
     const mapa: Record<string, { primeiraVisita: string | null; ultimaVisita: string | null; procedimentos: string[]; totalFaltas: number }> = {};
@@ -224,8 +219,9 @@ export default function Clientes() {
     if (!error) {
       limparFormulario();
       carregarDados();
+      toast.success('Cliente guardada.');
     } else {
-      alert('Erro ao guardar cliente: ' + getErrorMessage(error));
+      toast.error('Erro ao guardar cliente: ' + getErrorMessage(error));
     }
     setSalvando(false);
   };
@@ -248,9 +244,19 @@ export default function Clientes() {
   }, [painelAberto]);
 
   const handleExcluir = async (id: string) => {
-    if (!window.confirm('Eliminar esta cliente? O histórico de agendamentos dela não é apagado.')) return;
+    const ok = await confirmar({
+      descricao: 'Eliminar esta cliente? O histórico de agendamentos dela não é apagado.',
+      destrutivo: true,
+      textoConfirmar: 'Eliminar',
+    });
+    if (!ok) return;
     const { error } = await supabase.from('clientes').delete().eq('id', id);
-    if (!error) carregarDados();
+    if (!error) {
+      carregarDados();
+      toast.success('Cliente eliminada.');
+    } else {
+      toast.error('Erro ao eliminar: ' + error.message);
+    }
   };
 
   const alternarSelecao = (id: string) => {
@@ -273,14 +279,20 @@ export default function Clientes() {
   const handleExcluirSelecionadas = async () => {
     const quantidade = selecionadas.size;
     if (quantidade === 0) return;
-    if (!window.confirm(`Eliminar ${quantidade} cliente${quantidade > 1 ? 's' : ''} selecionada${quantidade > 1 ? 's' : ''}? O histórico de agendamentos delas não é apagado.`)) return;
+    const ok = await confirmar({
+      descricao: `Eliminar ${quantidade} cliente${quantidade > 1 ? 's' : ''} selecionada${quantidade > 1 ? 's' : ''}? O histórico de agendamentos delas não é apagado.`,
+      destrutivo: true,
+      textoConfirmar: 'Eliminar',
+    });
+    if (!ok) return;
 
     const { error } = await supabase.from('clientes').delete().in('id', Array.from(selecionadas));
     if (!error) {
       setSelecionadas(new Set());
       carregarDados();
+      toast.success(`${quantidade} cliente(s) eliminada(s).`);
     } else {
-      alert('Erro ao eliminar clientes: ' + getErrorMessage(error));
+      toast.error('Erro ao eliminar clientes: ' + getErrorMessage(error));
     }
   };
 
@@ -300,17 +312,17 @@ export default function Clientes() {
       });
 
       if (novos.size === 0) {
-        alert('Não há clientes novas para importar — todos os nomes já têm registo.');
+        toast.info('Não há clientes novas para importar — todos os nomes já têm registo.');
         return;
       }
 
       const { error } = await supabase.from('clientes').insert(Array.from(novos.values()));
       if (error) throw error;
 
-      alert(`${novos.size} cliente(s) importada(s) com sucesso a partir dos agendamentos.`);
+      toast.success(`${novos.size} cliente(s) importada(s) com sucesso a partir dos agendamentos.`);
       carregarDados();
     } catch (err) {
-      alert('Erro ao importar: ' + getErrorMessage(err));
+      toast.error('Erro ao importar: ' + getErrorMessage(err));
     } finally {
       setImportando(false);
     }
@@ -326,14 +338,6 @@ export default function Clientes() {
 
   return (
     <div className="space-y-6">
-      {limiteClientes.showWarning && (
-        <AvisoLimitePlano
-          restantes={limiteClientes.restantes ?? 0}
-          rotuloSingular="cliente"
-          rotuloPlural="clientes"
-        />
-      )}
-
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground">Clientes</h2>
@@ -346,10 +350,7 @@ export default function Clientes() {
             <RefreshCw size={14} className={importando ? 'animate-spin' : ''} />
             {importando ? 'A importar...' : 'Importar'}
           </Button>
-          <Button
-            onClick={() => (limiteClientes.isBlocked ? setModalUpgradeAberto(true) : setPainelAberto(true))}
-            className={cn('gap-1.5', limiteClientes.isBlocked && 'opacity-60')}
-          >
+          <Button onClick={() => setPainelAberto(true)} className="gap-1.5">
             <Plus size={14} /> Nova Cliente
           </Button>
         </div>
@@ -381,7 +382,19 @@ export default function Clientes() {
                 <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Agenda
                 </label>
-                <Select value={agendaId} onValueChange={setAgendaId}>
+                <Select
+                  value={agendaId}
+                  onValueChange={setAgendaId}
+                  items={agendas.map((a) => ({
+                    value: a.id,
+                    label: (
+                      <span className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: a.cor }} />
+                        {a.nome}
+                      </span>
+                    ),
+                  }))}
+                >
                   <SelectTrigger className="h-10">
                     <SelectValue placeholder="Escolhe a agenda" />
                   </SelectTrigger>
@@ -558,7 +571,6 @@ export default function Clientes() {
         </div>
       )}
 
-      <ModalUpgradePlano open={modalUpgradeAberto} onClose={() => setModalUpgradeAberto(false)} />
     </div>
   );
 }

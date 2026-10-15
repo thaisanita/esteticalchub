@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Euro } from 'lucide-react';
+import { Toaster } from 'sonner';
 import { supabase } from './supabase';
 import RegistoPagamentoRapido from './components/RegistoPagamentoRapido';
+import ConfirmDialogHost from './components/ConfirmDialog';
 
 // Imports das páginas reais dentro da pasta src/pages
 import LandingPage from './pages/Landingpage';
@@ -16,6 +18,7 @@ import Custos from './pages/Custos';
 import Clientes from './pages/Clientes';
 import Prontuario from './pages/Prontuario';
 import Pagamentos from './pages/Pagamentos';
+import TrafegoPago from './pages/TrafegoPago';
 import Kanban from './pages/Kanban';
 import VisaoGeral from './pages/VisaoGeral';
 import Planos from './pages/Planos';
@@ -125,6 +128,8 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <Toaster richColors position="top-center" theme="dark" />
+      <ConfirmDialogHost />
       <Routes>
         {/* Landing Page na Rota Raiz — redireciona pro dashboard se já estiver logado */}
         <Route
@@ -170,6 +175,7 @@ export default function App() {
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/prontuario/:clienteId" element={<Prontuario />} />
           <Route path="/pagamentos" element={<Pagamentos />} />
+          <Route path="/trafego-pago" element={<TrafegoPago />} />
           <Route path="/kanban" element={<Kanban />} />
           <Route path="/visao-geral" element={<VisaoGeral />} />
           <Route path="/planos" element={<Planos />} />

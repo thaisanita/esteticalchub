@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '../supabase';
 import { getErrorMessage, cn } from '@/lib/utils';
+import { confirmar } from '@/components/ConfirmDialog';
 import { obterIdiomaAtual, textosKanban, type TextosKanban } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -177,17 +179,18 @@ export default function Kanban() {
       setCorNovoQuadro(CORES_QUADRO[0]);
       setNovoQuadroAberto(false);
     } catch (err) {
-      alert(`Erro ao criar quadro: ${getErrorMessage(err)}`);
+      toast.error(`Erro ao criar quadro: ${getErrorMessage(err)}`);
     } finally {
       setSalvandoQuadro(false);
     }
   };
 
   const excluirQuadro = async (quadroId: string) => {
-    if (!window.confirm(t.confExcluirQuadro)) return;
+    const ok = await confirmar({ descricao: t.confExcluirQuadro, destrutivo: true, textoConfirmar: 'Eliminar' });
+    if (!ok) return;
     const { error } = await supabase.from('quadros_kanban').delete().eq('id', quadroId);
     if (error) {
-      alert(`Erro ao eliminar quadro: ${getErrorMessage(error)}`);
+      toast.error(`Erro ao eliminar quadro: ${getErrorMessage(error)}`);
       return;
     }
     const restantes = quadros.filter((q) => q.id !== quadroId);
@@ -228,15 +231,16 @@ export default function Kanban() {
       setNomeNovaLista('');
       setNovaListaAberta(false);
     } catch (err) {
-      alert(`Erro ao criar lista: ${getErrorMessage(err)}`);
+      toast.error(`Erro ao criar lista: ${getErrorMessage(err)}`);
     }
   };
 
   const excluirLista = async (listaId: string) => {
-    if (!window.confirm(t.confExcluirLista)) return;
+    const ok = await confirmar({ descricao: t.confExcluirLista, destrutivo: true, textoConfirmar: 'Eliminar' });
+    if (!ok) return;
     const { error } = await supabase.from('listas_kanban').delete().eq('id', listaId);
     if (error) {
-      alert(`Erro ao eliminar lista: ${getErrorMessage(error)}`);
+      toast.error(`Erro ao eliminar lista: ${getErrorMessage(error)}`);
       return;
     }
     setListas((prev) => prev.filter((l) => l.id !== listaId));
@@ -275,7 +279,7 @@ export default function Kanban() {
       setColunas((prev) => ({ ...prev, [listaId]: [...(prev[listaId] || []), data] }));
       setTituloNovoCartao('');
     } catch (err) {
-      alert(`Erro ao criar cartão: ${getErrorMessage(err)}`);
+      toast.error(`Erro ao criar cartão: ${getErrorMessage(err)}`);
     }
   };
 
@@ -291,7 +295,8 @@ export default function Kanban() {
   };
 
   const excluirCartao = async (cartao: Cartao) => {
-    if (!window.confirm(t.confExcluirCartao)) return;
+    const ok = await confirmar({ descricao: t.confExcluirCartao, destrutivo: true, textoConfirmar: 'Eliminar' });
+    if (!ok) return;
     setColunas((prev) => ({
       ...prev,
       [cartao.lista_id]: prev[cartao.lista_id].filter((c) => c.id !== cartao.id),

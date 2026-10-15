@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { parseMoeda } from '@/lib/utils';
+import { confirmar } from '@/components/ConfirmDialog';
 import {
   Select,
   SelectContent,
@@ -142,8 +144,9 @@ export default function CustosEstoque() {
         setValor('');
         setDataVencimento('');
         carregarDados();
+        toast.success('Despesa guardada.');
       } else {
-        alert('Erro ao guardar despesa: ' + error.message);
+        toast.error('Erro ao guardar despesa: ' + error.message);
       }
     } catch (err) {
       console.error(err);
@@ -178,15 +181,20 @@ export default function CustosEstoque() {
   };
 
   const handleExcluirCusto = async (id: string) => {
-    if (!confirm('Queres mesmo eliminar este lançamento?')) return;
+    const ok = await confirmar({ descricao: 'Queres mesmo eliminar este lançamento?', destrutivo: true, textoConfirmar: 'Eliminar' });
+    if (!ok) return;
 
     try {
       const { error } = await supabase.from('se_custos').delete().eq('id', id);
       if (!error) {
         setCustos((prev) => prev.filter((item) => item.id !== id));
+        toast.success('Lançamento eliminado.');
+      } else {
+        toast.error('Erro ao eliminar: ' + error.message);
       }
     } catch (err) {
       console.error('Erro ao eliminar:', err);
+      toast.error('Erro ao eliminar lançamento.');
     }
   };
 
@@ -228,7 +236,11 @@ export default function CustosEstoque() {
       <div className="flex flex-wrap items-center justify-end gap-3">
         {/* Seletores de Mês e Ano */}
         <div className="flex items-center gap-2">
-          <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
+          <Select
+            value={mesSelecionado}
+            onValueChange={setMesSelecionado}
+            items={MESES.map((m) => ({ value: m.value, label: m.label }))}
+          >
             <SelectTrigger className="w-[120px] h-9 text-xs">
               <SelectValue />
             </SelectTrigger>

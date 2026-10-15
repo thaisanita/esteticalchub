@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { supabase } from '../supabase';
 import { getErrorMessage, parseMoeda } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { usePlano } from '@/hooks/usePlano';
+import ModalFuncaoPro from '@/components/ModalFuncaoPro';
+import SeloPro from '@/components/SeloPro';
 import { 
   Calendar, 
   Pencil, 
@@ -39,6 +43,8 @@ interface NovoAgendamentoProps {
 const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { isPro } = usePlano();
+  const [modalProAberto, setModalProAberto] = useState(false);
 
   const [dataAgendamento, setDataAgendamento] = useState(
     searchParams.get('date') || new Date().toISOString().split('T')[0]
@@ -428,7 +434,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
 
       if (error) {
         console.error('Erro ao agendar notificações:', error.message);
-        alert(`Erro ao agendar notificação: ${error.message}`);
+        toast.error(`Erro ao agendar notificação: ${error.message}`);
       }
     }
   };
@@ -442,7 +448,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        alert('Sua sessão expirou. Por favor, entre novamente no sistema.');
+        toast.error('Sua sessão expirou. Por favor, entre novamente no sistema.');
         navigate('/login');
         return;
       }
@@ -522,12 +528,13 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
       salvarHistorico('hist_clientes', cliente);
       salvarHistorico('hist_procedimentos', procedimento);
       salvarHistorico('hist_pontos', pontoAtendimento);
-      
+      toast.success(idParaEditar ? 'Agendamento atualizado.' : 'Agendamento criado.');
+
       // Redireciona de volta para a lista de procedimentos na data do agendamento
       navigate(`/procedimentos?date=${dataAgendamento}`);
     } catch (err) {
       console.error('Erro ao guardar agendamento:', err);
-      alert(`Erro ao guardar agendamento: ${getErrorMessage(err)}`);
+      toast.error(`Erro ao guardar agendamento: ${getErrorMessage(err)}`);
     } finally {
       setSalvando(false);
     }
@@ -582,7 +589,22 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
                   <Calendar size={13} className="text-primary" />
                   Agenda
                 </label>
-                <Select value={agendaId} onValueChange={setAgendaId}>
+                <Select
+                  value={agendaId}
+                  onValueChange={setAgendaId}
+                  items={agendas.map((a) => ({
+                    value: a.id,
+                    label: (
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="h-2.5 w-2.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: a.cor }}
+                        />
+                        {a.nome}
+                      </span>
+                    ),
+                  }))}
+                >
                   <SelectTrigger className="h-10 bg-background/50 border-border">
                     <SelectValue placeholder="Escolhe a agenda" />
                   </SelectTrigger>
@@ -886,7 +908,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
               <button
                 type="button"
                 disabled={!telefoneCliente.trim()}
-                onClick={() => setCanalNotificacao('whatsapp')}
+                onClick={() => (isPro ? setCanalNotificacao('whatsapp') : setModalProAberto(true))}
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                   canalNotificacao === 'whatsapp'
                     ? 'border-primary bg-primary/10 text-primary'
@@ -894,6 +916,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
                 }`}
               >
                 <Phone size={14} /> WhatsApp
+                {!isPro && <SeloPro className="ml-0.5" />}
               </button>
               <button
                 type="button"
@@ -959,6 +982,8 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
           </Button>
         </div>
       </form>
+
+      <ModalFuncaoPro open={modalProAberto} onOpenChange={setModalProAberto} funcao="lembretes_whatsapp" />
     </div>
   );
 };

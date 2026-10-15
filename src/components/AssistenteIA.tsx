@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Sparkles, X, Send, Loader2, Lock } from 'lucide-react';
 import { supabase } from '../supabase';
 import { cn } from '@/lib/utils';
-import { usePlan } from '@/hooks/usePlan';
+import { usePlano } from '@/hooks/usePlano';
+import ModalFuncaoPro from './ModalFuncaoPro';
 
 // supabase/functions/ai-assistant/index.ts — se o painel do Supabase gerar
 // um nome diferente ao publicar (como aconteceu com outras funções), troca
@@ -24,8 +26,8 @@ const MENSAGEM_BOAS_VINDAS: Mensagem = {
 };
 
 export default function AssistenteIA() {
-  const navigate = useNavigate();
-  const { isPro } = usePlan();
+  const { isPro } = usePlano();
+  const [modalProAberto, setModalProAberto] = useState(false);
   const [aberto, setAberto] = useState(false);
   const [mensagens, setMensagens] = useState<Mensagem[]>([MENSAGEM_BOAS_VINDAS]);
   const [input, setInput] = useState('');
@@ -52,7 +54,7 @@ export default function AssistenteIA() {
 
   const enviar = async () => {
     const texto = input.trim();
-    if (!texto || enviando) return;
+    if (!texto || enviando || !isPro) return;
 
     const minhaMensagem: Mensagem = { id: crypto.randomUUID(), autor: 'utilizadora', texto };
     setMensagens((prev) => [...prev, minhaMensagem]);
@@ -109,7 +111,7 @@ export default function AssistenteIA() {
           mas sim a página de planos (tooltip explica o motivo). */}
       <button
         ref={botaoRef}
-        onClick={() => (isPro ? setAberto((v) => !v) : navigate('/planos'))}
+        onClick={() => (isPro ? setAberto((v) => !v) : setModalProAberto(true))}
         title={isPro ? 'Assistente' : 'Disponível no plano Pro'}
         className={cn(
           'no-print fixed bottom-[9.5rem] right-5 z-[900] flex h-14 w-14 items-center justify-center rounded-full text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95 md:bottom-[5.5rem] md:right-6',
@@ -119,7 +121,14 @@ export default function AssistenteIA() {
         )}
       >
         {aberto && isPro ? <X size={22} /> : isPro ? <Sparkles size={22} /> : <Lock size={20} />}
+        {!isPro && (
+          <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase text-primary-foreground shadow-sm">
+            Pro
+          </span>
+        )}
       </button>
+
+      <ModalFuncaoPro open={modalProAberto} onOpenChange={setModalProAberto} funcao="assistente_ia" />
 
       {aberto && isPro && (
         <div
@@ -153,7 +162,13 @@ export default function AssistenteIA() {
                       : 'bg-muted text-foreground'
                 )}
               >
-                {m.texto}
+                {m.autor === 'assistente' ? (
+                  <div className="prose-assistente">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.texto}</ReactMarkdown>
+                  </div>
+                ) : (
+                  m.texto
+                )}
               </div>
             ))}
             {enviando && (

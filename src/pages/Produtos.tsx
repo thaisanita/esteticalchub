@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { confirmar } from '@/components/ConfirmDialog';
 import {
   Select,
   SelectContent,
@@ -108,8 +110,9 @@ export default function Produtos() {
       setQuantidade('');
       setCusto('');
       carregarDados();
+      toast.success('Produto guardado.');
     } else {
-      alert('Erro ao guardar produto: ' + getErrorMessage(error));
+      toast.error('Erro ao guardar produto: ' + getErrorMessage(error));
     }
     setSalvando(false);
   };
@@ -123,7 +126,7 @@ export default function Produtos() {
   const confirmarReposicao = async (p: Produto) => {
     const qtd = parseMoeda(quantidadeChegou);
     if (!qtd || qtd <= 0) {
-      alert('Indica a quantidade que chegou.');
+      toast.error('Indica a quantidade que chegou.');
       return;
     }
     setARepor(true);
@@ -140,16 +143,27 @@ export default function Produtos() {
     if (!error) {
       setRepondoId(null);
       carregarDados();
+      toast.success('Estoque reposto.');
     } else {
-      alert('Erro ao repor estoque: ' + getErrorMessage(error));
+      toast.error('Erro ao repor estoque: ' + getErrorMessage(error));
     }
     setARepor(false);
   };
 
   const handleExcluir = async (id: string) => {
-    if (!window.confirm('Eliminar este produto? O histórico de uso dele não é apagado.')) return;
+    const ok = await confirmar({
+      descricao: 'Eliminar este produto? O histórico de uso dele não é apagado.',
+      destrutivo: true,
+      textoConfirmar: 'Eliminar',
+    });
+    if (!ok) return;
     const { error } = await supabase.from('produtos').delete().eq('id', id);
-    if (!error) carregarDados();
+    if (!error) {
+      carregarDados();
+      toast.success('Produto eliminado.');
+    } else {
+      toast.error('Erro ao eliminar: ' + error.message);
+    }
   };
 
   if (loading) {

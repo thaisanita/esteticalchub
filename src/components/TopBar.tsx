@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Search, Bell, LogOut, Settings, AlertTriangle, CalendarClock, UserX } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Search, Bell, LogOut, Settings, AlertTriangle, CalendarClock, UserX, User, CalendarDays, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { formatarHora } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import AtalhosTeclado from './AtalhosTeclado';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +11,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+
+interface ResultadoCliente {
+  id: string;
+  nome: string;
+  telefone: string | null;
+}
+
+interface ResultadoAgendamento {
+  id: string | number;
+  cliente: string | null;
+  procedimento: string | null;
+  data: string;
+  hora: string | null;
+}
 
 interface Notificacao {
   id: string;
@@ -25,6 +39,12 @@ const TopBar = () => {
   const [cargo, setCargo] = useState('Profissional');
   const [searchTerm, setSearchTerm] = useState('');
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
+  const [buscaAberta, setBuscaAberta] = useState(false);
+  const [buscando, setBuscando] = useState(false);
+  const [clientesEncontrados, setClientesEncontrados] = useState<ResultadoCliente[]>([]);
+  const [agendamentosEncontrados, setAgendamentosEncontrados] = useState<ResultadoAgendamento[]>([]);
+  const buscaRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const carregarNotificacoes = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -125,6 +145,68 @@ const TopBar = () => {
     carregarNotificacoes();
   }, [carregarNotificacoes]);
 
+  // Busca global com debounce: clientes (nome) e agendamentos (cliente/procedimento).
+  useEffect(() => {
+    const termo = searchTerm.trim();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (termo.length < 2) {
+      setClientesEncontrados([]);
+      setAgendamentosEncontrados([]);
+      setBuscando(false);
+      return;
+    }
+
+    setBuscando(true);
+    debounceRef.current = setTimeout(async () => {
+      const [resClientes, resAgendamentos] = await Promise.all([
+        supabase
+          .from('clientes')
+          .select('id, nome, telefone')
+          .or(`nome.ilike.%${termo}%,telefone.ilike.%${termo}%`)
+          .limit(5),
+        supabase
+          .from('agendamentos')
+          .select('id, cliente, procedimento, data, hora')
+          .or(`cliente.ilike.%${termo}%,procedimento.ilike.%${termo}%`)
+          .order('data', { ascending: false })
+          .limit(5),
+      ]);
+      setClientesEncontrados(resClientes.data || []);
+      setAgendamentosEncontrados(resAgendamentos.data || []);
+      setBuscando(false);
+    }, 350);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchTerm]);
+
+  // Fecha o dropdown ao clicar fora.
+  useEffect(() => {
+    const aoClicarFora = (e: MouseEvent) => {
+      if (buscaRef.current && !buscaRef.current.contains(e.target as Node)) {
+        setBuscaAberta(false);
+      }
+    };
+    document.addEventListener('mousedown', aoClicarFora);
+    return () => document.removeEventListener('mousedown', aoClicarFora);
+  }, []);
+
+  const irParaCliente = (cliente: ResultadoCliente) => {
+    setBuscaAberta(false);
+    setSearchTerm('');
+    navigate(`/prontuario/${cliente.id}`);
+  };
+
+  const irParaAgendamento = (ag: ResultadoAgendamento) => {
+    setBuscaAberta(false);
+    setSearchTerm('');
+    navigate(`/procedimentos?date=${ag.data.slice(0, 10)}`);
+  };
+
+  const temResultados = clientesEncontrados.length > 0 || agendamentosEncontrados.length > 0;
+
   const iniciais = nomeUsuario
     ? nomeUsuario.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
     : '?';
@@ -136,31 +218,93 @@ const TopBar = () => {
   };
 
   const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchTerm.trim()) {
-      // Redireciona para a agenda ou página de busca passando a palavra-chave
-      navigate(`/agenda?q=${encodeURIComponent(searchTerm.trim())}`);
+    if (e.key === 'Enter') {
+      if (clientesEncontrados[0]) irParaCliente(clientesEncontrados[0]);
+      else if (agendamentosEncontrados[0]) irParaAgendamento(agendamentosEncontrados[0]);
+    } else if (e.key === 'Escape') {
+      setBuscaAberta(false);
     }
   };
 
   return (
     <div className="no-print flex w-full items-center justify-between gap-4 border-b border-border px-10 py-[18px]">
       {/* Campo de Busca */}
-      <div className="flex w-full max-w-[320px] items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-2.5">
-        <Search size={15} className="shrink-0 text-muted-foreground" />
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          onKeyDown={handleSearchSubmit}
-          placeholder="Buscar clientes, agendamentos..."
-          className="w-full bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground"
-        />
+      <div ref={buscaRef} className="relative w-full max-w-[320px]">
+        <div className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-2.5">
+          {buscando ? (
+            <Loader2 size={15} className="shrink-0 animate-spin text-muted-foreground" />
+          ) : (
+            <Search size={15} className="shrink-0 text-muted-foreground" />
+          )}
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={() => setBuscaAberta(true)}
+            onKeyDown={handleSearchSubmit}
+            placeholder="Buscar clientes, agendamentos..."
+            className="w-full bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+
+        {buscaAberta && searchTerm.trim().length >= 2 && (
+          <div className="absolute left-0 top-[calc(100%+6px)] z-[1000] w-full min-w-[320px] overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-black/20">
+            {!temResultados && !buscando ? (
+              <div className="px-3 py-3 text-center text-xs text-muted-foreground">
+                Sem resultados para "{searchTerm.trim()}".
+              </div>
+            ) : (
+              <div className="max-h-[320px] overflow-y-auto py-1.5">
+                {clientesEncontrados.length > 0 && (
+                  <div>
+                    <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Clientes
+                    </p>
+                    {clientesEncontrados.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => irParaCliente(c)}
+                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] hover:bg-primary/5"
+                      >
+                        <User size={14} className="shrink-0 text-primary" />
+                        <span className="min-w-0 flex-1 truncate text-foreground">{c.nome}</span>
+                        {c.telefone && (
+                          <span className="shrink-0 text-[11px] text-muted-foreground">{c.telefone}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {agendamentosEncontrados.length > 0 && (
+                  <div>
+                    <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Agendamentos
+                    </p>
+                    {agendamentosEncontrados.map((ag) => (
+                      <button
+                        key={ag.id}
+                        onClick={() => irParaAgendamento(ag)}
+                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] hover:bg-primary/5"
+                      >
+                        <CalendarDays size={14} className="shrink-0 text-primary" />
+                        <span className="min-w-0 flex-1 truncate text-foreground">
+                          {ag.cliente || 'Cliente'} — {ag.procedimento || 'Atendimento'}
+                        </span>
+                        <span className="shrink-0 text-[11px] text-muted-foreground">
+                          {ag.data.split('-').reverse().join('/')}
+                          {ag.hora ? ` ${formatarHora(ag.hora)}` : ''}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex shrink-0 items-center gap-4">
-        {/* Atalhos de teclado */}
-        <AtalhosTeclado />
-
         {/* Ícone de Notificações */}
         <DropdownMenu>
           <DropdownMenuTrigger>

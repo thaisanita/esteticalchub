@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '../supabase';
+import { avisarPagamentoRegistado } from '@/lib/eventos';
 import {
   Dialog,
   DialogContent,
@@ -89,7 +91,7 @@ export default function RegistoPagamentoRapido({ open, onOpenChange, onSuccess, 
   const handleConfirmar = async () => {
     const valorNumerico = parseMoeda(preco);
     if (!cliente.trim() || valorNumerico <= 0) {
-      alert('Preenche o nome da cliente e um valor válido.');
+      toast.error('Preenche o nome da cliente e um valor válido.');
       return;
     }
 
@@ -176,10 +178,12 @@ export default function RegistoPagamentoRapido({ open, onOpenChange, onSuccess, 
         if (error) throw error;
       }
 
+      toast.success(modoNovo ? 'Pagamento registado.' : 'Marcado como pago.');
+      avisarPagamentoRegistado();
       onOpenChange(false);
       onSuccess();
     } catch (err) {
-      alert('Erro ao registar pagamento: ' + getErrorMessage(err));
+      toast.error('Erro ao registar pagamento: ' + getErrorMessage(err));
     } finally {
       setSalvando(false);
     }
@@ -256,7 +260,14 @@ export default function RegistoPagamentoRapido({ open, onOpenChange, onSuccess, 
               <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <Package size={13} className="text-primary" /> Produto usado (opcional)
               </label>
-              <Select value={produtoUsadoId} onValueChange={setProdutoUsadoId}>
+              <Select
+                value={produtoUsadoId}
+                onValueChange={setProdutoUsadoId}
+                items={produtos.map((p) => ({
+                  value: p.id,
+                  label: `${p.nome} (${p.quantidade_restante}${p.unidade_medida} restantes)`,
+                }))}
+              >
                 <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
                 <SelectContent>
                   {produtos.map((p) => (

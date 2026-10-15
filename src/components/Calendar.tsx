@@ -20,6 +20,7 @@ interface Agendamento {
   ponto_atendimento?: string;
   pontoAtendimento?: string;
   agenda_id?: string;
+  faltou?: boolean;
 }
 
 interface AgendaInfo {
@@ -85,6 +86,7 @@ const Calendar = ({ onDaySelect, onMonthChange, agendamentos = [], mapaAgendas }
     const anoAtual = currentDate.getFullYear();
 
     const filtrados = agendamentos.filter((ag) => {
+      if (ag.faltou) return false;
       const { ano, mes } = extrairAnoMes(ag.data);
       const bateData = mes === mesAtual && ano === anoAtual;
       const localAg = ag.ponto_atendimento || ag.pontoAtendimento;
@@ -242,7 +244,14 @@ const Calendar = ({ onDaySelect, onMonthChange, agendamentos = [], mapaAgendas }
             %
           </div>
 
-          <Select value={filtroLocal} onValueChange={setFiltroLocal}>
+          <Select
+            value={filtroLocal}
+            onValueChange={setFiltroLocal}
+            items={locaisDisponiveis.map((local) => ({
+              value: local,
+              label: local === 'Todos' ? 'Gabinetes' : local,
+            }))}
+          >
             <SelectTrigger className="h-9 w-[140px] text-[13px]">
               <SelectValue />
             </SelectTrigger>

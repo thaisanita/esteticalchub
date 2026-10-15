@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { supabase } from '../supabase';
+import { formatarHora } from '@/lib/utils';
 import { 
   X, 
   Calendar as CalendarIcon, 
@@ -89,7 +91,7 @@ export const ConfirmacaoAtendimento = () => {
         status_confirmacao: novaResposta
       });
     } catch (err) {
-      alert('Não foi possível salvar sua resposta. Tente novamente.');
+      toast.error('Não foi possível salvar sua resposta. Tente novamente.');
     } finally {
       setEnviando(false);
     }
@@ -101,14 +103,14 @@ export const ConfirmacaoAtendimento = () => {
     const [ano, mes, dia] = apenasData.split('-');
     
     // Formata a data de maneira limpa (ex: "15/09, 14:30")
-    return `${dia}/${mes}/${ano} às ${agendamento.hora || 'Horário a combinar'}`;
+    return `${dia}/${mes}/${ano} às ${formatarHora(agendamento.hora) || 'Horário a combinar'}`;
   };
 
   // Gerador de link do Google Calendar para o cliente adicionar o agendamento
   const gerarGoogleCalendarLink = () => {
     if (!agendamento) return '#';
     const apenasData = agendamento.data.split('T')[0].replace(/-/g, '');
-    const horaFormatada = (agendamento.hora || '09:00').replace(':', '') + '00';
+    const horaFormatada = (formatarHora(agendamento.hora) || '09:00').replace(':', '') + '00';
     
     const dataInicio = `${apenasData}T${horaFormatada}`;
     const titulo = encodeURIComponent(`${agendamento.procedimento} - ${agendamento.criador_nome}`);

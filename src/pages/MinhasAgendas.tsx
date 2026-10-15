@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { supabase } from '../supabase';
+import { confirmar } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, getErrorMessage } from '@/lib/utils';
@@ -124,7 +125,8 @@ export default function MinhasAgendas() {
     const aviso = agenda.principal
       ? `"${agenda.nome}" é a tua agenda principal. Apagá-la elimina também todos os agendamentos e clientes lá dentro. Tens mesmo a certeza?`
       : `Apagar "${agenda.nome}"? Todos os agendamentos e clientes partilhados nesta agenda são eliminados para todas as membras. Esta ação não pode ser desfeita.`;
-    if (!window.confirm(aviso)) return;
+    const ok = await confirmar({ descricao: aviso, destrutivo: true, textoConfirmar: 'Apagar' });
+    if (!ok) return;
 
     const { error } = await supabase.from('agendas').delete().eq('id', agenda.id);
     if (!error) {
@@ -182,7 +184,12 @@ export default function MinhasAgendas() {
   };
 
   const removerMembro = async (agendaId: string, userId: string) => {
-    if (!window.confirm('Remover esta pessoa da agenda? Deixa de ver os agendamentos e clientes partilhados.')) return;
+    const ok = await confirmar({
+      descricao: 'Remover esta pessoa da agenda? Deixa de ver os agendamentos e clientes partilhados.',
+      destrutivo: true,
+      textoConfirmar: 'Remover',
+    });
+    if (!ok) return;
     const { error } = await supabase.from('agenda_membros').delete().eq('agenda_id', agendaId).eq('user_id', userId);
     if (!error) {
       setMembrosAbertos((prev) => ({

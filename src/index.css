@@ -90,3 +90,54 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
 }
+
+/* Markdown nas respostas do Assistente IA (AssistenteIA.tsx) — sem o plugin
+   @tailwindcss/typography, por isso estilos manuais e compactos (o painel
+   de chat é pequeno). */
+.prose-assistente :where(p) {
+  margin: 0;
+}
+.prose-assistente :where(p + p) {
+  margin-top: 0.5em;
+}
+.prose-assistente :where(strong) {
+  font-weight: 700;
+}
+.prose-assistente :where(ul, ol) {
+  margin: 0.4em 0;
+  padding-left: 1.25em;
+}
+.prose-assistente :where(ul) {
+  list-style: disc;
+}
+.prose-assistente :where(ol) {
+  list-style: decimal;
+}
+.prose-assistente :where(li + li) {
+  margin-top: 0.15em;
+}
+.prose-assistente :where(a) {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+.prose-assistente :where(code) {
+  background: hsl(var(--background));
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: 0.85em;
+}
+.prose-assistente :where(table) {
+  width: 100%;
+  margin: 0.5em 0;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+.prose-assistente :where(th, td) {
+  border: 1px solid hsl(var(--border));
+  padding: 0.3em 0.5em;
+  text-align: left;
+}
+.prose-assistente :where(th) {
+  background: hsl(var(--background));
+  font-weight: 700;
+}

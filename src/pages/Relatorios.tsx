@@ -9,8 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Printer, Trash2, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, FileText, Banknote, CreditCard, Smartphone, Landmark } from 'lucide-react';
+import { toast } from 'sonner';
+import { Printer, Trash2, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, FileText, Banknote, CreditCard, Smartphone, Landmark, UserX } from 'lucide-react';
 import { parseMoeda, cn, classeValorSinal } from '@/lib/utils';
+import { confirmar } from '@/components/ConfirmDialog';
 
 interface AgendamentoRel {
   id?: string | number;
@@ -23,6 +25,7 @@ interface AgendamentoRel {
   preco?: number | string;
   pago?: boolean;
   forma_pagamento?: string | null;
+  faltou?: boolean;
 }
 
 interface Fechamento {
@@ -107,26 +110,37 @@ const Relatorios = () => {
 
   const handleExcluirAtendimento = async (id: string | number | undefined) => {
     if (!id) return;
-    if (!window.confirm('Eliminar este atendimento? Esta ação não pode ser desfeita.')) return;
+    const ok = await confirmar({
+      descricao: 'Eliminar este atendimento? Esta ação não pode ser desfeita.',
+      destrutivo: true,
+      textoConfirmar: 'Eliminar',
+    });
+    if (!ok) return;
 
     const { error } = await supabase.from('agendamentos').delete().eq('id', id);
     if (!error) {
       setAgendamentos((prev) => prev.filter((ag) => ag.id !== id));
+      toast.success('Atendimento eliminado.');
     } else {
-      alert('Erro ao eliminar atendimento: ' + error.message);
+      toast.error('Erro ao eliminar atendimento: ' + error.message);
     }
   };
 
   const excluirFechamento = async (id: string | number) => {
-    if (window.confirm('Deseja remover este registro?')) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { error } = await supabase
-        .from('fechamentos')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-      if (!error) setFechamentos((prev) => prev.filter((f) => f.id !== id));
+    const ok = await confirmar({ descricao: 'Deseja remover este registo?', destrutivo: true, textoConfirmar: 'Remover' });
+    if (!ok) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase
+      .from('fechamentos')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+    if (!error) {
+      setFechamentos((prev) => prev.filter((f) => f.id !== id));
+      toast.success('Registo removido.');
+    } else {
+      toast.error('Erro ao remover: ' + error.message);
     }
   };
 
@@ -146,6 +160,7 @@ const Relatorios = () => {
     const ganhosPorMes: Record<string, number> = {};
 
     agendamentos.forEach((ag) => {
+      if (ag.faltou) return;
       const dataStr = ag.data;
       if (dataStr && dataStr.startsWith(anoAtual.toString())) {
         const localAg = ag.ponto_atendimento || ag.pontoAtendimento;
@@ -193,10 +208,13 @@ const Relatorios = () => {
       })
       .sort((a, b) => (a.data || '').localeCompare(b.data || ''));
 
-    const totalFaturado = atendimentos.reduce((acc, ag) => acc + parseMoeda(ag.valor ?? ag.preco ?? 0), 0);
+    const totalFaturado = atendimentos
+      .filter((ag) => !ag.faltou)
+      .reduce((acc, ag) => acc + parseMoeda(ag.valor ?? ag.preco ?? 0), 0);
 
     const porForma: Record<string, number> = { dinheiro: 0, cartao: 0, mbway: 0, transferencia: 0, nao_registado: 0 };
     atendimentos.forEach((ag) => {
+      if (ag.faltou) return;
       const valor = parseMoeda(ag.valor ?? ag.preco ?? 0);
       const chave = ag.pago && ag.forma_pagamento ? ag.forma_pagamento : 'nao_registado';
       porForma[chave] = (porForma[chave] || 0) + valor;
@@ -264,7 +282,11 @@ const Relatorios = () => {
               <div className="-mt-3 h-0.5 w-14 bg-gradient-to-r from-primary to-primary-hover" />
             </div>
             <div className="flex gap-2.5">
-              <Select value={mesRelatorio} onValueChange={setMesRelatorio}>
+              <Select
+                value={mesRelatorio}
+                onValueChange={setMesRelatorio}
+                items={MESES.map((m, i) => ({ value: String(i + 1).padStart(2, '0'), label: m }))}
+              >
                 <SelectTrigger className="w-[130px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -360,11 +382,17 @@ const Relatorios = () => {
                         <td className="px-4 py-3 text-foreground">{ag.cliente || '—'}</td>
                         <td className="px-4 py-3 text-muted-foreground">{ag.procedimento || '—'}</td>
                         <td className="px-4 py-3 text-muted-foreground">
-                          {ag.pago && ag.forma_pagamento
-                            ? { dinheiro: 'Dinheiro', cartao: 'Cartão', mbway: 'MBWay', transferencia: 'Transferência' }[ag.forma_pagamento] || ag.forma_pagamento
-                            : 'Não registado'}
+                          {ag.faltou ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-rose-500">
+                              <UserX size={11} /> Faltou
+                            </span>
+                          ) : ag.pago && ag.forma_pagamento ? (
+                            { dinheiro: 'Dinheiro', cartao: 'Cartão', mbway: 'MBWay', transferencia: 'Transferência' }[ag.forma_pagamento] || ag.forma_pagamento
+                          ) : (
+                            'Não registado'
+                          )}
                         </td>
-                        <td className="px-4 py-3 text-right font-semibold text-foreground">
+                        <td className={cn('px-4 py-3 text-right font-semibold', ag.faltou ? 'text-muted-foreground line-through' : 'text-foreground')}>
                           € {parseMoeda(ag.valor ?? ag.preco ?? 0).toFixed(2)}
                         </td>
                         <td className="no-print px-4 py-3 text-center">

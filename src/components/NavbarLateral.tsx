@@ -20,6 +20,7 @@ import {
   Activity,
   Crown,
   Layers,
+  Megaphone,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -93,7 +94,7 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
     if (location.pathname === '/dashboard' || location.pathname === '/novo-agendamento') {
       setSubmenusAbertos((prev) => ({ ...prev, agenda: true }));
     }
-    if (['/pagamentos', '/custos', '/relatorios', '/porcentagem'].includes(location.pathname)) {
+    if (['/pagamentos', '/custos', '/relatorios', '/porcentagem', '/trafego-pago'].includes(location.pathname)) {
       setSubmenusAbertos((prev) => ({ ...prev, financeiro: true }));
     }
   }, [location.pathname]);
@@ -135,6 +136,7 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
         { rota: '/custos', texto: textos.custos, Icone: Receipt },
         { rota: '/relatorios', texto: textos.relatorios, Icone: TrendingUp },
         { rota: '/porcentagem', texto: textos.porcentagem, Icone: Wallet },
+        { rota: '/trafego-pago', texto: 'Tráfego pago', Icone: Megaphone },
       ],
     },
     { rota: '/clientes', texto: textos.clientes, Icone: Users },
@@ -385,6 +387,7 @@ const NavbarLateral = ({ fixado, onAlternarFixado }: NavbarLateralProps) => {
                   { rota: '/porcentagem', texto: textos.porcentagem, Icone: Wallet },
                   { rota: '/relatorios', texto: textos.relatorios, Icone: TrendingUp },
                   { rota: '/pagamentos', texto: textos.pagamentos, Icone: HandCoins },
+                  { rota: '/trafego-pago', texto: 'Tráfego pago', Icone: Megaphone },
                   { rota: '/kanban', texto: textos.kanban, Icone: LayoutDashboard },
                   { rota: '/agendas', texto: 'Minhas agendas', Icone: Layers },
                   { rota: '/planos', texto: textos.planos, Icone: Crown },

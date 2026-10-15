@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,11 +21,17 @@ import {
   Download,
   ShieldCheck,
   Users,
+  Megaphone,
+  Lock,
 } from 'lucide-react';
 import { textosConfig, obterIdiomaAtual, type Idioma } from '@/lib/i18n';
 import ConectarWhatsAppBot from '@/components/ConectarWhatsAppBot';
 import PaginaPublicaConfig from '@/components/PaginaPublicaConfig';
+import TrafegoPagoConfig from '@/components/TrafegoPagoConfig';
 import DadosEConta from '@/components/DadosEConta';
+import { usePlano, type ProFeature } from '@/hooks/usePlano';
+import ModalFuncaoPro from '@/components/ModalFuncaoPro';
+import SeloPro from '@/components/SeloPro';
 
 import { CHAVE_BANNER_INSTALAR_FECHADO } from '@/components/BannerInstalarApp';
 import { URL_PUBLICO } from '@/lib/empresa';
@@ -38,6 +45,8 @@ interface Usuario {
 
 export default function Config() {
   const navigate = useNavigate();
+  const { isPro } = usePlano();
+  const [modalProAberto, setModalProAberto] = useState<ProFeature | null>(null);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [idioma, setIdioma] = useState<Idioma>(obterIdiomaAtual());
 
@@ -59,7 +68,7 @@ export default function Config() {
 
   const copiarLink = () => {
     navigator.clipboard.writeText(URL_PUBLICO);
-    alert('Link do app copiado!');
+    toast.success('Link do app copiado!');
   };
 
   const mostrarAvisoInstalarNovamente = () => {
@@ -69,8 +78,12 @@ export default function Config() {
 
   const salvarConfiguracoes = () => {
     localStorage.setItem('config_idioma', idioma);
-    alert(t.alerta);
-    window.location.href = '/';
+    toast.success(t.alerta);
+    // Pequeno atraso para o toast ser visível antes do recarregamento da página
+    // (necessário para o BannerInstalarApp reler o idioma do localStorage).
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 600);
   };
 
   const iniciais = usuario?.displayName
@@ -111,21 +124,30 @@ export default function Config() {
         </div>
       )}
 
-      {/* Bloco WhatsApp — conectar o robô automático */}
+      {/* Bloco WhatsApp — conectar o robô automático (Pro) */}
       <div className="mb-3 rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
         <div className="flex items-start gap-3.5">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
             <Phone size={18} className="text-primary" />
           </div>
-          <div>
-            <div className="text-sm font-bold text-foreground">WhatsApp</div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <div className="text-sm font-bold text-foreground">WhatsApp</div>
+              {!isPro && <SeloPro />}
+            </div>
             <div className="mt-0.5 text-xs text-muted-foreground">
               Liga o teu WhatsApp para enviar lembretes automáticos às clientes.
             </div>
           </div>
         </div>
 
-        <ConectarWhatsAppBot />
+        {isPro ? (
+          <ConectarWhatsAppBot />
+        ) : (
+          <Button size="sm" variant="outline" onClick={() => setModalProAberto('lembretes_whatsapp')} className="gap-1.5">
+            <Lock size={14} /> Disponível no plano Pro
+          </Button>
+        )}
       </div>
 
       {/* Página Pública (captação de leads via anúncios) */}
@@ -143,6 +165,23 @@ export default function Config() {
         </div>
 
         <PaginaPublicaConfig />
+      </div>
+
+      {/* Tráfego pago (contas de Meta Ads ligadas) */}
+      <div className="mb-3 rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
+        <div className="flex items-start gap-3.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
+            <Megaphone size={18} className="text-primary" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-foreground">Tráfego Pago</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              Liga a tua conta de anúncios da Meta para veres o gasto e os resultados por campanha.
+            </div>
+          </div>
+        </div>
+
+        <TrafegoPagoConfig />
       </div>
 
       {/* Idioma */}
@@ -266,6 +305,14 @@ export default function Config() {
           {t.btnVoltar}
         </Button>
       </div>
+
+      {modalProAberto && (
+        <ModalFuncaoPro
+          open={!!modalProAberto}
+          onOpenChange={(open) => !open && setModalProAberto(null)}
+          funcao={modalProAberto}
+        />
+      )}
     </div>
   );
 }

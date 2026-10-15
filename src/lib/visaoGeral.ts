@@ -7,6 +7,7 @@ export interface Atendimento {
   cliente_id: string | null;
   cliente: string;
   procedimento: string;
+  faltou?: boolean;
 }
 
 export interface Dados {
@@ -56,6 +57,7 @@ export function calcularVisao(dados: Dados, agoraData: Date = new Date()) {
     const ultimaVisita = new Map<string, { data: string; nome: string }>();
 
     for (const a of dados.atendimentos) {
+      if (a.faltou) continue; // faltas não entram nos totais faturados
       const chave = a.data.slice(0, 7);
       const dia = parseInt(a.data.slice(8, 10), 10);
       const passado = a.data <= hojeISO;
