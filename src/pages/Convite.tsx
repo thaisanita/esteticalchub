@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Sparkles, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { supabase } from '../supabase';
-import { Button } from '@/components/ui/button';
+import GoogleSignInButton from '@/components/GoogleSignInButton';
 
 type Estado = 'a-verificar' | 'por-autenticar' | 'a-aceitar' | 'aceite' | 'erro';
 
@@ -42,14 +42,6 @@ export default function Convite() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const entrarComGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/convite/${token}` },
-    });
-    if (error) setErro('Erro ao ligar com o Google: ' + error.message);
-  };
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 text-center shadow-xl shadow-black/20">
@@ -67,9 +59,13 @@ export default function Convite() {
             <p className="mb-5 text-sm text-muted-foreground">
               Entra com o Google para aceitares o convite e passares a ver essa agenda e as clientes dela.
             </p>
-            <Button onClick={entrarComGoogle} className="w-full">
-              Continuar com Google
-            </Button>
+            <GoogleSignInButton
+              onSuccess={aceitar}
+              onError={(mensagem) => {
+                setErro(mensagem);
+                setEstado('erro');
+              }}
+            />
           </>
         )}
 

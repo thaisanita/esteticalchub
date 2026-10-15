@@ -8,6 +8,7 @@ import RequisitosSenha from '@/components/RequisitosSenha';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import GoogleSignInButton from '@/components/GoogleSignInButton';
 
 import {
 
@@ -245,22 +246,6 @@ setErro('Erro ao enviar email: ' + getErrorMessage(err));
 setCarregando(false);
 
 }
-
-};
-
-
-
-const loginGoogle = async () => {
-
-const { error } = await supabase.auth.signInWithOAuth({
-
-provider: 'google',
-
-options: { redirectTo: window.location.origin },
-
-});
-
-if (error) setErro('Erro ao conectar com Google: ' + error.message);
 
 };
 
@@ -878,29 +863,7 @@ Reenviar email de confirmação
 
 
 
-<Button
-
-onClick={loginGoogle}
-
-variant="outline"
-
-className="w-full cursor-pointer"
-
->
-
-<img
-
-src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-
-alt="Google"
-
-className="mr-2.5 w-[18px]"
-
-/>
-
-Continuar com Google
-
-</Button>
+<GoogleSignInButton onError={setErro} />
 
 <p className="mt-2 text-center text-[11px] text-muted-foreground">
 
