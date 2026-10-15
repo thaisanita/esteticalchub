@@ -29,6 +29,7 @@ interface AgendaInfo {
   nome: string;
   cor: string;
   principal: boolean;
+  tipo_atendimento?: 'estudio' | 'domicilio' | 'ambos';
 }
 
 const getLocalDateString = (date = new Date()) => {
@@ -88,7 +89,7 @@ const Agenda = () => {
     const carregarAgendas = async () => {
       const { data } = await supabase
         .from('agendas')
-        .select('id, nome, cor, principal')
+        .select('id, nome, cor, principal, tipo_atendimento')
         .order('principal', { ascending: false })
         .order('nome');
       if (data) {

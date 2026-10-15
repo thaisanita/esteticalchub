@@ -61,6 +61,16 @@ export function formatarHora(hora: string | null | undefined): string {
   return hora.slice(0, 5);
 }
 
+/** true quando a agenda atende fora do estúdio (domicílio ou ambos). */
+export function atendeDomicilio(tipoAtendimento?: string | null): boolean {
+  return tipoAtendimento === 'domicilio' || tipoAtendimento === 'ambos';
+}
+
+/** Link do Google Maps para abrir uma morada/local diretamente. */
+export function linkGoogleMaps(morada: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(morada)}`;
+}
+
 /**
  * Cor de um valor monetário pelo sinal: verde se positivo, vermelho se
  * negativo, neutra se for zero. Usar em lucros/saldos, não em faturação.

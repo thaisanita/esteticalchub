@@ -6,19 +6,20 @@ import { EVENTO_PAGAMENTO_REGISTADO } from '@/lib/eventos';
 import { confirmar } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { textosProcedimentos, obterIdiomaAtual } from '@/lib/i18n';
-import { parseMoeda, formatarHora } from '@/lib/utils';
-import { 
-  Clock, 
-  User, 
-  Sparkles as SparklesIcon, 
-  MapPin, 
-  Trash2, 
-  CalendarX, 
-  ArrowLeft, 
-  Plus, 
-  Pencil, 
+import { parseMoeda, formatarHora, atendeDomicilio, linkGoogleMaps } from '@/lib/utils';
+import {
+  Clock,
+  User,
+  Sparkles as SparklesIcon,
+  MapPin,
+  Trash2,
+  CalendarX,
+  ArrowLeft,
+  Plus,
+  Pencil,
   UserX,
-  TrendingUp
+  TrendingUp,
+  ExternalLink,
 } from 'lucide-react';
 import { SkeletonLinhas } from '@/components/ui/skeleton';
 
@@ -34,6 +35,7 @@ interface Atendimento {
   ponto_atendimento?: string;
   pontoAtendimento?: string;
   faltou?: boolean;
+  agenda_id?: string;
 }
 
 const Procedimentos = () => {
@@ -41,6 +43,9 @@ const Procedimentos = () => {
   const navigate = useNavigate();
   const [agendamentos, setAgendamentos] = useState<Atendimento[]>([]);
   const [loading, setLoading] = useState(true);
+  // Só para saber se cada agenda atende ao domicílio (mostrar o link do mapa) —
+  // não repete a consulta de membros/cores que a página da Agenda já faz.
+  const [tipoPorAgenda, setTipoPorAgenda] = useState<Record<string, string>>({});
 
   const dataSelecionada = searchParams.get('date') || new Date().toISOString().split('T')[0];
   const idioma = obterIdiomaAtual();
@@ -69,6 +74,15 @@ const Procedimentos = () => {
     window.addEventListener(EVENTO_PAGAMENTO_REGISTADO, buscarAtendimentos);
     return () => window.removeEventListener(EVENTO_PAGAMENTO_REGISTADO, buscarAtendimentos);
   }, [dataSelecionada, buscarAtendimentos]);
+
+  useEffect(() => {
+    supabase
+      .from('agendas')
+      .select('id, tipo_atendimento')
+      .then(({ data }) => {
+        if (data) setTipoPorAgenda(Object.fromEntries(data.map((a) => [a.id, a.tipo_atendimento])));
+      });
+  }, []);
 
   const marcarFalta = async (id: string | number) => {
     const ok = await confirmar(textos.confFalta);
@@ -175,31 +189,43 @@ const Procedimentos = () => {
               }`}
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                {/* Informações Principais */}
-                <div className="space-y-2">
+                {/* Informações Principais: nome primeiro (é o que se reconhece de
+                    relance), local por último e discreto — importante sobretudo
+                    para quem atende ao domicílio e precisa de abrir o mapa. */}
+                <div className="min-w-0 space-y-2">
+                  <h3 className="font-display text-base font-bold text-foreground flex items-center gap-1.5">
+                    <User size={15} className="text-primary shrink-0" />
+                    {item.cliente}
+                  </h3>
+
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-1 text-xs font-semibold text-muted-foreground border border-border">
                       <Clock size={12} className="text-primary" />
                       {formatarHora(item.hora)}{item.hora_fim ? ` - ${formatarHora(item.hora_fim)}` : ''}
                     </span>
-                    {localAtendimento && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-1 text-xs font-medium text-muted-foreground border border-border">
-                        <MapPin size={12} className="text-primary" />
-                        {localAtendimento}
-                      </span>
-                    )}
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/80">
+                      <SparklesIcon size={12} className="text-primary/70 shrink-0" />
+                      {item.procedimento}
+                    </span>
                   </div>
 
-                  <div className="space-y-0.5">
-                    <h3 className="font-display text-base font-bold text-foreground flex items-center gap-1.5">
-                      <User size={15} className="text-primary" />
-                      {item.cliente}
-                    </h3>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <SparklesIcon size={12} className="text-primary/70" />
-                      {item.procedimento}
+                  {localAtendimento && (
+                    <p className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
+                      <MapPin size={11} className="shrink-0" />
+                      <span className="truncate">{localAtendimento}</span>
+                      {item.agenda_id && atendeDomicilio(tipoPorAgenda[item.agenda_id]) && (
+                        <a
+                          href={linkGoogleMaps(localAtendimento)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex shrink-0 items-center gap-0.5 font-semibold text-primary hover:underline"
+                        >
+                          Abrir no mapa <ExternalLink size={10} />
+                        </a>
+                      )}
                     </p>
-                  </div>
+                  )}
                 </div>
 
                 {/* Valor e Ações */}

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2, UserX } from 'lucide-react';
+import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2, UserX, MapPin, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { parseMoeda, formatarHora } from '@/lib/utils';
+import { parseMoeda, formatarHora, atendeDomicilio, linkGoogleMaps } from '@/lib/utils';
 import { supabase } from '../supabase';
 import { confirmar } from './ConfirmDialog';
 import { usePlano, FUNCIONALIDADES_PRO_ATIVAS } from '@/hooks/usePlano';
@@ -28,6 +28,8 @@ interface Appointment {
   usuario_id?: string;
   agenda_id?: string;
   faltou?: boolean;
+  ponto_atendimento?: string;
+  pontoAtendimento?: string;
 }
 
 interface AgendaInfo {
@@ -35,6 +37,7 @@ interface AgendaInfo {
   nome: string;
   cor: string;
   principal: boolean;
+  tipo_atendimento?: 'estudio' | 'domicilio' | 'ambos';
 }
 
 interface ListaAgendamentosProps {
@@ -238,6 +241,24 @@ const ListaAgendamentos = ({
                       <span className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
                         <Sparkles size={10} className="shrink-0 text-primary" />
                         <span className="truncate">{procedimento}</span>
+                      </span>
+                    )}
+                    {(appt.ponto_atendimento || appt.pontoAtendimento) && (
+                      <span className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground/80">
+                        <MapPin size={10} className="shrink-0" />
+                        <span className="truncate">{appt.ponto_atendimento || appt.pontoAtendimento}</span>
+                        {appt.agenda_id &&
+                          atendeDomicilio(mapaAgendas?.get(appt.agenda_id)?.tipo_atendimento) && (
+                            <a
+                              href={linkGoogleMaps((appt.ponto_atendimento || appt.pontoAtendimento)!)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex shrink-0 items-center gap-0.5 font-semibold text-primary hover:underline"
+                            >
+                              Mapa <ExternalLink size={9} />
+                            </a>
+                          )}
                       </span>
                     )}
                   </div>
