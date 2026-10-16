@@ -46,6 +46,17 @@ const Procedimentos = () => {
   // Só para saber se cada agenda atende ao domicílio (mostrar o link do mapa) —
   // não repete a consulta de membros/cores que a página da Agenda já faz.
   const [tipoPorAgenda, setTipoPorAgenda] = useState<Record<string, string>>({});
+  // Moradas truncadas com "title" não aparecem ao toque no telemóvel — clicar
+  // no nome da cliente mostra a morada completa (cidade ou rua).
+  const [moradasAbertas, setMoradasAbertas] = useState<Set<string | number>>(new Set());
+  const alternarMorada = (id: string | number) => {
+    setMoradasAbertas((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
+      return novo;
+    });
+  };
 
   const dataSelecionada = searchParams.get('date') || new Date().toISOString().split('T')[0];
   const idioma = obterIdiomaAtual();
@@ -195,7 +206,13 @@ const Procedimentos = () => {
                 <div className="min-w-0 space-y-2">
                   <h3 className="font-display text-base font-bold text-foreground flex items-center gap-1.5">
                     <User size={15} className="text-primary shrink-0" />
-                    {item.cliente}
+                    {localAtendimento ? (
+                      <button type="button" onClick={() => alternarMorada(item.id)} className="hover:underline" title="Ver morada">
+                        {item.cliente}
+                      </button>
+                    ) : (
+                      item.cliente
+                    )}
                   </h3>
 
                   <div className="flex items-center gap-2 flex-wrap">
@@ -211,8 +228,8 @@ const Procedimentos = () => {
 
                   {localAtendimento && (
                     <p className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
-                      <MapPin size={11} className="shrink-0" />
-                      <span className="truncate">{localAtendimento}</span>
+                      <MapPin size={11} className="mt-0.5 shrink-0" />
+                      <span className={moradasAbertas.has(item.id) ? '' : 'truncate'}>{localAtendimento}</span>
                       {item.agenda_id && atendeDomicilio(tipoPorAgenda[item.agenda_id]) && (
                         <a
                           href={linkGoogleMaps(localAtendimento)}

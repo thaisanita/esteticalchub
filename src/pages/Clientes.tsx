@@ -76,6 +76,17 @@ export default function Clientes() {
   >({});
   const [busca, setBusca] = useState('');
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  // Morada truncada com "title" não aparece ao toque no telemóvel — clicar
+  // no nome da cliente mostra a morada completa (cidade ou rua).
+  const [moradasAbertas, setMoradasAbertas] = useState<Set<string>>(new Set());
+  const alternarMorada = (id: string) => {
+    setMoradasAbertas((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
+      return novo;
+    });
+  };
   const [loading, setLoading] = useState(true);
   const [importando, setImportando] = useState(false);
 
@@ -526,15 +537,31 @@ export default function Clientes() {
                         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
                           <Users size={13} />
                         </div>
-                        <span
-                          style={
-                            c.agenda_id && mapaAgendas.size > 1
-                              ? { color: mapaAgendas.get(c.agenda_id)?.cor }
-                              : undefined
-                          }
-                        >
-                          {c.nome}
-                        </span>
+                        {c.morada ? (
+                          <button
+                            type="button"
+                            onClick={() => alternarMorada(c.id)}
+                            className="hover:underline"
+                            title="Ver morada"
+                            style={
+                              c.agenda_id && mapaAgendas.size > 1
+                                ? { color: mapaAgendas.get(c.agenda_id)?.cor }
+                                : undefined
+                            }
+                          >
+                            {c.nome}
+                          </button>
+                        ) : (
+                          <span
+                            style={
+                              c.agenda_id && mapaAgendas.size > 1
+                                ? { color: mapaAgendas.get(c.agenda_id)?.cor }
+                                : undefined
+                            }
+                          >
+                            {c.nome}
+                          </span>
+                        )}
                         {c.agenda_id && mapaAgendas.size > 1 && (
                           <span
                             title={mapaAgendas.get(c.agenda_id)?.nome ?? 'Agenda'}
@@ -549,7 +576,9 @@ export default function Clientes() {
                       {c.morada && atendeDomicilio(mapaAgendas.get(c.agenda_id || '')?.tipo_atendimento) && (
                         <span className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground/70">
                           <MapPin size={10} className="shrink-0" />
-                          <span className="max-w-[140px] truncate" title={c.morada}>{c.morada}</span>
+                          <span className={moradasAbertas.has(c.id) ? 'whitespace-normal' : 'max-w-[140px] truncate'}>
+                            {c.morada}
+                          </span>
                           <a
                             href={linkGoogleMaps(c.morada)}
                             target="_blank"
