@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '../supabase';
-import { getErrorMessage, parseMoeda } from '@/lib/utils';
+import { getErrorMessage, parseMoeda, atendeDomicilio } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePlano, FUNCIONALIDADES_PRO_ATIVAS } from '@/hooks/usePlano';
@@ -65,7 +65,9 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   // Em que agenda este agendamento fica guardado (TimeTree-style: várias
   // agendas possíveis, Principal por omissão).
   const [agendaId, setAgendaId] = useState<string>('');
-  const [agendas, setAgendas] = useState<{ id: string; nome: string; cor: string; principal: boolean }[]>([]);
+  const [agendas, setAgendas] = useState<
+    { id: string; nome: string; cor: string; principal: boolean; tipo_atendimento?: 'estudio' | 'domicilio' | 'ambos' }[]
+  >([]);
   
   // Configurações de Notificação
   const [lembrete1Dia, setLembrete1Dia] = useState(true);
@@ -92,7 +94,13 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   const [historicoProcedimento, setHistoricoProcedimento] = useState<{ vezes: number; produtos: { nome: string; vezes: number }[] } | null>(null);
   const [custosFixosMes, setCustosFixosMes] = useState<number | null>(null);
   const [faturamentoMesAtual, setFaturamentoMesAtual] = useState<number>(0);
-  const [clientesDb, setClientesDb] = useState<{ id: string; nome: string; telefone: string | null; email: string | null }[]>([]);
+  const [clientesDb, setClientesDb] = useState<
+    { id: string; nome: string; telefone: string | null; email: string | null; morada: string | null }[]
+  >([]);
+  // Morada guardada na cliente selecionada, para comparar com o que está no
+  // campo "Espaço/Local" e oferecer "Guardar como morada desta cliente".
+  const [moradaClienteAtual, setMoradaClienteAtual] = useState<string | null>(null);
+  const [guardarMoradaCliente, setGuardarMoradaCliente] = useState(false);
 
   // Nome completo, combinado a partir dos dois campos, usado para guardar
   // e comparar com o resto do site (Clientes, Prontuário, etc. continuam a
@@ -117,7 +125,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
 
     supabase
       .from('clientes')
-      .select('id, nome, telefone, email')
+      .select('id, nome, telefone, email, morada')
       .order('nome', { ascending: true })
       .then(({ data }) => setClientesDb(data || []));
   }, []);
@@ -135,11 +143,22 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     setApelidoCliente(partes.slice(1).join(' '));
   };
 
-  const selecionarClienteExistente = (c: { id: string; nome: string; telefone: string | null; email: string | null }) => {
+  const selecionarClienteExistente = (c: {
+    id: string;
+    nome: string;
+    telefone: string | null;
+    email: string | null;
+    morada: string | null;
+  }) => {
     preencherNomeCompleto(c.nome);
     setClienteId(c.id);
     if (c.telefone) setTelefoneCliente(c.telefone);
     if (c.email) setEmailCliente(c.email);
+    setMoradaClienteAtual(c.morada);
+    setGuardarMoradaCliente(false);
+    // Só preenche se o campo ainda estiver vazio — não apaga nada que já
+    // tenha sido escrito à mão para este atendimento em concreto.
+    if (c.morada && !pontoAtendimento.trim()) setPontoAtendimento(c.morada);
   };
 
   // Sugestão inteligente: procura o último atendimento com o mesmo
@@ -288,7 +307,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     const buscarAgendas = async () => {
       const { data } = await supabase
         .from('agendas')
-        .select('id, nome, cor, principal')
+        .select('id, nome, cor, principal, tipo_atendimento')
         .order('principal', { ascending: false })
         .order('nome', { ascending: true });
       if (data) {
@@ -468,6 +487,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
         if (existente) {
           clienteIdFinal = existente.id;
         } else {
+          const agendaSelecionada = agendas.find((a) => a.id === agendaId);
           const { data: novaCliente, error: erroNovaCliente } = await supabase
             .from('clientes')
             .insert([{
@@ -475,11 +495,16 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
               telefone: telefoneCliente.trim() || null,
               email: emailCliente.trim() || null,
               agenda_id: agendaId || null,
+              morada: atendeDomicilio(agendaSelecionada?.tipo_atendimento) ? pontoAtendimento.trim() || null : null,
             }])
             .select('id')
             .single();
           if (!erroNovaCliente) clienteIdFinal = novaCliente.id;
         }
+      } else if (clienteIdFinal && guardarMoradaCliente && pontoAtendimento.trim()) {
+        // Cliente existente: só grava se a profissional marcou a opção
+        // "Guardar como morada desta cliente" — não sobrescreve sem pedir.
+        await supabase.from('clientes').update({ morada: pontoAtendimento.trim() }).eq('id', clienteIdFinal);
       }
 
       const dadosParaEnviar = {
@@ -652,6 +677,20 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
                   ))}
                 </div>
               )}
+              {clienteId &&
+                atendeDomicilio(agendas.find((a) => a.id === agendaId)?.tipo_atendimento) &&
+                pontoAtendimento.trim() &&
+                pontoAtendimento.trim() !== (moradaClienteAtual || '').trim() && (
+                  <label className="mt-1.5 flex cursor-pointer items-start gap-2 text-[11px] text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={guardarMoradaCliente}
+                      onChange={(e) => setGuardarMoradaCliente(e.target.checked)}
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-primary"
+                    />
+                    Guardar como morada desta cliente
+                  </label>
+                )}
             </div>
           </div>
 

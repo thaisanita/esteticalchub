@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Euro, PiggyBank, Trophy, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Euro, PiggyBank, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,6 +28,7 @@ interface AgendaInfo {
   nome: string;
   cor: string;
   principal: boolean;
+  tipo_atendimento?: 'estudio' | 'domicilio' | 'ambos';
 }
 
 interface CalendarProps {
@@ -127,13 +128,6 @@ const Calendar = ({ onDaySelect, onMonthChange, agendamentos = [], mapaAgendas }
         return dataApenas === dateString && (filtroLocal === 'Todos' || localAg === filtroLocal);
       });
 
-      const agendadosPorLocal: Record<string, Agendamento[]> = {};
-      agendamentosDoDia.forEach((ag) => {
-        const loc = ag.ponto_atendimento || ag.pontoAtendimento || 'Gabinete';
-        if (!agendadosPorLocal[loc]) agendadosPorLocal[loc] = [];
-        agendadosPorLocal[loc].push(ag);
-      });
-
       const isSelecionado = selectedDate === dateString;
       const isHoje = dateString === todayStr;
 
@@ -163,27 +157,22 @@ const Calendar = ({ onDaySelect, onMonthChange, agendamentos = [], mapaAgendas }
             {d}
           </span>
 
+          {/* Nome da cliente primeiro — é o que a profissional reconhece de
+              relance; o local (importante para quem atende ao domicílio)
+              fica só na lista do dia selecionado, não repetido em cada célula. */}
           <div className="mt-0.5 flex w-full flex-col gap-0.5 px-1">
-            {Object.keys(agendadosPorLocal).map((localNome, lIdx) => (
-              <div key={lIdx}>
-                <span className="flex items-center justify-center gap-0.5 text-center text-[8px] font-bold uppercase text-primary">
-                  <MapPin size={7} />
-                  {formatarNomeCurto(localNome)}
-                </span>
-                {agendadosPorLocal[localNome].map((ag, cIdx) => (
-                  <span
-                    key={cIdx}
-                    className="block text-center text-[9px] font-semibold leading-tight text-foreground/80"
-                    style={
-                      ag.agenda_id && mapaAgendas && mapaAgendas.size > 1
-                        ? { color: mapaAgendas.get(ag.agenda_id)?.cor }
-                        : undefined
-                    }
-                  >
-                    {formatarNomeCurto(ag.cliente).toLowerCase()}
-                  </span>
-                ))}
-              </div>
+            {agendamentosDoDia.map((ag, cIdx) => (
+              <span
+                key={cIdx}
+                className="block text-center text-[9px] font-semibold leading-tight text-foreground/80"
+                style={
+                  ag.agenda_id && mapaAgendas && mapaAgendas.size > 1
+                    ? { color: mapaAgendas.get(ag.agenda_id)?.cor }
+                    : undefined
+                }
+              >
+                {formatarNomeCurto(ag.cliente).toLowerCase()}
+              </span>
             ))}
           </div>
         </button>

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2, UserX } from 'lucide-react';
+import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2, UserX, MapPin, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { parseMoeda, formatarHora } from '@/lib/utils';
+import { parseMoeda, formatarHora, atendeDomicilio, linkGoogleMaps, cn } from '@/lib/utils';
 import { supabase } from '../supabase';
 import { confirmar } from './ConfirmDialog';
 import { usePlano, FUNCIONALIDADES_PRO_ATIVAS } from '@/hooks/usePlano';
@@ -28,6 +28,8 @@ interface Appointment {
   usuario_id?: string;
   agenda_id?: string;
   faltou?: boolean;
+  ponto_atendimento?: string;
+  pontoAtendimento?: string;
 }
 
 interface AgendaInfo {
@@ -35,6 +37,7 @@ interface AgendaInfo {
   nome: string;
   cor: string;
   principal: boolean;
+  tipo_atendimento?: 'estudio' | 'domicilio' | 'ambos';
 }
 
 interface ListaAgendamentosProps {
@@ -58,6 +61,17 @@ const ListaAgendamentos = ({
   const { isPro } = usePlano();
   const [modalProAberto, setModalProAberto] = useState(false);
   const [pagamentoAberto, setPagamentoAberto] = useState(false);
+  // Moradas truncadas com "title" não aparecem ao toque no telemóvel — ao
+  // clicar no nome da cliente, mostra a morada completa (cidade ou rua).
+  const [moradasAbertas, setMoradasAbertas] = useState<Set<string | number>>(new Set());
+  const alternarMorada = (id: string | number) => {
+    setMoradasAbertas((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
+      return novo;
+    });
+  };
   const [agendamentoParaPagar, setAgendamentoParaPagar] = useState<AgendamentoParaPagar | null>(null);
 
   const abrirPagamento = (appt: Appointment) => {
@@ -223,21 +237,58 @@ const ListaAgendamentos = ({
                           style={{ backgroundColor: mapaAgendas.get(appt.agenda_id)?.cor ?? '#999' }}
                         />
                       )}
-                      <strong
-                        className="truncate text-[13px] text-foreground"
-                        style={
+                      {(() => {
+                        const local = appt.ponto_atendimento || appt.pontoAtendimento;
+                        const corAgenda =
                           appt.agenda_id && mapaAgendas && mapaAgendas.size > 1
-                            ? { color: mapaAgendas.get(appt.agenda_id)?.cor }
-                            : undefined
-                        }
-                      >
-                        {cliente}
-                      </strong>
+                            ? mapaAgendas.get(appt.agenda_id)?.cor
+                            : undefined;
+                        return local ? (
+                          <button
+                            type="button"
+                            onClick={() => appt.id && alternarMorada(appt.id)}
+                            className="truncate text-left text-[13px] font-bold text-foreground hover:underline"
+                            style={corAgenda ? { color: corAgenda } : undefined}
+                            title="Ver morada"
+                          >
+                            {cliente}
+                          </button>
+                        ) : (
+                          <strong className="truncate text-[13px] text-foreground" style={corAgenda ? { color: corAgenda } : undefined}>
+                            {cliente}
+                          </strong>
+                        );
+                      })()}
                     </div>
                     {procedimento && (
                       <span className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
                         <Sparkles size={10} className="shrink-0 text-primary" />
                         <span className="truncate">{procedimento}</span>
+                      </span>
+                    )}
+                    {(appt.ponto_atendimento || appt.pontoAtendimento) && (
+                      <span
+                        className={cn(
+                          'flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground/80',
+                          appt.id && moradasAbertas.has(appt.id) ? 'whitespace-normal' : ''
+                        )}
+                      >
+                        <MapPin size={10} className="mt-0.5 shrink-0" />
+                        <span className={appt.id && moradasAbertas.has(appt.id) ? '' : 'truncate'}>
+                          {appt.ponto_atendimento || appt.pontoAtendimento}
+                        </span>
+                        {appt.agenda_id &&
+                          atendeDomicilio(mapaAgendas?.get(appt.agenda_id)?.tipo_atendimento) && (
+                            <a
+                              href={linkGoogleMaps((appt.ponto_atendimento || appt.pontoAtendimento)!)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex shrink-0 items-center gap-0.5 font-semibold text-primary hover:underline"
+                            >
+                              Mapa <ExternalLink size={9} />
+                            </a>
+                          )}
                       </span>
                     )}
                   </div>
