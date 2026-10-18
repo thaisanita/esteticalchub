@@ -22,16 +22,13 @@ import {
   ShieldCheck,
   Users,
   Megaphone,
-  Lock,
 } from 'lucide-react';
 import { textosConfig, obterIdiomaAtual, type Idioma } from '@/lib/i18n';
 import ConectarWhatsAppBot from '@/components/ConectarWhatsAppBot';
 import PaginaPublicaConfig from '@/components/PaginaPublicaConfig';
 import TrafegoPagoConfig from '@/components/TrafegoPagoConfig';
 import DadosEConta from '@/components/DadosEConta';
-import { usePlano, LEMBRETES_WHATSAPP_ATIVOS, type ProFeature } from '@/hooks/usePlano';
-import ModalFuncaoPro from '@/components/ModalFuncaoPro';
-import SeloPro from '@/components/SeloPro';
+import { LEMBRETES_WHATSAPP_ATIVOS } from '@/hooks/usePlano';
 
 import { CHAVE_BANNER_INSTALAR_FECHADO } from '@/components/BannerInstalarApp';
 import { URL_PUBLICO } from '@/lib/empresa';
@@ -45,8 +42,6 @@ interface Usuario {
 
 export default function Config() {
   const navigate = useNavigate();
-  const { isPro } = usePlano();
-  const [modalProAberto, setModalProAberto] = useState<ProFeature | null>(null);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [idioma, setIdioma] = useState<Idioma>(obterIdiomaAtual());
 
@@ -132,23 +127,14 @@ export default function Config() {
               <Phone size={18} className="text-primary" />
             </div>
             <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <div className="text-sm font-bold text-foreground">WhatsApp</div>
-                {!isPro && <SeloPro />}
-              </div>
+              <div className="text-sm font-bold text-foreground">WhatsApp</div>
               <div className="mt-0.5 text-xs text-muted-foreground">
                 Liga o teu WhatsApp para enviar lembretes automáticos às clientes.
               </div>
             </div>
           </div>
 
-          {isPro ? (
-            <ConectarWhatsAppBot />
-          ) : (
-            <Button size="sm" variant="outline" onClick={() => setModalProAberto('lembretes_whatsapp')} className="gap-1.5">
-              <Lock size={14} /> Disponível no plano Pro
-            </Button>
-          )}
+          <ConectarWhatsAppBot />
         </div>
       )}
 
@@ -307,14 +293,6 @@ export default function Config() {
           {t.btnVoltar}
         </Button>
       </div>
-
-      {modalProAberto && (
-        <ModalFuncaoPro
-          open={!!modalProAberto}
-          onOpenChange={(open) => !open && setModalProAberto(null)}
-          funcao={modalProAberto}
-        />
-      )}
     </div>
   );
 }

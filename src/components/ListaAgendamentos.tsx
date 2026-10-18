@@ -5,9 +5,7 @@ import { Button } from '@/components/ui/button';
 import { parseMoeda, formatarHora, atendeDomicilio, linkGoogleMaps, cn } from '@/lib/utils';
 import { supabase } from '../supabase';
 import { confirmar } from './ConfirmDialog';
-import { usePlano, LEMBRETES_WHATSAPP_ATIVOS } from '@/hooks/usePlano';
-import ModalFuncaoPro from './ModalFuncaoPro';
-import SeloPro from './SeloPro';
+import { LEMBRETES_WHATSAPP_ATIVOS } from '@/hooks/usePlano';
 import RegistoPagamentoRapido, { type AgendamentoParaPagar } from './RegistoPagamentoRapido';
 
 interface Appointment {
@@ -58,8 +56,6 @@ const ListaAgendamentos = ({
   onPago,
   mapaAgendas,
 }: ListaAgendamentosProps) => {
-  const { isPro } = usePlano();
-  const [modalProAberto, setModalProAberto] = useState(false);
   const [pagamentoAberto, setPagamentoAberto] = useState(false);
   // Moradas truncadas com "title" não aparecem ao toque no telemóvel — ao
   // clicar no nome da cliente, mostra a morada completa (cidade ou rua).
@@ -346,15 +342,14 @@ const ListaAgendamentos = ({
 
                 {LEMBRETES_WHATSAPP_ATIVOS && (
                   <Button
-                    onClick={() => (isPro ? enviarLembreteWhatsApp(appt) : setModalProAberto(true))}
+                    onClick={() => enviarLembreteWhatsApp(appt)}
                     size="sm"
                     variant="outline"
                     className="h-7 gap-1 border-emerald-500/30 px-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
-                    title={isPro ? 'Enviar lembrete pelo WhatsApp' : 'Disponível no plano Pro'}
+                    title="Enviar lembrete pelo WhatsApp"
                   >
                     <MessageCircle size={12} />
                     Lembrete
-                    {!isPro && <SeloPro />}
                   </Button>
                 )}
 
@@ -393,8 +388,6 @@ const ListaAgendamentos = ({
         agendamento={agendamentoParaPagar}
         onSuccess={() => onPago?.()}
       />
-
-      <ModalFuncaoPro open={modalProAberto} onOpenChange={setModalProAberto} funcao="lembretes_whatsapp" />
     </div>
   );
 };

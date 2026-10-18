@@ -5,10 +5,8 @@ import { supabase } from '../supabase';
 import { getErrorMessage, parseMoeda, atendeDomicilio } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { usePlano, LEMBRETES_WHATSAPP_ATIVOS } from '@/hooks/usePlano';
-import ModalFuncaoPro from '@/components/ModalFuncaoPro';
-import SeloPro from '@/components/SeloPro';
-import { 
+import { LEMBRETES_WHATSAPP_ATIVOS } from '@/hooks/usePlano';
+import {
   Calendar, 
   Pencil, 
   User, 
@@ -43,8 +41,6 @@ interface NovoAgendamentoProps {
 const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { isPro } = usePlano();
-  const [modalProAberto, setModalProAberto] = useState(false);
 
   const [dataAgendamento, setDataAgendamento] = useState(
     searchParams.get('date') || new Date().toISOString().split('T')[0]
@@ -948,7 +944,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
                 <button
                   type="button"
                   disabled={!telefoneCliente.trim()}
-                  onClick={() => (isPro ? setCanalNotificacao('whatsapp') : setModalProAberto(true))}
+                  onClick={() => setCanalNotificacao('whatsapp')}
                   className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                     canalNotificacao === 'whatsapp'
                       ? 'border-primary bg-primary/10 text-primary'
@@ -956,7 +952,6 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
                   }`}
                 >
                   <Phone size={14} /> WhatsApp
-                  {!isPro && <SeloPro className="ml-0.5" />}
                 </button>
               )}
               <button
@@ -1027,8 +1022,6 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
           </Button>
         </div>
       </form>
-
-      <ModalFuncaoPro open={modalProAberto} onOpenChange={setModalProAberto} funcao="lembretes_whatsapp" />
     </div>
   );
 };
