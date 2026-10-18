@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { parseMoeda, formatarHora, atendeDomicilio, linkGoogleMaps, cn } from '@/lib/utils';
 import { supabase } from '../supabase';
 import { confirmar } from './ConfirmDialog';
-import { usePlano, FUNCIONALIDADES_PRO_ATIVAS } from '@/hooks/usePlano';
+import { usePlano, LEMBRETES_WHATSAPP_ATIVOS } from '@/hooks/usePlano';
 import ModalFuncaoPro from './ModalFuncaoPro';
 import SeloPro from './SeloPro';
 import RegistoPagamentoRapido, { type AgendamentoParaPagar } from './RegistoPagamentoRapido';
@@ -344,7 +344,7 @@ const ListaAgendamentos = ({
                   )
                 )}
 
-                {FUNCIONALIDADES_PRO_ATIVAS && (
+                {LEMBRETES_WHATSAPP_ATIVOS && (
                   <Button
                     onClick={() => (isPro ? enviarLembreteWhatsApp(appt) : setModalProAberto(true))}
                     size="sm"

@@ -12,13 +12,21 @@ export const PRO_FEATURES = ['assistente_ia', 'lembretes_whatsapp'] as const;
 export type ProFeature = (typeof PRO_FEATURES)[number];
 
 /**
- * Interruptor geral: enquanto a configuração do Stripe/WhatsApp não estiver
- * pronta, desliga aqui o Assistente IA, os lembretes automáticos por
- * WhatsApp e a página /planos — ficam completamente escondidos de quem usa
- * a app, mas o código continua todo cá para retomares a configuração depois.
- * Para reativar, troca para `true`.
+ * Interruptor geral: enquanto a configuração do Stripe não estiver pronta
+ * (os price_id em src/config/stripe.ts ainda são placeholders), desliga aqui
+ * o Assistente IA e a página /planos — ficam completamente escondidos de
+ * quem usa a app, mas o código continua todo cá. Para reativar, troca para
+ * `true` (só depois de preencheres os price_id reais do Stripe).
  */
 export const FUNCIONALIDADES_PRO_ATIVAS = false;
+
+/**
+ * Interruptor só dos lembretes automáticos por WhatsApp (ligar o robô em
+ * Configurações, opção "WhatsApp" em Novo Agendamento, botão "Lembrete" nos
+ * cards) — independente do interruptor acima, porque esta parte já está
+ * pronta mesmo com o Stripe por configurar.
+ */
+export const LEMBRETES_WHATSAPP_ATIVOS = true;
 
 /**
  * Plano atual da profissional logada. Único sítio que lê profiles.plan —

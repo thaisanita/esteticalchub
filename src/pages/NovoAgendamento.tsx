@@ -5,7 +5,7 @@ import { supabase } from '../supabase';
 import { getErrorMessage, parseMoeda, atendeDomicilio } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { usePlano, FUNCIONALIDADES_PRO_ATIVAS } from '@/hooks/usePlano';
+import { usePlano, LEMBRETES_WHATSAPP_ATIVOS } from '@/hooks/usePlano';
 import ModalFuncaoPro from '@/components/ModalFuncaoPro';
 import SeloPro from '@/components/SeloPro';
 import { 
@@ -944,7 +944,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
           <div className="space-y-1.5">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Receber por</p>
             <div className="flex gap-2">
-              {FUNCIONALIDADES_PRO_ATIVAS && (
+              {LEMBRETES_WHATSAPP_ATIVOS && (
                 <button
                   type="button"
                   disabled={!telefoneCliente.trim()}
@@ -972,7 +972,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
                 <Mail size={14} /> Email
               </button>
             </div>
-            {FUNCIONALIDADES_PRO_ATIVAS
+            {LEMBRETES_WHATSAPP_ATIVOS
               ? !telefoneCliente.trim() && !emailCliente.trim() && (
                   <p className="text-[11px] text-amber-500">Preenche o WhatsApp ou o email da cliente acima para poderes enviar lembretes.</p>
                 )

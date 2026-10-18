@@ -29,7 +29,7 @@ import ConectarWhatsAppBot from '@/components/ConectarWhatsAppBot';
 import PaginaPublicaConfig from '@/components/PaginaPublicaConfig';
 import TrafegoPagoConfig from '@/components/TrafegoPagoConfig';
 import DadosEConta from '@/components/DadosEConta';
-import { usePlano, FUNCIONALIDADES_PRO_ATIVAS, type ProFeature } from '@/hooks/usePlano';
+import { usePlano, LEMBRETES_WHATSAPP_ATIVOS, type ProFeature } from '@/hooks/usePlano';
 import ModalFuncaoPro from '@/components/ModalFuncaoPro';
 import SeloPro from '@/components/SeloPro';
 
@@ -125,7 +125,7 @@ export default function Config() {
       )}
 
       {/* Bloco WhatsApp — conectar o robô automático (Pro) */}
-      {FUNCIONALIDADES_PRO_ATIVAS && (
+      {LEMBRETES_WHATSAPP_ATIVOS && (
         <div className="mb-3 rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
           <div className="flex items-start gap-3.5">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 mt-0.5">
