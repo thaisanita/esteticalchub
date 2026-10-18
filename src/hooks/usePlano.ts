@@ -23,10 +23,12 @@ export const FUNCIONALIDADES_PRO_ATIVAS = false;
 /**
  * Interruptor só dos lembretes automáticos por WhatsApp (ligar o robô em
  * Configurações, opção "WhatsApp" em Novo Agendamento, botão "Lembrete" nos
- * cards) — independente do interruptor acima, porque esta parte já está
- * pronta mesmo com o Stripe por configurar.
+ * cards) — independente do interruptor acima. Desligado de novo: o robô no
+ * Railway (whatsapp-web.js) acabou o teste grátis e está offline, por isso
+ * o botão "Conectar WhatsApp" dava "Failed to fetch". Reativar só depois de
+ * resolver o Railway (pôr cartão) ou migrar para a API oficial da Meta.
  */
-export const LEMBRETES_WHATSAPP_ATIVOS = true;
+export const LEMBRETES_WHATSAPP_ATIVOS = false;
 
 /**
  * Plano atual da profissional logada. Único sítio que lê profiles.plan —
