@@ -375,7 +375,27 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     return { mensagem, assunto };
   };
 
-  const criarFilaNotificacoes = async (agendamentoId: string, userId: string, clienteIdDaCliente: string | null) => {
+  // Email único, disparado assim que a marcação é criada (nunca nas
+  // edições — ver "!idParaEditar" em criarFilaNotificacoes).
+  const construirConfirmacaoAgendamento = (linkConfirmacao: string, nomeNegocio: string) => {
+    const primeiroNome = (nomeCliente || cliente).split(' ')[0] || 'tudo bem';
+    const dataFmt = new Date(`${dataAgendamento}T00:00:00`).toLocaleDateString('pt-BR');
+    const local = pontoAtendimento.trim() ? ` Local: ${pontoAtendimento.trim()}.` : '';
+    const comQuem = nomeNegocio ? ` com ${nomeNegocio}` : '';
+    const confirmacao = linkConfirmacao ? `\n\nConfirmar presença: ${linkConfirmacao}` : '';
+    const mensagem =
+      `Olá, ${primeiroNome}! O seu agendamento${comQuem} ficou marcado: ` +
+      `${procedimento.trim() || 'atendimento'}, dia ${dataFmt} às ${horaInicio}.${local}${confirmacao}`;
+    const assunto = `Agendamento marcado — ${procedimento.trim() || 'seu atendimento'} em ${dataFmt}`;
+    return { mensagem, assunto };
+  };
+
+  const criarFilaNotificacoes = async (
+    agendamentoId: string,
+    userId: string,
+    clienteIdDaCliente: string | null,
+    confirmacaoToken: string | null
+  ) => {
     // WhatsApp: junta ao texto a ligação para a cliente deixar de receber lembretes
     // (nos emails, a Edge Function já acrescenta essa ligação sozinha).
     let rodape = '';
@@ -452,6 +472,44 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
         toast.error(`Erro ao agendar notificação: ${error.message}`);
       }
     }
+
+    // Confirmação por email: só na criação (nunca nas edições), só se
+    // houver email da cliente. Insert próprio e isolado do bloco dos
+    // lembretes acima — uma falha aqui não pode impedir os lembretes de
+    // serem gravados, e a marcação em si já foi criada antes desta função
+    // ser chamada, por isso um erro aqui nunca impede o agendamento de
+    // ficar guardado.
+    if (!idParaEditar && emailCliente.trim()) {
+      const linkConfirmacao = confirmacaoToken
+        ? `https://esteticalchub.pt/confirmacao/${confirmacaoToken}`
+        : '';
+
+      // Se esta consulta falhar, "data" fica undefined e nomeNegocio vazio —
+      // o email sai na mesma, só sem o "com {negócio}" no texto.
+      const { data: pagina } = await supabase
+        .from('paginas_publicas')
+        .select('nome_negocio')
+        .eq('usuario_id', userId)
+        .maybeSingle();
+      const nomeNegocio = pagina?.nome_negocio?.trim() || '';
+
+      const { error: erroConfirmacao } = await supabase.from('fila_notificacoes').insert([{
+        agendamento_id: agendamentoId,
+        usuario_id: userId,
+        tipo_destino: 'cliente',
+        tipo: 'confirmacao_agendamento',
+        canal: 'email',
+        antecedencia: '1_hora', // reaproveitado: ignorado pelo processar-fila quando mensagem/assunto já vêm prontos
+        data_disparo: new Date().toISOString(),
+        status: 'pendente',
+        destino: emailCliente.trim(),
+        ...construirConfirmacaoAgendamento(linkConfirmacao, nomeNegocio),
+      }]);
+
+      if (erroConfirmacao) {
+        console.error('Erro ao agendar email de confirmação:', erroConfirmacao.message);
+      }
+    }
   };
 
   const manipularSalvar = async (e: React.FormEvent) => {
@@ -523,6 +581,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
       };
 
       let agendamentoId = idParaEditar;
+      let confirmacaoToken: string | null = null;
 
       if (idParaEditar) {
         const { error } = await supabase
@@ -535,15 +594,16 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
         const { data, error } = await supabase
           .from('agendamentos')
           .insert([dadosParaEnviar])
-          .select('id')
+          .select('id, confirmacao_token')
           .single();
 
         if (error) throw error;
         agendamentoId = data.id;
+        confirmacaoToken = data?.confirmacao_token ?? null;
       }
 
       if (agendamentoId) {
-        await criarFilaNotificacoes(agendamentoId, user.id, clienteIdFinal);
+        await criarFilaNotificacoes(agendamentoId, user.id, clienteIdFinal, confirmacaoToken);
       }
 
       salvarHistorico('hist_clientes', cliente);
