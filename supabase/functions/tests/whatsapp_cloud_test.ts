@@ -1,6 +1,8 @@
 import { assert, assertEquals, assertThrows } from "./assert.ts";
 import {
+  assinaturaVersao,
   chaveIdempotencia,
+  hashTelefone,
   classificarResposta,
   ConfigWhatsappCloud,
   enviarTemplate,
@@ -210,14 +212,32 @@ Deno.test("classificação: corpo de erro da Meta em 2xx não é aceite", () => 
   assertEquals(classificarResposta(200, { error: { code: 1 } }).resultado, "incerto");
 });
 
-Deno.test("chave de idempotência muda com remarcação e com o telefone", async () => {
+Deno.test("chave de idempotência: por marcação + DATA (hora e telefone não contam)", async () => {
   const base = {
     agendamentoId: PEDIDO.agendamentoId, tipo: "lembrete", antecedencia: "1_dia",
-    versaoMarcacao: "2026-11-12T15:00", e164: "+351912345678", template: "lembrete_marcacao_24h", idioma: "pt_PT",
+    data: "2026-11-12", template: "lembrete_marcacao_24h", idioma: "pt_PT",
   };
   const k1 = await chaveIdempotencia(base);
   assertEquals(k1, await chaveIdempotencia({ ...base }));
-  assert(k1 !== await chaveIdempotencia({ ...base, versaoMarcacao: "2026-11-12T16:00" }));
-  assert(k1 !== await chaveIdempotencia({ ...base, e164: "+351912345679" }));
+  assert(k1 !== await chaveIdempotencia({ ...base, data: "2026-11-13" }));
+  assert(k1 !== await chaveIdempotencia({ ...base, agendamentoId: "33333333-3333-4333-8333-333333333333" }));
   assertEquals(k1.length, 64);
+});
+
+Deno.test("assinatura da versão muda com hora e telefone", async () => {
+  const b = { hora: "15:00", e164: "+351912345678", template: "t", idioma: "pt_PT" };
+  const a1 = await assinaturaVersao(b);
+  assert(a1 !== await assinaturaVersao({ ...b, hora: "16:00" }));
+  assert(a1 !== await assinaturaVersao({ ...b, e164: "+351912345679" }));
+});
+
+Deno.test("hash do telefone: HMAC com pepper, determinístico, exige pepper forte", async () => {
+  const pepper = "pepper-ficticio-de-teste-com-32-caracteres!";
+  const h1 = await hashTelefone("+351912345678", pepper);
+  assertEquals(h1, await hashTelefone("+351912345678", pepper));
+  assert(/^[0-9a-f]{64}$/.test(h1));
+  assert(h1 !== await hashTelefone("+351912345678", pepper + "x"));
+  let erro = false;
+  try { await hashTelefone("+351912345678", "curto"); } catch (e) { erro = e instanceof ErroConfiguracao; }
+  assert(erro);
 });

@@ -94,3 +94,66 @@ export function extrairEstados(payload: unknown): EventoEstado[] {
   }
   return eventos;
 }
+
+// ---------------------------------------------------------------------------
+// Opt-out por palavra-chave (número partilhado => bloqueio global)
+// ---------------------------------------------------------------------------
+
+/**
+ * Só pedidos INEQUÍVOCOS: a mensagem inteira, depois de normalizada, tem de ser
+ * exatamente uma destas frases. "Pode parar de me enviar?" ou "paro amanhã" NÃO
+ * contam (ficam para revisão humana numa fase futura).
+ */
+export const PALAVRAS_PARAGEM = new Set([
+  "PARAR",
+  "PARA",
+  "STOP",
+  "PARAR LEMBRETES",
+  "CANCELAR LEMBRETES",
+  "NAO QUERO RECEBER",
+  "NAO QUERO RECEBER MAIS",
+  "NAO QUERO MAIS LEMBRETES",
+  "UNSUBSCRIBE",
+]);
+
+/** Maiúsculas, sem acentos, sem pontuação/emoji, espaços simples. */
+export function normalizarTextoParagem(texto: string): string {
+  return String(texto ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function ePedidoDeParagem(texto: string): string | null {
+  const n = normalizarTextoParagem(texto);
+  return n.length <= 40 && PALAVRAS_PARAGEM.has(n) ? n : null;
+}
+
+export type PedidoParagem = { wamid: string; e164: string; palavra: string };
+
+/** Extrai pedidos de paragem das mensagens RECEBIDAS (texto ou botão de resposta rápida). */
+export function extrairPedidosParagem(payload: unknown): PedidoParagem[] {
+  const pedidos: PedidoParagem[] = [];
+  const p = payload as { object?: string; entry?: unknown[] } | null;
+  if (!p || p.object !== "whatsapp_business_account" || !Array.isArray(p.entry)) return pedidos;
+  for (const entry of p.entry) {
+    const changes = (entry as { changes?: unknown[] })?.changes;
+    if (!Array.isArray(changes)) continue;
+    for (const ch of changes) {
+      const v = ch as { field?: string; value?: { messages?: unknown[] } };
+      if (v?.field !== "messages" || !Array.isArray(v.value?.messages)) continue;
+      for (const m of v.value!.messages!) {
+        const msg = m as { id?: unknown; from?: unknown; type?: unknown; text?: { body?: unknown }; button?: { text?: unknown } };
+        if (typeof msg.id !== "string" || typeof msg.from !== "string" || !/^\d{8,15}$/.test(msg.from)) continue;
+        const texto = msg.type === "text" ? msg.text?.body : msg.type === "button" ? msg.button?.text : undefined;
+        if (typeof texto !== "string") continue;
+        const palavra = ePedidoDeParagem(texto);
+        if (palavra) pedidos.push({ wamid: msg.id, e164: `+${msg.from}`, palavra });
+      }
+    }
+  }
+  return pedidos;
+}

@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { getErrorMessage } from '@/lib/utils';
+import { exportarDadosWhatsappCloud } from '@/lib/rgpdWhatsappCloud';
 import { Download, Trash2, Loader2, AlertTriangle } from 'lucide-react';
 
 // Nome (slug) com que a função foi publicada no Supabase. O código dela está em
@@ -59,6 +60,9 @@ export default function DadosEConta() {
         const { data, error } = await supabase.from(tabela).select('*');
         if (!error && data) dados[tabela] = data;
       }
+      // WhatsApp Cloud API: desligado por omissão (ver src/lib/rgpdWhatsappCloud.ts).
+      const dadosWhatsappCloud = await exportarDadosWhatsappCloud(supabase);
+      if (dadosWhatsappCloud) dados.whatsapp_cloud = dadosWhatsappCloud;
 
       const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);

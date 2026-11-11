@@ -40,3 +40,28 @@ Deno.test("15. a migration nova não redefine reivindicar_notificacoes nem o cro
   assertEquals(/cron\.(schedule|unschedule|alter_job)/i.test(semComentarios), false);
   assertEquals(/drop\s+(table|column|policy\s+if\s+exists\s+"fila_notificacoes)/i.test(semComentarios), false);
 });
+
+Deno.test("5. RGPD: exportação Cloud API preparada mas DESLIGADA (comportamento atual igual)", async () => {
+  const lib = await Deno.readTextFile(new URL("src/lib/rgpdWhatsappCloud.ts", RAIZ));
+  assertEquals(/export const EXPORTACAO_WHATSAPP_CLOUD_ATIVA = false;/.test(lib), true);
+  const comp = await Deno.readTextFile(new URL("src/components/DadosEConta.tsx", RAIZ));
+  // a lista de tabelas exportadas hoje continua igual
+  assertEquals(/'fila_notificacoes',\n {2}'paginas_publicas',\n {2}'configuracoes_usuario',\n\];/.test(comp), true);
+});
+
+Deno.test("7. cron: o SQL cria o job e desativa-o na MESMA transação; não toca no cron atual", async () => {
+  const sql = await Deno.readTextFile(new URL("supabase/cron/processar_whatsapp_cloud.sql", RAIZ));
+  const ativo = sql.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+  assertEquals(/cron\.alter_job\(job_id := v_job, active := false\)/.test(ativo), true);
+  assertEquals(/active := true/.test(ativo), false);
+  assertEquals(/processar-fila-notificacoes|super-action/.test(ativo), false);
+  assertEquals(/x-cron-secret', \(select decrypted_secret from vault\.decrypted_secrets/.test(ativo), true);
+});
+
+Deno.test("6. super-action e processar-fila não são referidos pelo worker novo", async () => {
+  for (const f of ["processar-whatsapp-cloud/index.ts", "processar-whatsapp-cloud/handler.ts"]) {
+    const s = (await Deno.readTextFile(new URL(`supabase/functions/${f}`, RAIZ)))
+      .split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
+    assertEquals(/reivindicar_notificacoes|super-action|processar-fila["/]/.test(s), false, f);
+  }
+});

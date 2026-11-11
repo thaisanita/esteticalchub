@@ -82,3 +82,8 @@ create policy fila_del on public.fila_notificacoes for delete using (usuario_id 
 
 grant usage on schema public to anon, authenticated, service_role;
 grant select, insert, update, delete on all tables in schema public to authenticated, service_role;
+
+-- Como no Supabase: tabelas criadas depois também ficam acessíveis a estes papéis
+-- (a proteção real é a RLS de cada tabela).
+alter default privileges in schema public grant select, insert, update, delete on tables to authenticated, service_role;
+alter default privileges in schema public grant usage, select on sequences to authenticated, service_role;

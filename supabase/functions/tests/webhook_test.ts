@@ -1,6 +1,6 @@
 import { assert, assertEquals } from "./assert.ts";
 import { criarHandlerWebhook } from "../whatsapp-webhook/handler.ts";
-import { extrairEstados, hmacSha256Hex } from "../_shared/webhook-meta.ts";
+import { ePedidoDeParagem, extrairEstados, extrairPedidosParagem, hmacSha256Hex } from "../_shared/webhook-meta.ts";
 import type { EventoEstado } from "../_shared/webhook-meta.ts";
 
 const SEGREDO = "segredo-ficticio-de-teste";
@@ -28,10 +28,17 @@ async function pedidoAssinado(corpo: string, segredo = SEGREDO) {
 function criar(registar?: (e: EventoEstado) => Promise<string>) {
   const gravados: EventoEstado[] = [];
   const vistos = new Set<string>();
+  const bloqueios = new Map<string, string>();
   const handler = criarHandlerWebhook({
     appSecret: SEGREDO,
     verifyToken: VERIFY,
     log: () => {},
+    hashTelefone: (e164) => Promise.resolve(`hash(${e164.length})`),
+    registarOptout: (h, palavra) => {
+      if (bloqueios.has(h)) return Promise.resolve("repetido");
+      bloqueios.set(h, palavra);
+      return Promise.resolve("bloqueado");
+    },
     registarEvento: registar ?? ((e) => {
       const k = `${e.wamid}|${e.estado}`;
       if (vistos.has(k)) return Promise.resolve("repetido");
@@ -40,7 +47,7 @@ function criar(registar?: (e: EventoEstado) => Promise<string>) {
       return Promise.resolve("aplicado");
     }),
   });
-  return { handler, gravados };
+  return { handler, gravados, bloqueios };
 }
 
 Deno.test("GET de verificação: challenge só com token correto", async () => {
@@ -92,9 +99,11 @@ Deno.test("10. webhook com assinatura inválida, ausente ou de outro segredo é 
 });
 
 Deno.test("10. sem WA_APP_SECRET o webhook nunca aceita eventos", async () => {
-  const handler = criarHandlerWebhook({ appSecret: "", verifyToken: VERIFY, registarEvento: () => Promise.resolve("x"), log: () => {} });
-  const r = await handler(await pedidoAssinado("{}"));
-  assertEquals(r.status, 503);
+  const base = { verifyToken: VERIFY, registarEvento: () => Promise.resolve("x"), registarOptout: () => Promise.resolve("x"), log: () => {} };
+  const semSegredo = criarHandlerWebhook({ ...base, appSecret: "", hashTelefone: () => Promise.resolve("h") });
+  assertEquals((await semSegredo(await pedidoAssinado("{}"))).status, 503);
+  const semPepper = criarHandlerWebhook({ ...base, appSecret: SEGREDO, hashTelefone: null });
+  assertEquals((await semPepper(await pedidoAssinado("{}"))).status, 503);
 });
 
 Deno.test("11. eventos duplicados não duplicam registos", async () => {
@@ -134,4 +143,53 @@ Deno.test("JSON inválido com assinatura válida => 400; métodos errados => 405
   const { handler } = criar();
   assertEquals((await handler(await pedidoAssinado("{nao json"))).status, 400);
   assertEquals((await handler(new Request("https://x/", { method: "PUT" }))).status, 405);
+});
+
+// --- 2. Opt-out ------------------------------------------------------------------
+
+function recebida(texto: string, from = "351912345678", tipo: "text" | "button" = "text", id = "wamid.IN1") {
+  return {
+    object: "whatsapp_business_account",
+    entry: [{ changes: [{ field: "messages", value: {
+      messages: [tipo === "text" ? { from, id, type: "text", text: { body: texto } } : { from, id, type: "button", button: { text: texto } }],
+    } }] }],
+  };
+}
+
+Deno.test("2. palavras inequívocas reconhecidas, com acentos/maiúsculas/pontuação", () => {
+  for (const t of ["PARAR", "parar", " Parar! ", "STOP", "Parar lembretes", "Não quero receber mais", "não quero receber.", "🛑 PARAR 🛑", "Para"]) {
+    assert(ePedidoDeParagem(t) !== null, t);
+  }
+});
+
+Deno.test("2. frases ambíguas NÃO bloqueiam", () => {
+  for (const t of ["Pode parar de me enviar?", "parar o carro", "Obrigada, até amanhã", "não posso ir", "stop motion", "PARAR PARAR PARAR já agora tenho uma dúvida", "paro amanhã"]) {
+    assertEquals(ePedidoDeParagem(t), null, t);
+  }
+});
+
+Deno.test("2. webhook regista bloqueio global por hash (nunca o número) e é idempotente", async () => {
+  const { handler, bloqueios } = criar();
+  const corpo = JSON.stringify(recebida("PARAR"));
+  assertEquals((await handler(await pedidoAssinado(corpo))).status, 200);
+  assertEquals((await handler(await pedidoAssinado(corpo))).status, 200);
+  assertEquals(bloqueios.size, 1);
+  assert(![...bloqueios.keys()][0].includes("351912345678"));
+});
+
+Deno.test("2. botão de resposta rápida 'Parar lembretes' também bloqueia", () => {
+  assertEquals(extrairPedidosParagem(recebida("Parar lembretes", "351912345678", "button")),
+    [{ wamid: "wamid.IN1", e164: "+351912345678", palavra: "PARAR LEMBRETES" }]);
+});
+
+Deno.test("2. mensagem normal ou remetente inválido não bloqueia", () => {
+  assertEquals(extrairPedidosParagem(recebida("Olá, confirmo!")), []);
+  assertEquals(extrairPedidosParagem(recebida("PARAR", "abc")), []);
+});
+
+Deno.test("2. opt-out com assinatura inválida é ignorado", async () => {
+  const { handler, bloqueios } = criar();
+  const r = await handler(new Request("https://x/", { method: "POST", body: JSON.stringify(recebida("PARAR")) }));
+  assertEquals(r.status, 401);
+  assertEquals(bloqueios.size, 0);
 });

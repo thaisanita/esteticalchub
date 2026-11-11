@@ -289,20 +289,41 @@ export function parametrosLembrete24h(d: DadosLembrete): string[] {
   return [primeiroNome, limparParametro(d.profissionalNome), dataFmt, hora, limparParametro(d.procedimento)];
 }
 
-/** Chave de idempotência: marcação + versão relevante (data/hora) + destino + template. */
-export async function chaveIdempotencia(partes: {
+// ---------------------------------------------------------------------------
+// Idempotência e identificação do destino sem guardar o número
+// ---------------------------------------------------------------------------
+
+async function sha256Hex(texto: string): Promise<string> {
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto));
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Chave de idempotência = marcação + tipo + antecedência + DATA da marcação + template.
+ *   * mesma data (mesmo que mude a hora ou o telefone) => no máximo 1 lembrete aceite;
+ *   * remarcação para OUTRO dia => chave nova => novo lembrete;
+ *   * voltar a uma data já lembrada => mesma chave => bloqueado.
+ */
+export function chaveIdempotencia(partes: {
   agendamentoId: string;
   tipo: string;
   antecedencia: string;
-  versaoMarcacao: string;
-  e164: string;
+  data: string;
   template: string;
   idioma: string;
 }): Promise<string> {
-  const texto = [
-    "v1", partes.agendamentoId, partes.tipo, partes.antecedencia,
-    partes.versaoMarcacao, partes.e164, partes.template, partes.idioma,
-  ].join("|");
-  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto));
-  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return sha256Hex(["v2", partes.agendamentoId, partes.tipo, partes.antecedencia, partes.data, partes.template, partes.idioma].join("|"));
+}
+
+/** Assinatura da versão (hora + destino + template): permite retomar uma chave cuja tentativa anterior foi REJEITADA. */
+export function assinaturaVersao(partes: { hora: string; e164: string; template: string; idioma: string }): Promise<string> {
+  return sha256Hex(["v1", partes.hora, partes.e164, partes.template, partes.idioma].join("|"));
+}
+
+/** HMAC-SHA256(pepper, E.164). O pepper (WA_TELEFONE_PEPPER) impede reverter o hash por força bruta. */
+export async function hashTelefone(e164: string, pepper: string): Promise<string> {
+  if (!pepper || pepper.length < 32) throw new ErroConfiguracao(["WA_TELEFONE_PEPPER (mínimo 32 caracteres)"]);
+  const chave = await crypto.subtle.importKey("raw", new TextEncoder().encode(pepper), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", chave, new TextEncoder().encode(e164));
+  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
