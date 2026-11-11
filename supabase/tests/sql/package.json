@@ -1,0 +1,13 @@
+{
+  "name": "esteticalchub-sql-tests",
+  "private": true,
+  "type": "module",
+  "description": "Testes das funções SQL da WhatsApp Cloud API contra um Postgres local descartável (nunca contra o Supabase).",
+  "scripts": {
+    "test": "node --test --test-concurrency=1 whatsapp_cloud.test.mjs"
+  },
+  "devDependencies": {
+    "embedded-postgres": "17.11.0-beta.19",
+    "pg": "^8.13.0"
+  }
+}
