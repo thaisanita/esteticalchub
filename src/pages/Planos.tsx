@@ -4,6 +4,7 @@ import { Check, Sparkles, Loader2 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { usePlano } from '@/hooks/usePlano';
 import { STRIPE_PRICE_IDS } from '@/config/stripe';
+import { formatarEuro } from '@/lib/utils';
 
 // As 3 únicas funções exclusivas do Pro (ver PRO_FEATURES em usePlano.ts).
 // Tudo o resto da app é grátis e sem limites.
@@ -131,7 +132,7 @@ export default function Planos() {
         {/* Grátis */}
         <div className="flex flex-col rounded-2xl border border-border bg-card p-6">
           <h3 className="font-display text-lg font-bold text-foreground">Grátis</h3>
-          <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">€0</p>
+          <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">{formatarEuro(0)}</p>
           <ul className="mt-4 flex-1 space-y-2 text-sm text-muted-foreground">
             {BENEFICIOS_GRATIS.map((beneficio) => (
               <li key={beneficio} className="flex items-start gap-2">
@@ -154,7 +155,7 @@ export default function Planos() {
         <div className="flex flex-col rounded-2xl border-2 border-primary bg-card p-6 shadow-lg shadow-primary/10">
           <h3 className="font-display text-lg font-bold text-foreground">Pro Mensal</h3>
           <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">
-            €9,90<span className="text-sm font-normal text-muted-foreground">/mês</span>
+            {formatarEuro(9.9)}<span className="text-sm font-normal text-muted-foreground">/mês</span>
           </p>
           <ul className="mt-4 flex-1 space-y-2 text-sm text-foreground">
             {BENEFICIOS_PRO.map((beneficio) => (
@@ -180,9 +181,9 @@ export default function Planos() {
           </span>
           <h3 className="font-display text-lg font-bold text-foreground">Pro Anual</h3>
           <p className="mt-1 text-3xl font-bold tabular-nums text-foreground">
-            €79<span className="text-sm font-normal text-muted-foreground">/ano</span>
+            {formatarEuro(79)}<span className="text-sm font-normal text-muted-foreground">/ano</span>
           </p>
-          <p className="text-xs text-muted-foreground">equivalente a €6,60/mês</p>
+          <p className="text-xs text-muted-foreground">equivalente a {formatarEuro(6.6)}/mês</p>
           <ul className="mt-4 flex-1 space-y-2 text-sm text-foreground">
             <li className="flex items-start gap-2">
               <Check size={15} className="mt-0.5 shrink-0 text-primary" /> Tudo do Pro Mensal

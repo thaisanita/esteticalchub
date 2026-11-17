@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn, parseMoeda } from '@/lib/utils';
+import { cn, parseMoeda, formatarEuro } from '@/lib/utils';
 
 interface Agendamento {
   id?: string | number;
@@ -193,7 +193,7 @@ const Calendar = ({ onDaySelect, onMonthChange, agendamentos = [], mapaAgendas }
             Total Sem Comissão
           </p>
           <h4 className="font-display text-[28px] font-bold tabular-nums text-emerald-500">
-            € {financeiro.bruto.toFixed(2)}
+            {formatarEuro(financeiro.bruto)}
           </h4>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-md shadow-black/20">
@@ -202,7 +202,7 @@ const Calendar = ({ onDaySelect, onMonthChange, agendamentos = [], mapaAgendas }
             Comissão a Pagar
           </p>
           <h4 className="font-display text-[28px] font-bold tabular-nums text-primary">
-            € {financeiro.liquido.toFixed(2)}
+            {formatarEuro(financeiro.liquido)}
           </h4>
         </div>
       </div>

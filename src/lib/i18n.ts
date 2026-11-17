@@ -169,7 +169,7 @@ export interface TextosProcedimentos {
 export const textosProcedimentos: Record<Idioma, TextosProcedimentos> = {
   'Português (PT)': {
     titulo: 'Atendimentos do Dia', encontrado: 'agendamento', encontrados: 'agendamentos',
-    vazio: 'Nenhum agendamento para esta data.', faltou: 'Falta', editar: 'Editar', total: 'Total Faturado no Dia',
+    vazio: 'Nenhum agendamento para esta data.', faltou: 'Falta', editar: 'Editar', total: 'Total do dia',
     btnVoltar: 'Voltar à Agenda', btnNovo: 'Novo Agendamento',
     confFalta: 'Confirmar falta? O valor deste atendimento será zerado.',
     confExcluir: 'Tens a certeza de que queres eliminar este atendimento?', formatoData: 'pt-PT', selecione: 'Seleciona uma data',

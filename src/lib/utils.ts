@@ -111,3 +111,47 @@ export function classeValorSinal(valor: number): string {
   if (valor < 0) return "text-danger";
   return "text-foreground";
 }
+
+// ---------------------------------------------------------------------------
+// Formatação em português de Portugal — usar sempre estas duas funções.
+// ---------------------------------------------------------------------------
+
+const FORMATO_EURO = new Intl.NumberFormat('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/**
+ * Valor em euros: "150,00 €", "−240,00 €" (vírgula nos decimais, € no fim,
+ * sinal de menos verdadeiro). O espaço antes do € não deixa partir a linha.
+ * Aceita números ou texto vindo da base de dados ("12.50", "-3").
+ */
+export function formatarEuro(valor: number | string | null | undefined): string {
+  let n: number;
+  if (typeof valor === 'number') n = valor;
+  else {
+    const texto = String(valor ?? '').trim();
+    n = (texto.startsWith('-') || texto.startsWith('−') ? -1 : 1) * parseMoeda(texto);
+  }
+  if (!Number.isFinite(n)) n = 0;
+  n = Math.round(n * 100) / 100;
+  return `${n < 0 ? '−' : ''}${FORMATO_EURO.format(Math.abs(n))} €`;
+}
+
+/** Data "10/11/2026", a partir de "2026-11-10", "2026-11-10T09:00:00Z" ou de um Date. */
+export function formatarData(data: string | Date | null | undefined): string {
+  if (!data) return '';
+  if (data instanceof Date) {
+    if (Number.isNaN(data.getTime())) return '';
+    return `${String(data.getDate()).padStart(2, '0')}/${String(data.getMonth() + 1).padStart(2, '0')}/${data.getFullYear()}`;
+  }
+  // Só a data ("2026-11-10"): sem passar por fuso horário, para não mudar de dia.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+    const [a, m, d] = data.split('-');
+    return `${d}/${m}/${a}`;
+  }
+  const d = new Date(data);
+  return Number.isNaN(d.getTime()) ? data : formatarData(d);
+}
+
+/** "1 atendimento", "3 atendimentos". */
+export function plural(n: number, singular: string, pluralTexto: string): string {
+  return `${n} ${n === 1 ? singular : pluralTexto}`;
+}

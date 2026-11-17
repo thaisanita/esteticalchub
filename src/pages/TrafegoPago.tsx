@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
-import { getErrorMessage } from '@/lib/utils';
+import { getErrorMessage, formatarEuro } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -101,7 +101,7 @@ export default function TrafegoPago() {
           <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <TrendingDown size={12} /> Gasto total
           </p>
-          <p className="font-display text-2xl font-bold text-foreground mt-1">€ {totalGasto.toFixed(2)}</p>
+          <p className="font-display text-2xl font-bold text-foreground mt-1">{formatarEuro(totalGasto)}</p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-5">
           <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -114,7 +114,7 @@ export default function TrafegoPago() {
             <MousePointerClick size={12} /> Custo por resultado
           </p>
           <p className="font-display text-2xl font-bold text-foreground mt-1">
-            {custoMedioPorResultado !== null ? `€ ${custoMedioPorResultado.toFixed(2)}` : '—'}
+            {custoMedioPorResultado !== null ? formatarEuro(custoMedioPorResultado) : '—'}
           </p>
         </div>
       </div>
@@ -148,7 +148,7 @@ export default function TrafegoPago() {
                   <p className="text-xs text-muted-foreground">{c.conta}</p>
                 </div>
                 <p className="font-display text-base font-bold text-foreground tabular-nums shrink-0">
-                  € {c.gasto.toFixed(2)}
+                  {formatarEuro(c.gasto)}
                 </p>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
@@ -167,7 +167,7 @@ export default function TrafegoPago() {
               </div>
               {c.custoPorResultado !== null && (
                 <p className="mt-2 text-right text-xs text-muted-foreground">
-                  € {c.custoPorResultado.toFixed(2)} por resultado
+                  {formatarEuro(c.custoPorResultado)} por resultado
                 </p>
               )}
             </div>

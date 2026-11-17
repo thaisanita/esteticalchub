@@ -34,17 +34,29 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { supabase } from '../supabase';
-import { parseMoeda, cn, formatarHora } from '@/lib/utils';
+import { parseMoeda, cn, formatarHora, formatarData, formatarEuro, plural } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   calcularVisao,
   isoLocal,
   DIAS_CLIENTE_EM_RISCO,
+  cedoParaComparar,
+  resumoMeta,
   type Atendimento,
   type Dados,
 } from '@/lib/visaoGeral';
 import { SkeletonCartoes } from '@/components/ui/skeleton';
 import ListaPrimeirosPassos from '@/components/ListaPrimeirosPassos';
+import { AvisoPagamentos } from '@/components/custos/ProximosPagamentos';
+import {
+  calcularLucroMes,
+  chaveMes,
+  textoResultado,
+  proximosPagamentos,
+  totalCustosFixosMensais,
+  type CustoFixo,
+  type Despesa,
+} from '@/lib/lucro';
 
 const COR = '#8B5CF6';
 const TOOLTIP_STYLE = {
@@ -55,8 +67,7 @@ const TOOLTIP_STYLE = {
   padding: '8px 12px',
 };
 
-const euro = (n: number) =>
-  `€ ${n.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const euro = formatarEuro;
 
 /** Vai buscar todas as linhas, mesmo passando o limite de 1000 por pedido. */
 async function buscarTodosAtendimentos(desde: string, usuarioId: string): Promise<Atendimento[]> {
@@ -160,6 +171,7 @@ function CartaoKpi({
 export default function VisaoGeral() {
   const navigate = useNavigate();
   const [dados, setDados] = useState<Dados | null>(null);
+  const [financeiro, setFinanceiro] = useState<{ custosFixos: CustoFixo[]; despesas: Despesa[] }>({ custosFixos: [], despesas: [] });
   const [carregando, setCarregando] = useState(true);
   const [aoVivo, setAoVivo] = useState(false);
   const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null);
@@ -175,9 +187,9 @@ export default function VisaoGeral() {
     const inicioMesAnterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
     const desde7d = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [atendimentos, custos, clientes, meta, quadro] = await Promise.all([
+    const [atendimentos, custos, clientes, meta, quadro, despesas] = await Promise.all([
       buscarTodosAtendimentos(isoLocal(janela), user.id),
-      supabase.from('custos_fixos').select('valor_mensal, ativo'),
+      supabase.from('custos_fixos').select('*').eq('usuario_id', user.id),
       supabase.from('clientes').select('criado_em').gte('criado_em', inicioMesAnterior.toISOString()),
       supabase
         .from('metas_mensais')
@@ -186,6 +198,7 @@ export default function VisaoGeral() {
         .eq('mes', hoje.getMonth() + 1)
         .maybeSingle(),
       supabase.from('quadros_kanban').select('id').eq('nome', 'Leads').limit(1).maybeSingle(),
+      supabase.from('se_custos').select('*').eq('usuario_id', user.id),
     ]);
 
     // Leads dos últimos 7 dias (quadro "Leads" criado pela página pública)
@@ -206,11 +219,11 @@ export default function VisaoGeral() {
     }
 
     const listaClientes = clientes.data ?? [];
+    const custosFixos = (custos.data as CustoFixo[]) ?? [];
+    setFinanceiro({ custosFixos, despesas: (despesas.data as Despesa[]) ?? [] });
     setDados({
       atendimentos,
-      custosFixosMensais: (custos.data ?? [])
-        .filter((c) => c.ativo)
-        .reduce((acc, c) => acc + Number(c.valor_mensal || 0), 0),
+      custosFixosMensais: totalCustosFixosMensais(custosFixos),
       clientesNovasMes: listaClientes.filter((c) => new Date(c.criado_em) >= inicioMesAtual).length,
       clientesNovasMesAnterior: listaClientes.filter((c) => new Date(c.criado_em) < inicioMesAtual).length,
       leads7d,
@@ -261,15 +274,18 @@ export default function VisaoGeral() {
   const variacaoTotal = calc.fatAntMesmoPeriodo
     ? ((calc.fatAteHoje - calc.fatAntMesmoPeriodo) / calc.fatAntMesmoPeriodo) * 100
     : null;
-  // Ritmo: atendimentos que faltam para igualar o mês passado (feitos + marcados).
-  const nMesAtual = calc.nAteHoje + calc.nAgendado;
-  const faltamParaIgualar = Math.max(calc.nMesAnteriorTotal - nMesAtual, 0);
+  // Comparação com o mês passado: só com REALIZADOS, e com a mesma regra de
+  // "ainda cedo" dos cartões de baixo, para as duas mensagens concordarem.
+  const cedo = cedoParaComparar(calc.diaHoje, calc.nAntMesmoPeriodo);
+  const faltamParaIgualar = Math.max(calc.nMesAnteriorTotal - calc.nAteHoje, 0);
   // Vermelho só a partir do dia 15 e com uma diferença relevante (20% ou mais).
-  const alertaVermelho = calc.diaHoje >= 15 && variacaoTotal !== null && variacaoTotal <= -20;
+  const alertaVermelho = !cedo && calc.diaHoje >= 15 && variacaoTotal !== null && variacaoTotal <= -20;
   const cobreCustos = calc.fatMesTotal >= dados.custosFixosMensais;
+  // Lucro do mês até hoje — a mesma fórmula da página Custos.
+  const lucroMes = calcularLucroMes({ agendamentos: dados.atendimentos, ...financeiro }, chaveMes(new Date()));
+  const pagamentos = proximosPagamentos(financeiro.custosFixos, financeiro.despesas);
   const pctCustos = dados.custosFixosMensais > 0 ? Math.min((calc.fatMesTotal / dados.custosFixosMensais) * 100, 100) : 0;
-  const nMes = calc.nAteHoje + calc.nAgendado;
-  const pctMeta = Math.min(Math.round((nMes / dados.metaAtendimentos) * 100), 100);
+  const meta = resumoMeta(calc.nAteHoje, calc.nAgendado, dados.metaAtendimentos);
 
   return (
     <div className="space-y-5">
@@ -305,6 +321,8 @@ export default function VisaoGeral() {
 
       <ListaPrimeirosPassos />
 
+      <AvisoPagamentos pagamentos={pagamentos} onAbrir={() => navigate('/custos?aba=fixos')} />
+
       {/* Resumo do crescimento */}
       {calc.totalGeral === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-8 text-center">
@@ -330,9 +348,13 @@ export default function VisaoGeral() {
           <p>
             {calc.nMesAnteriorTotal === 0
               ? 'Ainda não há atendimentos no mês passado para comparar.'
+              : cedo
+              ? `Ainda é cedo para comparar com o mês passado. Este mês: ${plural(calc.nAteHoje, 'realizado', 'realizados')} · ${plural(calc.nAgendado, 'marcado', 'marcados')}.`
               : faltamParaIgualar > 0
-              ? `Faltam ${faltamParaIgualar} atendimento${faltamParaIgualar === 1 ? '' : 's'} para igualar o mês passado (${calc.nMesAnteriorTotal}). Já tens ${nMesAtual} entre feitos e marcados.`
-              : `Já igualaste o mês passado (${calc.nMesAnteriorTotal} atendimentos). Bom ritmo!`}
+              ? `Faltam ${plural(faltamParaIgualar, 'realizado', 'realizados')} para igualar o mês passado (${plural(calc.nMesAnteriorTotal, 'atendimento', 'atendimentos')}). Tens ${plural(calc.nAgendado, 'marcado', 'marcados')} até ao fim do mês.`
+              : calc.nAteHoje > calc.nMesAnteriorTotal
+              ? `Já passaste o mês passado (${calc.nAteHoje} vs ${calc.nMesAnteriorTotal} realizados). Bom ritmo!`
+              : `Já igualaste o mês passado (${plural(calc.nMesAnteriorTotal, 'realizado', 'realizados')}). Bom ritmo!`}
             {alertaVermelho && ` Estás ${Math.abs(variacaoTotal ?? 0).toFixed(0)}% abaixo do mesmo período do mês passado.`}
           </p>
         </div>
@@ -340,20 +362,22 @@ export default function VisaoGeral() {
 
       {/* Números principais */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <CartaoKpi titulo="Faturado no mês" valor={euro(calc.fatAteHoje)} Icone={Euro}>
-          <Variacao ignorar={calc.diaHoje < 7} atual={calc.fatAteHoje} anterior={calc.fatAntMesmoPeriodo} />
+        <CartaoKpi titulo="Realizado no mês" valor={euro(calc.fatAteHoje)} Icone={Euro}>
+          <Variacao ignorar={cedo} atual={calc.fatAteHoje} anterior={calc.fatAntMesmoPeriodo} />
           {calc.fatAgendado > 0 && (
             <p className="text-[11px] text-muted-foreground">
-              Previsto até ao fim do mês: {euro(calc.fatMesTotal)}
+              Previsto no mês: {euro(calc.fatMesTotal)}
             </p>
           )}
         </CartaoKpi>
         <CartaoKpi titulo="Atendimentos" valor={String(calc.nAteHoje)} Icone={CalendarCheck}>
-          <Variacao ignorar={calc.diaHoje < 7} atual={calc.nAteHoje} anterior={calc.nAntMesmoPeriodo} />
-          {calc.nAgendado > 0 && <p className="text-[11px] text-muted-foreground">+ {calc.nAgendado} ainda agendados</p>}
+          <Variacao ignorar={cedo} atual={calc.nAteHoje} anterior={calc.nAntMesmoPeriodo} />
+          <p className="text-[11px] text-muted-foreground">
+            {plural(calc.nAteHoje, 'realizado', 'realizados')} · {plural(calc.nAteHoje + calc.nAgendado, 'previsto', 'previstos')}
+          </p>
         </CartaoKpi>
         <CartaoKpi titulo="Ticket médio" valor={euro(calc.ticket)} Icone={Receipt}>
-          <Variacao ignorar={calc.diaHoje < 7} atual={calc.ticket} anterior={calc.ticketAnt} />
+          <Variacao ignorar={cedo} atual={calc.ticket} anterior={calc.ticketAnt} />
         </CartaoKpi>
         <CartaoKpi titulo="Clientes novas" valor={String(dados.clientesNovasMes)} Icone={UserPlus}>
           <Variacao ignorar={calc.diaHoje < 7} atual={dados.clientesNovasMes} anterior={dados.clientesNovasMesAnterior} rotulo="vs mês passado (completo)" />
@@ -363,8 +387,8 @@ export default function VisaoGeral() {
       {/* Gráficos */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/10">
-          <h3 className="text-sm font-semibold text-foreground">Faturação — últimos 12 meses</h3>
-          <p className="mb-3 text-[11px] text-muted-foreground">A parte clara é o que ainda está agendado.</p>
+          <h3 className="text-sm font-semibold text-foreground">Realizado e previsto — últimos 12 meses</h3>
+          <p className="mb-3 text-[11px] text-muted-foreground">A parte escura é o realizado; a clara é o que está marcado e ainda não aconteceu.</p>
           <div style={{ height: 260 }}>
             <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
               <BarChart data={calc.serie} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
@@ -376,7 +400,7 @@ export default function VisaoGeral() {
                   labelStyle={{ color: '#FFFFFF', fontWeight: 600, marginBottom: 4 }}
                   itemStyle={{ color: '#C4B5FD' }}
                   cursor={{ fill: 'hsl(var(--border) / 0.4)' }}
-                  formatter={(v: unknown, nome: unknown) => [euro(Number(v)), nome === 'agendado' ? 'Agendado' : 'Realizado']}
+                  formatter={(v: unknown, nome: unknown) => [euro(Number(v)), nome === 'agendado' ? 'Por fazer' : 'Realizado']}
                 />
                 <Bar dataKey="realizado" stackId="a" fill={COR} radius={[0, 0, 0, 0]} />
                 <Bar dataKey="agendado" stackId="a" fill={COR} fillOpacity={0.35} radius={[4, 4, 0, 0]} />
@@ -387,7 +411,7 @@ export default function VisaoGeral() {
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/10">
           <h3 className="text-sm font-semibold text-foreground">Ritmo do mês — este mês vs mês passado</h3>
-          <p className="mb-3 text-[11px] text-muted-foreground">Faturação acumulado dia a dia.</p>
+          <p className="mb-3 text-[11px] text-muted-foreground">Realizado acumulado dia a dia.</p>
           <div style={{ height: 260 }}>
             <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
               <LineChart data={calc.ritmo} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
@@ -431,7 +455,7 @@ export default function VisaoGeral() {
           <p className="mt-3 text-xs text-muted-foreground">
             {calc.proximo
               ? `Próximo: ${calc.proximo.cliente} — ${calc.proximo.procedimento}, ${
-                  calc.proximo.data === isoLocal(new Date()) ? 'hoje' : calc.proximo.data.split('-').reverse().join('/')
+                  calc.proximo.data === isoLocal(new Date()) ? 'hoje' : formatarData(calc.proximo.data)
                 }${calc.proximo.hora ? ` às ${formatarHora(calc.proximo.hora)}` : ''}`
               : 'Sem mais atendimentos agendados.'}
           </p>
@@ -444,7 +468,7 @@ export default function VisaoGeral() {
           {dados.custosFixosMensais > 0 ? (
             <>
               <div className="flex items-baseline justify-between text-xs text-muted-foreground">
-                <span>{euro(calc.fatMesTotal)} de {euro(dados.custosFixosMensais)}</span>
+                <span>Previsto {euro(calc.fatMesTotal)} de {euro(dados.custosFixosMensais)}</span>
                 <span className={cn('font-bold', cobreCustos ? 'text-emerald-500' : 'text-primary')}>{Math.round(pctCustos)}%</span>
               </div>
               <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full border border-border bg-background">
@@ -452,13 +476,20 @@ export default function VisaoGeral() {
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
                 {cobreCustos
-                  ? `Já cobriu os custos fixos e tem ${euro(calc.fatMesTotal - dados.custosFixosMensais)} de folga.`
-                  : `Faltam ${euro(dados.custosFixosMensais - calc.fatMesTotal)} para cobrir os custos fixos do mês.`}
+                  ? 'Com o que tens marcado, já cobriste os custos fixos. Ainda faltam o material e as despesas: o resultado do mês está aqui em baixo.'
+                  : `Faltam ${euro(dados.custosFixosMensais - calc.fatMesTotal)} em marcações para cobrires os custos fixos do mês.`}
+              </p>
+              <p className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground">
+                Resultado do mês até hoje (com tudo descontado):{' '}
+                <span className={cn('font-semibold', lucroMes.lucro >= 0 ? 'text-emerald-500' : 'text-rose-500')}>
+                  {textoResultado(lucroMes.lucro)}
+                </span>{' '}
+                · <button onClick={() => navigate('/custos')} className="text-primary underline">ver a conta</button>
               </p>
             </>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Regista os teus custos fixos (renda, internet…) para ver quanto precisas de faturar por mês.{' '}
+              Regista os teus custos fixos (renda, internet…) para veres quanto precisas de fazer por mês.{' '}
               <button onClick={() => navigate('/custos')} className="text-primary underline">Ir para Custos</button>
             </p>
           )}
@@ -469,15 +500,15 @@ export default function VisaoGeral() {
             <Target size={15} className="text-primary" /> Meta de atendimentos
           </h3>
           <div className="flex items-baseline justify-between text-xs text-muted-foreground">
-            <span>{nMes} de {dados.metaAtendimentos} este mês</span>
-            <span className="font-bold text-primary">{pctMeta}%</span>
+            <span>{meta.texto}</span>
+            <span className="font-bold text-primary">{meta.pctRealizado}%</span>
           </div>
-          <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full border border-border bg-background">
-            <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${pctMeta}%` }} />
+          {/* Escuro: realizados. Claro: o que está marcado. */}
+          <div className="relative mt-1.5 h-2 w-full overflow-hidden rounded-full border border-border bg-background">
+            <div className="absolute inset-y-0 left-0 bg-primary/30 transition-all duration-500" style={{ width: `${meta.pctComMarcados}%` }} />
+            <div className="absolute inset-y-0 left-0 bg-primary transition-all duration-500" style={{ width: `${meta.pctRealizado}%` }} />
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {pctMeta >= 100 ? 'Meta do mês atingida!' : `Faltam ${Math.max(dados.metaAtendimentos - nMes, 0)} atendimentos.`}
-          </p>
+          <p className="mt-2 text-xs text-muted-foreground">{meta.rodape}</p>
         </div>
       </div>
 
@@ -521,7 +552,7 @@ export default function VisaoGeral() {
                 {calc.emRisco.slice(0, 4).map((c) => (
                   <li key={c.id} className="flex justify-between text-xs">
                     <span className="truncate pr-2 text-foreground">{c.nome}</span>
-                    <span className="shrink-0 text-muted-foreground">há {c.dias} dias</span>
+                    <span className="shrink-0 text-muted-foreground">há {plural(c.dias, 'dia', 'dias')}</span>
                   </li>
                 ))}
               </ul>

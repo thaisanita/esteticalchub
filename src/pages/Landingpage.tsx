@@ -15,6 +15,7 @@ import {
   Users,
   ChevronRight
 } from 'lucide-react';
+import { formatarEuro } from '@/lib/utils';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -134,7 +135,7 @@ export default function LandingPage() {
                   <span>Faturação Mensal</span>
                   <DollarSign size={16} className="text-emerald-500" />
                 </div>
-                <div className="text-2xl font-bold font-display text-foreground">€ 4.850,00</div>
+                <div className="text-2xl font-bold font-display text-foreground">{formatarEuro(4850)}</div>
                 <div className="flex items-center gap-1.5 text-[11px] text-emerald-500 font-medium">
                   <TrendingUp size={13} />
                   <span>+18.4% vs. mês anterior</span>

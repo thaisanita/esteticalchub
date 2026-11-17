@@ -6,7 +6,7 @@ import { EVENTO_PAGAMENTO_REGISTADO } from '@/lib/eventos';
 import { confirmar } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { textosProcedimentos, obterIdiomaAtual } from '@/lib/i18n';
-import { parseMoeda, formatarHora, agendamentoEDomicilio, linkGoogleMaps } from '@/lib/utils';
+import { parseMoeda, formatarHora, agendamentoEDomicilio, linkGoogleMaps, formatarEuro } from '@/lib/utils';
 import {
   Clock,
   User,
@@ -250,7 +250,7 @@ const Procedimentos = () => {
                 <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 pt-3 sm:pt-0 border-border gap-2">
                   <div className="text-left sm:text-right">
                     <span className={`font-display text-xl font-bold tabular-nums ${isFalta ? 'text-muted-foreground line-through' : 'text-emerald-500'}`}>
-                      € {valorNum.toFixed(2)}
+                      {formatarEuro(valorNum)}
                     </span>
                   </div>
 
@@ -306,11 +306,11 @@ const Procedimentos = () => {
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-500">
                 {textos.total}
               </span>
-              <p className="text-[11px] text-muted-foreground">Somatório líquido das sessões confirmadas</p>
+              <p className="text-[11px] text-muted-foreground">Soma dos atendimentos do dia, sem faltas</p>
             </div>
           </div>
           <span className="font-display text-2xl font-bold text-emerald-500 tabular-nums">
-            € {totalFaturado.toFixed(2)}
+            {formatarEuro(totalFaturado)}
           </span>
         </div>
       )}

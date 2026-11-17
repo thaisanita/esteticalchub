@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EVENTO_PAGAMENTO_REGISTADO } from '@/lib/eventos';
 import { confirmar } from '@/components/ConfirmDialog';
+import { totaisDoMes } from '@/lib/lucro';
+import { resumoMeta } from '@/lib/visaoGeral';
 
 interface Agendamento {
   id?: string | number;
@@ -22,6 +24,8 @@ interface Agendamento {
   procedimento?: string;
   usuario_id?: string;
   agenda_id?: string;
+  faltou?: boolean;
+  valor?: number | string;
 }
 
 interface AgendaInfo {
@@ -44,6 +48,9 @@ const Agenda = () => {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(false);
   const [metaAtendimentos, setMetaAtendimentos] = useState<number>(30);
+  // O que está escrito no campo da meta. Só grava ao sair do campo ou com Enter,
+  // para não gravar valores a meio (ex.: "1" ao escrever "10").
+  const [metaTexto, setMetaTexto] = useState('30');
   // Agendas a que pertenço (TimeTree-style) e quais estão visíveis no calendário.
   const [agendasDisponiveis, setAgendasDisponiveis] = useState<AgendaInfo[]>([]);
   const [agendasVisiveis, setAgendasVisiveis] = useState<Set<string>>(new Set());
@@ -68,6 +75,7 @@ const Agenda = () => {
 
     if (data) {
       setMetaAtendimentos(data.meta);
+      setMetaTexto(String(data.meta));
     } else {
       // Ainda não existe meta para este mês — cria já com o valor padrão,
       // para este mês ficar registado desde o início (e não só quando editado).
@@ -76,7 +84,10 @@ const Agenda = () => {
         .insert([{ ano: anoAtual, mes: mesAtual, meta: 30 }])
         .select('meta')
         .single();
-      if (novaMeta) setMetaAtendimentos(novaMeta.meta);
+      if (novaMeta) {
+        setMetaAtendimentos(novaMeta.meta);
+        setMetaTexto(String(novaMeta.meta));
+      }
     }
   }, [anoAtual, mesAtual]);
 
@@ -193,8 +204,17 @@ const Agenda = () => {
     navigate(`/novo-agendamento?edit=${agendamento.id}`);
   };
 
-  const handleMetaChange = async (valor: number) => {
-    const novaMeta = valor > 0 ? valor : 1;
+  // Grava a meta (número inteiro, pelo menos 1) quando a utilizadora acaba de escrever.
+  const guardarMeta = async () => {
+    const novaMeta = parseInt(metaTexto.replace(/\D/g, ''), 10);
+    if (!Number.isFinite(novaMeta) || novaMeta < 1) {
+      setMetaTexto(String(metaAtendimentos));
+      toast.error('A meta tem de ser um número inteiro, pelo menos 1.');
+      return;
+    }
+    setMetaTexto(String(novaMeta));
+    if (novaMeta === metaAtendimentos) return;
+    const anterior = metaAtendimentos;
     setMetaAtendimentos(novaMeta);
 
     const { error } = await supabase
@@ -204,7 +224,13 @@ const Agenda = () => {
         { onConflict: 'usuario_id,ano,mes' }
       );
 
-    if (error) console.error('Erro ao guardar meta do mês:', error.message);
+    if (error) {
+      setMetaAtendimentos(anterior);
+      setMetaTexto(String(anterior));
+      toast.error('Não foi possível guardar a meta: ' + error.message);
+      return;
+    }
+    toast.success(`Meta de ${novaMeta} atendimentos guardada.`);
   };
 
   const manipularSelecaoDia = (data: string) => {
@@ -215,15 +241,9 @@ const Agenda = () => {
     const mesAtualStr = String(mesAtual).padStart(2, '0');
     const prefixoMesAtual = `${anoAtual}-${mesAtualStr}`;
 
-    const atendimentosDoMes = agendamentos.filter((ag) => {
-      if (!ag.data) return false;
-      return ag.data.startsWith(prefixoMesAtual);
-    });
-
-    const realizados = atendimentosDoMes.length;
-    const porcentagem = Math.min(Math.round((realizados / metaAtendimentos) * 100), 100);
-
-    return { realizados, porcentagem };
+    // Realizados = já aconteceram; marcados = ainda vão acontecer (sem faltas).
+    const t = totaisDoMes(agendamentos, prefixoMesAtual, getLocalDateString());
+    return resumoMeta(t.nRealizado, t.nPrevisto - t.nRealizado, metaAtendimentos);
   }, [agendamentos, metaAtendimentos, anoAtual, mesAtual]);
 
   // Só as agendas marcadas como visíveis entram no calendário e na lista do dia.
@@ -340,36 +360,46 @@ const Agenda = () => {
             <div className="flex items-center gap-1 text-[12px] text-muted-foreground">
               <span>Meta:</span>
               <Input
-                type="number"
-                min="1"
-                value={metaAtendimentos}
-                onChange={(e) => handleMetaChange(Number(e.target.value))}
+                type="text"
+                inputMode="numeric"
+                aria-label="Meta de atendimentos do mês"
+                value={metaTexto}
+                onChange={(e) => setMetaTexto(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                onBlur={guardarMeta}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                }}
                 className="h-7 w-14 rounded-md border-border bg-background text-center text-xs font-bold text-foreground"
               />
             </div>
           </div>
 
-          <div className="mb-1.5 flex items-baseline justify-between">
-            <span className="text-xl font-bold text-foreground tabular-nums">
-              {estatisticasMes.realizados} <span className="text-xs font-normal text-muted-foreground">/ {metaAtendimentos} realizados</span>
-            </span>
+          <div className="mb-1.5 flex items-baseline justify-between gap-2">
+            <span className="text-sm font-semibold text-foreground tabular-nums">{estatisticasMes.texto}</span>
             <span className="text-sm font-bold text-primary">
-              {estatisticasMes.porcentagem}%
+              {estatisticasMes.pctRealizado}%
             </span>
           </div>
 
+          {/* Escuro: realizados. Claro: o que está marcado. */}
           <div className="relative h-2 w-full overflow-hidden rounded-full bg-background border border-border">
             <div
-              className="h-full bg-gradient-to-r from-primary to-primary-hover transition-all duration-500 ease-out"
-              style={{ width: `${estatisticasMes.porcentagem}%` }}
+              className="absolute inset-y-0 left-0 bg-primary/30 transition-all duration-500 ease-out"
+              style={{ width: `${estatisticasMes.pctComMarcados}%` }}
+            />
+            <div
+              className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-primary-hover transition-all duration-500 ease-out"
+              style={{ width: `${estatisticasMes.pctRealizado}%` }}
             />
           </div>
 
-          {estatisticasMes.porcentagem >= 100 && (
+          {estatisticasMes.atingida ? (
             <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-emerald-500">
               <CheckCircle2 size={14} />
               Parabéns! Meta do mês atingida!
             </div>
+          ) : (
+            <p className="mt-2 text-xs text-muted-foreground">{estatisticasMes.rodape}</p>
           )}
         </div>
       </div>

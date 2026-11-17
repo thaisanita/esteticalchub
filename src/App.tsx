@@ -81,18 +81,19 @@ function LayoutPrivado() {
           menuFixado ? 'md:ml-[260px]' : 'md:ml-[76px]'
         }`}
       >
-        <TopBar />
+        <TopBar onPagamentoRapido={() => setPagamentoRapidoAberto(true)} />
         <div className="p-6 sm:p-8">
           <BannerInstalarApp />
           <Outlet />
         </div>
       </main>
 
-      {/* Botão flutuante: registar pagamento rápido de qualquer página */}
+      {/* Botão flutuante: registar pagamento rápido de qualquer página (computador).
+          No telemóvel fica na barra de cima, para não tapar campos. */}
       <button
         onClick={() => setPagamentoRapidoAberto(true)}
         title="Registar pagamento rápido"
-        className="no-print fixed bottom-20 right-5 z-[900] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-hover text-primary-foreground shadow-lg shadow-primary/40 transition-transform hover:scale-105 active:scale-95 md:bottom-6 md:right-6"
+        className="no-print fixed bottom-20 right-5 z-[900] hidden h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-hover text-primary-foreground shadow-lg shadow-primary/40 transition-transform hover:scale-105 active:scale-95 md:bottom-6 md:right-6 md:flex"
       >
         <Euro size={22} />
       </button>

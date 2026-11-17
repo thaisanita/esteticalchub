@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2, UserX, MapPin, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { parseMoeda, formatarHora, agendamentoEDomicilio, linkGoogleMaps, cn } from '@/lib/utils';
+import { parseMoeda, formatarHora, agendamentoEDomicilio, linkGoogleMaps, cn, formatarEuro } from '@/lib/utils';
 import { supabase } from '../supabase';
 import { confirmar } from './ConfirmDialog';
 import { LEMBRETES_WHATSAPP_ATIVOS } from '@/hooks/usePlano';
@@ -184,7 +184,7 @@ const ListaAgendamentos = ({
             Bruto
           </span>
           <strong className="font-display text-base font-bold text-foreground">
-            € {totals.totalRendimento.toFixed(2)}
+            {formatarEuro(totals.totalRendimento)}
           </strong>
         </div>
         <div className="flex flex-1 flex-col items-center gap-1 border-r border-border">
@@ -192,15 +192,15 @@ const ListaAgendamentos = ({
             Custo
           </span>
           <strong className="font-display text-base font-bold text-rose-500">
-            € {totals.totalCusto.toFixed(2)}
+            {formatarEuro(totals.totalCusto)}
           </strong>
         </div>
         <div className="flex flex-1 flex-col items-center gap-1">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Lucro
+            Depois do material
           </span>
           <strong className="font-display text-base font-bold text-emerald-500">
-            € {totals.totalLucro.toFixed(2)}
+            {formatarEuro(totals.totalLucro)}
           </strong>
         </div>
       </div>
@@ -290,7 +290,7 @@ const ListaAgendamentos = ({
                   </div>
                 </div>
                 <span className="shrink-0 font-display text-sm font-bold text-foreground">
-                  € {valor.toFixed(2)}
+                  {formatarEuro(valor)}
                 </span>
               </div>
 

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Bell, LogOut, Settings, AlertTriangle, CalendarClock, UserX, User, CalendarDays, Loader2 } from 'lucide-react';
+import { Search, Bell, LogOut, Settings, AlertTriangle, CalendarClock, UserX, User, CalendarDays, Loader2, Euro } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
-import { formatarHora } from '@/lib/utils';
+import { formatarHora, formatarData } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -33,7 +33,12 @@ interface Notificacao {
   rota: string;
 }
 
-const TopBar = () => {
+interface TopBarProps {
+  /** No telemóvel, o pagamento rápido abre daqui (o botão redondo tapava os campos). */
+  onPagamentoRapido?: () => void;
+}
+
+const TopBar = ({ onPagamentoRapido }: TopBarProps) => {
   const navigate = useNavigate();
   const [nomeUsuario, setNomeUsuario] = useState('');
   const [cargo, setCargo] = useState('Profissional');
@@ -227,7 +232,7 @@ const TopBar = () => {
   };
 
   return (
-    <div className="no-print flex w-full items-center justify-between gap-4 border-b border-border px-10 py-[18px]">
+    <div className="no-print flex w-full items-center justify-between gap-3 border-b border-border px-4 py-[18px] md:gap-4 md:px-10">
       {/* Campo de Busca */}
       <div ref={buscaRef} className="relative w-full max-w-[320px]">
         <div className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-2.5">
@@ -291,7 +296,7 @@ const TopBar = () => {
                           {ag.cliente || 'Cliente'} — {ag.procedimento || 'Atendimento'}
                         </span>
                         <span className="shrink-0 text-[11px] text-muted-foreground">
-                          {ag.data.split('-').reverse().join('/')}
+                          {formatarData(ag.data)}
                           {ag.hora ? ` ${formatarHora(ag.hora)}` : ''}
                         </span>
                       </button>
@@ -304,7 +309,19 @@ const TopBar = () => {
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-4">
+      <div className="flex shrink-0 items-center gap-3 md:gap-4">
+        {/* Pagamento rápido — só no telemóvel (no computador fica o botão redondo) */}
+        {onPagamentoRapido && (
+          <button
+            type="button"
+            onClick={onPagamentoRapido}
+            aria-label="Registar pagamento rápido"
+            title="Registar pagamento rápido"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-hover text-primary-foreground shadow-md shadow-primary/30 md:hidden"
+          >
+            <Euro size={17} />
+          </button>
+        )}
         {/* Ícone de Notificações */}
         <DropdownMenu>
           <DropdownMenuTrigger>

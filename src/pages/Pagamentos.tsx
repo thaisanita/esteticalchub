@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
-import { getErrorMessage } from '@/lib/utils';
+import { getErrorMessage, formatarEuro, formatarData } from '@/lib/utils';
 import RegistoPagamentoRapido from '../components/RegistoPagamentoRapido';
 import {
   Wallet,
@@ -40,7 +40,7 @@ const LABEL_FORMA: Record<string, string> = {
 function formatarDataHora(dataISO: string | null): string {
   if (!dataISO) return '—';
   const d = new Date(dataISO);
-  return d.toLocaleDateString('pt-PT') + ' às ' + d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+  return formatarData(d) + ' às ' + d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
 }
 
 export default function Pagamentos() {
@@ -107,7 +107,7 @@ export default function Pagamentos() {
           Total Recebido (últimos 100 registos)
         </p>
         <p className="font-display text-3xl font-bold text-emerald-500 mt-1">
-          € {totalRecebido.toFixed(2)}
+          {formatarEuro(totalRecebido)}
         </p>
       </div>
 
@@ -139,7 +139,7 @@ export default function Pagamentos() {
                 </div>
                 <div className="text-right">
                   <p className="font-display text-base font-bold text-emerald-500 tabular-nums">
-                    € {p.valor.toFixed(2)}
+                    {formatarEuro(p.valor)}
                   </p>
                   <p className="text-[10px] text-muted-foreground">
                     {p.forma_pagamento ? LABEL_FORMA[p.forma_pagamento] || p.forma_pagamento : '—'}

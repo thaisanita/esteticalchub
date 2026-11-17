@@ -157,3 +157,33 @@ export function calcularVisao(dados: Dados, agoraData: Date = new Date()) {
 }
 
 export type Visao = ReturnType<typeof calcularVisao>;
+
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+
+/**
+ * Meta de atendimentos do mês — o mesmo texto na Agenda e na Visão geral.
+ * Realizados = já aconteceram (sem faltas); marcados = ainda vão acontecer.
+ * A percentagem conta só os realizados.
+ */
+export function resumoMeta(realizados: number, marcados: number, meta: number) {
+  const m = Math.max(1, Math.round(meta) || 1);
+  const pctRealizado = Math.min(Math.round((realizados / m) * 100), 100);
+  const pctComMarcados = Math.min(Math.round(((realizados + marcados) / m) * 100), 100);
+  const texto = `${plural(realizados, 'realizado', 'realizados')} · ${plural(marcados, 'marcado', 'marcados')} / ${m}`;
+  const rodape =
+    realizados >= m
+      ? 'Meta do mês atingida!'
+      : realizados + marcados >= m
+        ? `Com o que está marcado chegas à meta (faltam ${plural(m - realizados, 'realizado', 'realizados')}).`
+        : `Faltam ${plural(m - realizados - marcados, 'marcação', 'marcações')} para chegares à meta.`;
+  return { meta: m, pctRealizado, pctComMarcados, texto, rodape, atingida: realizados >= m };
+}
+
+/**
+ * O mês passado só se compara quando já há dados que cheguem — a MESMA regra
+ * para a frase do topo e para os cartões ("ainda cedo para comparar"):
+ * antes do dia 7, ou com menos de 5 atendimentos no mesmo período do mês passado.
+ */
+export function cedoParaComparar(diaHoje: number, nAnteriorMesmoPeriodo: number): boolean {
+  return diaHoje < 7 || (nAnteriorMesmoPeriodo > 0 && nAnteriorMesmoPeriodo < 5);
+}

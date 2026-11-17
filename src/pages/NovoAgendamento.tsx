@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '../supabase';
-import { getErrorMessage, parseMoeda, atendeDomicilio, moradaCompleta } from '@/lib/utils';
+import { getErrorMessage, parseMoeda, atendeDomicilio, moradaCompleta, formatarEuro, formatarData } from '@/lib/utils';
 import { confirmar } from '@/components/ConfirmDialog';
 import CamposMorada from '@/components/CamposMorada';
 import { normalizarCodigoPostal } from '@/hooks/useCodigoPostal';
@@ -31,6 +31,7 @@ import {
   Home,
 } from 'lucide-react';
 import { URL_PUBLICO } from '@/lib/empresa';
+import { isoDia, totaisDoMes, totalCustosFixosMensais, type CustoFixo } from '@/lib/lucro';
 import {
   Select,
   SelectContent,
@@ -287,8 +288,8 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     return () => clearTimeout(atraso);
   }, [procedimento]);
 
-  // Ponto de equilíbrio: quanto já foi faturado este mês, e quanto falta
-  // para cobrir os custos fixos (renda, contas, etc.)
+  // Ponto de equilíbrio: quanto está marcado este mês (Previsto, sem faltas)
+  // e quanto falta para cobrir os custos fixos (equivalente mensal).
   useEffect(() => {
     const buscarPontoEquilibrio = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -296,24 +297,24 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
 
       const { data: fixos } = await supabase
         .from('custos_fixos')
-        .select('valor_mensal, ativo')
+        .select('*')
         .eq('usuario_id', user.id);
-      const totalFixos = (fixos || []).filter((c) => c.ativo).reduce((acc, c) => acc + parseMoeda(c.valor_mensal), 0);
-      setCustosFixosMes(totalFixos);
+      setCustosFixosMes(totalCustosFixosMensais((fixos as CustoFixo[]) || []));
 
       const hoje = new Date();
       const prefixoMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
       const { data: agendamentosDoMes } = await supabase
         .from('agendamentos')
-        .select('valor, preco, data')
-        .eq('usuario_id', user.id);
-      const totalFaturado = (agendamentosDoMes || [])
-        .filter((a) => a.data && a.data.startsWith(prefixoMes))
-        .reduce((acc, a) => acc + parseMoeda(a.valor ?? a.preco ?? 0), 0);
-      setFaturamentoMesAtual(totalFaturado);
+        .select('id, valor, preco, data, faltou')
+        .eq('usuario_id', user.id)
+        .gte('data', `${prefixoMes}-01`)
+        .lte('data', `${prefixoMes}-31`);
+      // Ao editar, o próprio agendamento não entra (é somado à parte, com o preço novo).
+      const outros = (agendamentosDoMes || []).filter((a) => !idParaEditar || String(a.id) !== String(idParaEditar));
+      setFaturamentoMesAtual(totaisDoMes(outros, prefixoMes, isoDia(hoje)).previsto);
     };
     buscarPontoEquilibrio();
-  }, []);
+  }, [idParaEditar]);
 
   const aplicarSugestaoInteligente = () => {
     if (!sugestaoInteligente) return;
@@ -449,7 +450,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   const construirLembrete = (antecedencia: '1_dia' | '1_hora', rodape = '') => {
     const quando = antecedencia === '1_dia' ? 'amanhã' : 'hoje';
     const primeiroNome = (nomeCliente || cliente).split(' ')[0] || 'tudo bem';
-    const dataFmt = new Date(`${dataAgendamento}T00:00:00`).toLocaleDateString('pt-BR');
+    const dataFmt = formatarData(dataAgendamento);
     const local = localTexto ? ` Local: ${localTexto}.` : '';
     const mensagem =
       `Olá, ${primeiroNome}! Passando para lembrar do seu agendamento de ` +
@@ -463,7 +464,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   // edições — ver "!idParaEditar" em criarFilaNotificacoes).
   const construirConfirmacaoAgendamento = (linkConfirmacao: string, nomeNegocio: string) => {
     const primeiroNome = (nomeCliente || cliente).split(' ')[0] || 'tudo bem';
-    const dataFmt = new Date(`${dataAgendamento}T00:00:00`).toLocaleDateString('pt-BR');
+    const dataFmt = formatarData(dataAgendamento);
     const local = localTexto ? ` Local: ${localTexto}.` : '';
     const comQuem = nomeNegocio ? ` com ${nomeNegocio}` : '';
     const confirmacao = linkConfirmacao ? `\n\nConfirmar presença: ${linkConfirmacao}` : '';
@@ -1050,7 +1051,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
               >
                 <span className="flex items-center gap-1.5 text-xs font-medium text-primary">
                   <Wand2 size={13} />
-                  Sugestão: € {sugestaoInteligente.preco.toFixed(2)} · {sugestaoInteligente.duracaoMin}min (última vez)
+                  Sugestão: {formatarEuro(sugestaoInteligente.preco)} · {sugestaoInteligente.duracaoMin}min (última vez)
                 </span>
                 <span className="shrink-0 text-[10px] font-bold uppercase text-primary">Aplicar</span>
               </button>
@@ -1136,7 +1137,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
                   />
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Já cobriste {percentualAntes.toFixed(0)}% dos custos fixos este mês
+                  Com o que está marcado este mês, já cobres {percentualAntes.toFixed(0)}% dos custos fixos
                   {valorAtendimento > 0 && ` — com este atendimento, sobe para ${percentualDepois.toFixed(0)}%`}
                 </p>
               </div>

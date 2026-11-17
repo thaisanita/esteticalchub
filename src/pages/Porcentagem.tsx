@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn, getErrorMessage, parseMoeda, agendamentoEDomicilio } from '@/lib/utils';
+import { cn, getErrorMessage, parseMoeda, agendamentoEDomicilio, formatarEuro } from '@/lib/utils';
 import {
   Calculator,
   CheckCircle2,
@@ -246,7 +246,7 @@ const Porcentagem = () => {
             Comissão por Espaço
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Divide o faturação do dia entre o espaço parceiro e o teu lucro
+            Divide o que fizeste no dia entre o espaço parceiro e o que fica para ti
           </p>
         </div>
 
@@ -432,7 +432,7 @@ const Porcentagem = () => {
           </div>
           <div className="mt-4">
             <div className="font-display text-2xl font-bold tabular-nums text-foreground">
-              € {totalBrutoLocal.toFixed(2)}
+              {formatarEuro(totalBrutoLocal)}
             </div>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               Faturação no local
@@ -452,7 +452,7 @@ const Porcentagem = () => {
           </div>
           <div className="mt-4">
             <div className="font-display text-2xl font-bold tabular-nums text-foreground">
-              € {valorParaEspaco}
+              {formatarEuro(Number(valorParaEspaco))}
             </div>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               Valor devido ao local
@@ -464,7 +464,7 @@ const Porcentagem = () => {
         <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-primary/30 bg-primary/5 p-5 shadow-lg shadow-primary/5">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-success">
-              <TrendingUp size={14} /> O teu lucro
+              <TrendingUp size={14} /> Fica para ti
             </span>
             <span className="rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-semibold text-success">
               {100 - taxaEspaco}%
@@ -472,7 +472,7 @@ const Porcentagem = () => {
           </div>
           <div className="mt-4">
             <div className="font-display text-2xl font-bold tabular-nums text-success">
-              € {meuLucroReal}
+              {formatarEuro(Number(meuLucroReal))}
             </div>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               Valor líquido retido

@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { getErrorMessage, parseMoeda } from '@/lib/utils';
+import { getErrorMessage, parseMoeda, formatarEuro } from '@/lib/utils';
 import { Package, Plus, Trash2, TrendingUp, Users, Coins, PackagePlus } from 'lucide-react';
 import { SkeletonLinhas } from '@/components/ui/skeleton';
 
@@ -136,16 +136,16 @@ export default function Produtos() {
         quantidade_total: p.quantidade_total + qtd,
         quantidade_restante: p.quantidade_restante + qtd,
         custo_compra: p.custo_compra + parseMoeda(custoChegou),
-        esgotado_em: null, // voltou a ter estoque
+        esgotado_em: null, // voltou a ter stock
       })
       .eq('id', p.id);
 
     if (!error) {
       setRepondoId(null);
       carregarDados();
-      toast.success('Estoque reposto.');
+      toast.success('Stock reposto.');
     } else {
-      toast.error('Erro ao repor estoque: ' + getErrorMessage(error));
+      toast.error('Erro ao repor o stock: ' + getErrorMessage(error));
     }
     setARepor(false);
   };
@@ -178,9 +178,9 @@ export default function Produtos() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground">Produtos</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Estoque por quantidade — sabe quantas clientes cada produto rende e quanto lucro dá.
+        <h3 className="text-sm font-semibold text-foreground">Stock de produtos</h3>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Quanto ainda tens de cada produto e quantas clientes ele rendeu.
         </p>
       </div>
 
@@ -208,7 +208,7 @@ export default function Produtos() {
         <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Em uso</h3>
         {ativos.length === 0 && (
           <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
-            Nenhum produto em estoque ainda.
+            Ainda não tens produtos em stock.
           </div>
         )}
         {ativos.map((p) => {
@@ -228,7 +228,7 @@ export default function Produtos() {
                   </span>
                   <button
                     onClick={() => abrirRepor(p.id)}
-                    title="Repor estoque"
+                    title="Repor stock"
                     className="text-muted-foreground hover:text-primary transition-colors"
                   >
                     <PackagePlus size={15} />
@@ -292,7 +292,7 @@ export default function Produtos() {
                   <p className="text-sm font-semibold text-foreground">{p.nome}</p>
                   <button
                     onClick={() => abrirRepor(p.id)}
-                    title="Repor estoque"
+                    title="Repor stock"
                     className="flex shrink-0 items-center gap-1 rounded-lg border border-primary/30 px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
                   >
                     <PackagePlus size={13} /> Repor
@@ -306,12 +306,12 @@ export default function Produtos() {
                   </div>
                   <div>
                     <TrendingUp size={14} className="mx-auto mb-1 text-emerald-500" />
-                    <p className="text-sm font-bold text-emerald-500">€ {(resumo?.lucro ?? 0).toFixed(2)}</p>
-                    <p className="text-[10px] text-muted-foreground">lucro</p>
+                    <p className="text-sm font-bold text-emerald-500">{formatarEuro(resumo?.lucro ?? 0)}</p>
+                    <p className="text-[10px] text-muted-foreground">faturado − produto</p>
                   </div>
                   <div>
                     <Coins size={14} className="mx-auto mb-1 text-amber-500" />
-                    <p className="text-sm font-bold text-foreground">€ {Number(p.custo_compra).toFixed(2)}</p>
+                    <p className="text-sm font-bold text-foreground">{formatarEuro(Number(p.custo_compra))}</p>
                     <p className="text-[10px] text-muted-foreground">reinvestir sugerido</p>
                   </div>
                 </div>

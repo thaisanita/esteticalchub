@@ -7,7 +7,9 @@ import { cn } from '@/lib/utils';
 
 // Passos verificados pelos dados reais da conta (não por um botão a marcar).
 const PASSOS = [
-  { chave: 'procedimento', texto: 'Criar um procedimento', tabela: 'procedimentos', rota: '/procedimentos', acao: 'Abrir procedimentos' },
+  // Ainda não há catálogo de procedimentos (a tabela "procedimentos" não existe):
+  // conta como feito quando já há um agendamento com procedimento preenchido.
+  { chave: 'procedimento', texto: 'Criar um procedimento', tabela: 'agendamentos', soComProcedimento: true, rota: '/novo-agendamento', acao: 'Criar agendamento' },
   { chave: 'cliente', texto: 'Adicionar a primeira cliente', tabela: 'clientes', rota: '/clientes', acao: 'Abrir clientes' },
   { chave: 'agendamento', texto: 'Criar o primeiro agendamento', tabela: 'agendamentos', rota: '/novo-agendamento', acao: 'Criar agendamento' },
   { chave: 'custos', texto: 'Definir os custos fixos', tabela: 'custos_fixos', rota: '/custos', acao: 'Abrir custos' },
@@ -39,11 +41,14 @@ export default function ListaPrimeirosPassos() {
         PASSOS.map(async (passo) => {
           // GET com .limit(1) em vez de HEAD: pedidos HEAD com count:'exact'
           // deram 503 em produção quando disparados em paralelo.
-          const { count, error } = await supabase
+          let pedido = supabase
             .from(passo.tabela)
             .select('id', { count: 'exact' })
-            .eq('usuario_id', user.id)
-            .limit(1);
+            .eq('usuario_id', user.id);
+          if ('soComProcedimento' in passo && passo.soComProcedimento) {
+            pedido = pedido.not('procedimento', 'is', null).neq('procedimento', '');
+          }
+          const { count, error } = await pedido.limit(1);
           if (error) console.error(`Erro ao verificar "${passo.chave}":`, error.message);
           return [passo.chave, (count ?? 0) > 0] as const;
         })

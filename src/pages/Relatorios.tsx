@@ -10,8 +10,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Printer, Trash2, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, FileText, Banknote, CreditCard, Smartphone, Landmark, UserX } from 'lucide-react';
-import { parseMoeda, cn, classeValorSinal } from '@/lib/utils';
+import { Printer, Trash2, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, FileText, Banknote, CreditCard, Smartphone, Landmark, UserX, CalendarDays } from 'lucide-react';
+import { parseMoeda, cn, classeValorSinal, formatarEuro, formatarData } from '@/lib/utils';
+import { calcularLucroMes, lucroDoAno, totaisDoMes, textoAtendimentos, rotuloResultado, isoDia, euro, type CustoFixo, type Despesa } from '@/lib/lucro';
 import { confirmar } from '@/components/ConfirmDialog';
 
 interface AgendamentoRel {
@@ -26,6 +27,7 @@ interface AgendamentoRel {
   pago?: boolean;
   forma_pagamento?: string | null;
   faltou?: boolean;
+  custo_produtos?: number | string | null;
 }
 
 interface Fechamento {
@@ -48,39 +50,12 @@ const Relatorios = () => {
   const hoje = new Date();
   const [mesRelatorio, setMesRelatorio] = useState(String(hoje.getMonth() + 1).padStart(2, '0'));
   const [anoRelatorio, setAnoRelatorio] = useState(String(hoje.getFullYear()));
-  const [custosFixosMes, setCustosFixosMes] = useState(0);
-  const [custosVariaveisMes, setCustosVariaveisMes] = useState(0);
+  const [custosFixos, setCustosFixos] = useState<CustoFixo[]>([]);
+  const [despesas, setDespesas] = useState<Despesa[]>([]);
 
   useEffect(() => {
     fetchDados();
   }, []);
-
-  useEffect(() => {
-    const buscarDespesasDoMes = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const prefixo = `${anoRelatorio}-${mesRelatorio}`;
-
-      const { data: fixos } = await supabase
-        .from('custos_fixos')
-        .select('valor_mensal, ativo')
-        .eq('usuario_id', user.id);
-      const totalFixos = (fixos || [])
-        .filter((c) => c.ativo)
-        .reduce((acc, c) => acc + parseMoeda(c.valor_mensal), 0);
-      setCustosFixosMes(totalFixos);
-
-      const { data: variaveis } = await supabase
-        .from('se_custos')
-        .select('valor, data_vencimento, data_pagamento')
-        .eq('usuario_id', user.id);
-      const totalVariaveis = (variaveis || [])
-        .filter((c) => (c.data_vencimento || c.data_pagamento || '').startsWith(prefixo))
-        .reduce((acc, c) => acc + parseMoeda(c.valor), 0);
-      setCustosVariaveisMes(totalVariaveis);
-    };
-    buscarDespesasDoMes();
-  }, [mesRelatorio, anoRelatorio]);
 
   const fetchDados = async () => {
     setLoading(true);
@@ -88,7 +63,7 @@ const Relatorios = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [resAg, resFech] = await Promise.all([
+      const [resAg, resFech, resFixos, resDespesas] = await Promise.all([
         // CORRIGIDO: usava 'user_id', alterado para 'usuario_id'
         supabase.from('agendamentos').select('*').eq('usuario_id', user.id),
         // fechamentos só tem a coluna user_id (não usuario_id) — confirmado no schema.
@@ -97,10 +72,14 @@ const Relatorios = () => {
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false }),
+        supabase.from('custos_fixos').select('*').eq('usuario_id', user.id),
+        supabase.from('se_custos').select('*').eq('usuario_id', user.id),
       ]);
 
       setAgendamentos(resAg.data || []);
       setFechamentos(resFech.data || []);
+      setCustosFixos((resFixos.data as CustoFixo[]) || []);
+      setDespesas((resDespesas.data as Despesa[]) || []);
     } catch (e) {
       console.error('Erro ao carregar:', e);
     } finally {
@@ -155,8 +134,6 @@ const Relatorios = () => {
     const anoAtual = new Date().getFullYear();
     const mesAtualIdx = new Date().getMonth();
     let brutoTotalAno = 0;
-    let lucroRealAcumulado = 0;
-    let brutoTotalFechado = 0;
     const ganhosPorMes: Record<string, number> = {};
 
     agendamentos.forEach((ag) => {
@@ -178,16 +155,6 @@ const Relatorios = () => {
       }
     });
 
-    fechamentos.forEach((f) => {
-      const dataF = f.data_referencia || f.data;
-      if (dataF && dataF.startsWith(anoAtual.toString())) {
-        if (filtroLocal === 'TODOS' || f.local === filtroLocal) {
-          lucroRealAcumulado += parseMoeda(f.lucro_liquido || 0);
-          brutoTotalFechado += parseMoeda(f.faturamento_bruto || 0);
-        }
-      }
-    });
-
     const chartData = MESES.map((mes) => ({ mes, ganho: ganhosPorMes[mes] || 0 }));
 
     const ganhoMesAtual = ganhosPorMes[MESES[mesAtualIdx]] || 0;
@@ -195,8 +162,12 @@ const Relatorios = () => {
     const variacao =
       ganhoMesAnterior > 0 ? ((ganhoMesAtual - ganhoMesAnterior) / ganhoMesAnterior) * 100 : 0;
 
-    return { chartData, brutoTotalAno, lucroRealAcumulado, brutoTotalFechado, variacao };
-  }, [agendamentos, fechamentos, filtroLocal]);
+    // Lucro do ano: a mesma fórmula de todas as páginas, mês a mês, até hoje.
+    // Só faz sentido com todos os locais (os custos não estão divididos por local).
+    const ano = lucroDoAno({ agendamentos, custosFixos, despesas }, anoAtual);
+
+    return { chartData, brutoTotalAno, lucroAno: ano.lucro, realizadoAno: ano.realizado, variacao };
+  }, [agendamentos, custosFixos, despesas, filtroLocal]);
 
   const relatorioMensal = useMemo(() => {
     const prefixo = `${anoRelatorio}-${mesRelatorio}`;
@@ -208,28 +179,27 @@ const Relatorios = () => {
       })
       .sort((a, b) => (a.data || '').localeCompare(b.data || ''));
 
-    const totalFaturado = atendimentos
-      .filter((ag) => !ag.faltou)
-      .reduce((acc, ag) => acc + parseMoeda(ag.valor ?? ag.preco ?? 0), 0);
+    // Previsto / Realizado só dos atendimentos deste filtro de local.
+    const totais = totaisDoMes(atendimentos, prefixo, isoDia(new Date()));
 
-    const porForma: Record<string, number> = { dinheiro: 0, cartao: 0, mbway: 0, transferencia: 0, nao_registado: 0 };
+    // Pago → a forma de pagamento. Não pago: se já aconteceu, "Não registado";
+    // se ainda vai acontecer, "Previsto" (ainda não era para estar pago).
+    const hojeISO = isoDia(new Date());
+    const porForma: Record<string, number> = { dinheiro: 0, cartao: 0, mbway: 0, transferencia: 0, nao_registado: 0, previsto: 0 };
     atendimentos.forEach((ag) => {
       if (ag.faltou) return;
       const valor = parseMoeda(ag.valor ?? ag.preco ?? 0);
-      const chave = ag.pago && ag.forma_pagamento ? ag.forma_pagamento : 'nao_registado';
+      const chave = ag.pago && ag.forma_pagamento
+        ? ag.forma_pagamento
+        : (ag.data || '').slice(0, 10) > hojeISO ? 'previsto' : 'nao_registado';
       porForma[chave] = (porForma[chave] || 0) + valor;
     });
 
-    const totalDespesas = custosFixosMes + custosVariaveisMes;
+    const lucro = calcularLucroMes({ agendamentos, custosFixos, despesas }, prefixo);
+    const totalCustos = lucro.custosFixos + lucro.material + lucro.despesasPontuais;
 
-    return {
-      atendimentos,
-      totalFaturado,
-      porForma,
-      totalDespesas,
-      lucroEstimado: totalFaturado - totalDespesas,
-    };
-  }, [agendamentos, filtroLocal, mesRelatorio, anoRelatorio, custosFixosMes, custosVariaveisMes]);
+    return { atendimentos, totais, porForma, lucro, totalCustos };
+  }, [agendamentos, filtroLocal, mesRelatorio, anoRelatorio, custosFixos, despesas]);
 
   if (loading) {
     return (
@@ -237,12 +207,11 @@ const Relatorios = () => {
     );
   }
 
-  // Margem calculada só sobre os dias já fechados (mesma base do lucro),
-  // para não dividir lucro de uma fração pelo faturação do ano inteiro.
-  const margemLucro =
-    resumoDados.brutoTotalFechado > 0
-      ? (resumoDados.lucroRealAcumulado / resumoDados.brutoTotalFechado) * 100
-      : 0;
+  // Margem = lucro ÷ realizado, de janeiro até hoje.
+  const margemLucro = resumoDados.realizadoAno > 0 ? (resumoDados.lucroAno / resumoDados.realizadoAno) * 100 : 0;
+  const todosLocais = filtroLocal === 'TODOS';
+  const lucroMes = relatorioMensal.lucro;
+  const valorLucroMes = lucroMes.quando === 'futuro' ? lucroMes.lucroPrevisto : lucroMes.lucro;
 
   return (
     <div>
@@ -321,38 +290,55 @@ const Relatorios = () => {
             {/* Cartões-resumo */}
             <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/20 print:border print:shadow-none">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Faturado</p>
-                <p className="font-display text-xl font-bold text-foreground">€ {relatorioMensal.totalFaturado.toFixed(2)}</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Realizado</p>
+                <p className="font-display text-xl font-bold text-foreground">{euro(relatorioMensal.totais.realizado)}</p>
+                {relatorioMensal.totais.previsto !== relatorioMensal.totais.realizado && (
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">Previsto: {euro(relatorioMensal.totais.previsto)}</p>
+                )}
               </div>
               <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/20 print:border print:shadow-none">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Despesas</p>
-                <p className="font-display text-xl font-bold text-foreground">€ {relatorioMensal.totalDespesas.toFixed(2)}</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Custos do mês</p>
+                <p className="font-display text-xl font-bold text-foreground">{euro(relatorioMensal.totalCustos)}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">Fixos, material e despesas</p>
               </div>
-              <div className={cn('rounded-2xl border p-5 print:border print:shadow-none', relatorioMensal.lucroEstimado < 0 ? 'border-danger/25 bg-danger/5' : relatorioMensal.lucroEstimado > 0 ? 'border-success/25 bg-success/5' : 'border-border bg-card')}>
-                <p className={cn('mb-1 text-[10px] font-semibold uppercase tracking-wider', classeValorSinal(relatorioMensal.lucroEstimado))}>Lucro Estimado</p>
-                <p className={cn('font-display text-xl font-bold', classeValorSinal(relatorioMensal.lucroEstimado))}>€ {relatorioMensal.lucroEstimado.toFixed(2)}</p>
+              <div className={cn('rounded-2xl border p-5 print:border print:shadow-none', !todosLocais ? 'border-border bg-card' : valorLucroMes < 0 ? 'border-danger/25 bg-danger/5' : valorLucroMes > 0 ? 'border-success/25 bg-success/5' : 'border-border bg-card')}>
+                <p className={cn('mb-1 text-[10px] font-semibold uppercase tracking-wider', todosLocais ? classeValorSinal(valorLucroMes) : 'text-muted-foreground')}>
+                  {rotuloResultado(valorLucroMes)} {lucroMes.quando === 'futuro' ? 'previsto' : 'do mês'}
+                </p>
+                {todosLocais ? (
+                  <p className={cn('font-display text-xl font-bold', classeValorSinal(valorLucroMes))}>{euro(Math.abs(valorLucroMes))}</p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">Escolhe «TODOS» no filtro de local para veres o lucro.</p>
+                )}
+                {todosLocais && lucroMes.porPagar > 0 && (
+                  <p className="mt-0.5 text-[10px] text-amber-500">{euro(lucroMes.porPagar)} de despesas por pagar</p>
+                )}
               </div>
               <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/20 print:border print:shadow-none">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Atendimentos</p>
-                <p className="font-display text-xl font-bold text-foreground">{relatorioMensal.atendimentos.length}</p>
+                <p className="font-display text-base font-bold leading-snug text-foreground">{textoAtendimentos(relatorioMensal.totais)}</p>
               </div>
             </div>
 
             {/* Formas de pagamento */}
             <div className="mb-6 rounded-2xl border border-border bg-card p-6 shadow-lg shadow-black/20 print:border print:shadow-none">
-              <h3 className="mb-4 text-sm font-bold text-foreground">Recebido por Forma de Pagamento</h3>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              <h3 className="text-sm font-bold text-foreground">Por forma de pagamento</h3>
+              <p className="mb-4 text-[11px] text-muted-foreground">
+                O que já recebeste, por forma de pagamento. «Não registado»: já aconteceu mas não está marcado como pago. «Previsto»: ainda vai acontecer.
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 {[
                   { chave: 'dinheiro', label: 'Dinheiro', Icone: Banknote },
                   { chave: 'cartao', label: 'Cartão', Icone: CreditCard },
                   { chave: 'mbway', label: 'MBWay', Icone: Smartphone },
                   { chave: 'transferencia', label: 'Transferência', Icone: Landmark },
                   { chave: 'nao_registado', label: 'Não registado', Icone: FileText },
+                  { chave: 'previsto', label: 'Previsto', Icone: CalendarDays },
                 ].map(({ chave, label, Icone }) => (
                   <div key={chave} className="rounded-xl border border-border p-3 text-center">
                     <Icone size={16} className="mx-auto mb-1.5 text-primary" />
                     <p className="text-[10px] text-muted-foreground">{label}</p>
-                    <p className="text-sm font-bold text-foreground">€ {(relatorioMensal.porForma[chave] || 0).toFixed(2)}</p>
+                    <p className="text-sm font-bold text-foreground">{formatarEuro(relatorioMensal.porForma[chave] || 0)}</p>
                   </div>
                 ))}
               </div>
@@ -378,7 +364,7 @@ const Relatorios = () => {
                   <tbody>
                     {relatorioMensal.atendimentos.map((ag, i) => (
                       <tr key={ag.id ?? i} className="border-b border-border last:border-none">
-                        <td className="px-4 py-3 text-foreground">{ag.data}</td>
+                        <td className="px-4 py-3 text-foreground">{formatarData(ag.data)}</td>
                         <td className="px-4 py-3 text-foreground">{ag.cliente || '—'}</td>
                         <td className="px-4 py-3 text-muted-foreground">{ag.procedimento || '—'}</td>
                         <td className="px-4 py-3 text-muted-foreground">
@@ -389,11 +375,11 @@ const Relatorios = () => {
                           ) : ag.pago && ag.forma_pagamento ? (
                             { dinheiro: 'Dinheiro', cartao: 'Cartão', mbway: 'MBWay', transferencia: 'Transferência' }[ag.forma_pagamento] || ag.forma_pagamento
                           ) : (
-                            'Não registado'
+                            (ag.data || '').slice(0, 10) > isoDia(new Date()) ? 'Previsto' : 'Não registado'
                           )}
                         </td>
                         <td className={cn('px-4 py-3 text-right font-semibold', ag.faltou ? 'text-muted-foreground line-through' : 'text-foreground')}>
-                          € {parseMoeda(ag.valor ?? ag.preco ?? 0).toFixed(2)}
+                          {formatarEuro(parseMoeda(ag.valor ?? ag.preco ?? 0))}
                         </td>
                         <td className="no-print px-4 py-3 text-center">
                           <button
@@ -459,11 +445,12 @@ const Relatorios = () => {
               </div>
             </div>
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Faturação Bruto (Ano)
+              Previsto (ano)
             </p>
             <p className="font-display text-[28px] font-bold text-foreground">
-              € {resumoDados.brutoTotalAno.toFixed(2)}
+              {euro(resumoDados.brutoTotalAno)}
             </p>
+            <p className="mt-1 text-[10px] text-muted-foreground">Tudo o que está marcado este ano, sem faltas</p>
           </div>
 
           <div className="rounded-2xl border border-success/25 bg-success/5 p-6">
@@ -488,12 +475,17 @@ const Relatorios = () => {
                 </span>
               )}
             </div>
-            <p className={cn('mb-1.5 text-[11px] font-semibold uppercase tracking-wider', classeValorSinal(resumoDados.lucroRealAcumulado))}>
-              Lucro Líquido (Ano)
+            <p className={cn('mb-1.5 text-[11px] font-semibold uppercase tracking-wider', todosLocais ? classeValorSinal(resumoDados.lucroAno) : 'text-muted-foreground')}>
+              {rotuloResultado(resumoDados.lucroAno)} do ano (até hoje)
             </p>
-            <p className={cn('font-display text-[28px] font-bold', classeValorSinal(resumoDados.lucroRealAcumulado))}>
-              € {resumoDados.lucroRealAcumulado.toFixed(2)}
-            </p>
+            {todosLocais ? (
+              <p className={cn('font-display text-[28px] font-bold', classeValorSinal(resumoDados.lucroAno))}>
+                {euro(Math.abs(resumoDados.lucroAno))}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Escolhe «TODOS» no filtro de local para veres o lucro.</p>
+            )}
+            <p className="mt-1 text-[10px] text-muted-foreground">Soma do lucro de cada mês: realizado − custos fixos − material − despesas</p>
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-6 shadow-lg shadow-black/20">
@@ -503,13 +495,13 @@ const Relatorios = () => {
               </div>
             </div>
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Margem de Lucro (dias fechados)
+              Margem de lucro
             </p>
             <p className="font-display text-[28px] font-bold text-foreground">
-              {margemLucro.toFixed(1)}%
+              {todosLocais ? `${margemLucro.toFixed(1)}%` : '—'}
             </p>
             <p className="mt-1 text-[10px] text-muted-foreground">
-              Calculada só sobre os dias já fechados na página de Comissão
+              Lucro ÷ Realizado, de janeiro até hoje
             </p>
           </div>
         </div>
@@ -519,7 +511,7 @@ const Relatorios = () => {
           <div className="mb-5 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-foreground">Evolução Mensal</h3>
-              <p className="text-[11px] text-muted-foreground">Faturação por mês, ano atual</p>
+              <p className="text-[11px] text-muted-foreground">Previsto por mês (sem faltas), ano atual</p>
             </div>
           </div>
           <div className="w-full" style={{ height: 380, minHeight: 380, width: '100%' }}>
@@ -554,7 +546,7 @@ const Relatorios = () => {
                   }}
                   labelStyle={{ color: '#FFFFFF', fontWeight: 600, marginBottom: 4 }}
                   itemStyle={{ color: '#8B5CF6' }}
-                  formatter={(value: number) => [`€ ${value.toFixed(2)}`, 'Faturação']}
+                  formatter={(value: number) => [formatarEuro(value), 'Realizado + previsto']}
                   cursor={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }}
                 />
                 <Area
@@ -573,8 +565,11 @@ const Relatorios = () => {
       {/* Histórico */}
       <div className="secao-impressao rounded-2xl border border-border bg-card p-6 shadow-lg shadow-black/20">
         <h3 className="mb-4 text-sm font-bold text-foreground">
-          Histórico {filtroLocal !== 'TODOS' && `— ${filtroLocal}`}
+          Fechos da Comissão {filtroLocal !== 'TODOS' && `— ${filtroLocal}`}
         </h3>
+        <p className="-mt-3 mb-4 text-[11px] text-muted-foreground">
+          Os dias que fechaste na página Comissão e o que ficou para ti depois da parte do espaço.
+        </p>
         <div className="max-h-[350px] overflow-y-auto rounded-xl border border-border">
           <table className="w-full border-collapse text-[13px]">
             <thead className="sticky top-0 bg-card">
@@ -586,7 +581,7 @@ const Relatorios = () => {
                   Local
                 </th>
                 <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Valor
+                  Fica para ti
                 </th>
                 <th className="no-print px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Ação
@@ -602,11 +597,11 @@ const Relatorios = () => {
                     className="border-b border-border transition-colors last:border-none hover:bg-muted/50"
                   >
                     <td className="px-4 py-3 font-medium text-foreground">
-                      {f.data_referencia || f.data}
+                      {formatarData(f.data_referencia || f.data)}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{f.local}</td>
                     <td className={cn('px-4 py-3 font-bold', classeValorSinal(parseFloat(String(f.lucro_liquido || 0))))}>
-                      € {parseFloat(String(f.lucro_liquido || 0)).toFixed(2)}
+                      {formatarEuro(parseFloat(String(f.lucro_liquido || 0)))}
                     </td>
                     <td className="no-print px-4 py-3 text-center">
                       <button
