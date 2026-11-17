@@ -19,7 +19,11 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 // Remetente FIXO no código (não usa secret). O domínio esteticalchub.pt está
 // verificado na Resend (conta suporte.esteticalchub@gmail.com).
 const FROM_EMAIL = "EstetiCalcHub <lembretes@esteticalchub.pt>";
-const CRON_SECRET = Deno.env.get("CRON_SECRET")!;
+// Segredo do cron: está no cofre da base de dados (Vault, nome 'cron_secret')
+// e é confirmado com public.validar_segredo_cron — a função nunca o lê.
+// O CRON_SECRET antigo (variável de ambiente) já não é aceite: a troca acabou.
+const ACEITAR_SEGREDO_ANTIGO = false;
+const CRON_SECRET = Deno.env.get("CRON_SECRET");
 const APP_URL = Deno.env.get("APP_URL") ?? "https://esteticalchub.pt";
 
 // Robô de WhatsApp: opcional. Enquanto não estiverem definidos, as linhas de
@@ -352,8 +356,18 @@ async function processarCanal(
   return contagem;
 }
 
+/** O pedido traz o segredo certo no cabeçalho x-cron-secret? */
+async function pedidoAutorizado(req: Request): Promise<boolean> {
+  const recebido = req.headers.get("x-cron-secret") ?? "";
+  if (!recebido) return false;
+  if (ACEITAR_SEGREDO_ANTIGO && CRON_SECRET && recebido === CRON_SECRET) return true;
+  const { data, error } = await admin.rpc("validar_segredo_cron", { p_segredo: recebido });
+  if (error) console.error("validar_segredo_cron:", error.message);
+  return !error && data === true;
+}
+
 Deno.serve(async (req) => {
-  if (req.headers.get("x-cron-secret") !== CRON_SECRET) {
+  if (!(await pedidoAutorizado(req))) {
     return new Response("não autorizado", { status: 401 });
   }
 
