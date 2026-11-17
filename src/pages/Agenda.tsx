@@ -133,7 +133,7 @@ const Agenda = () => {
         // agendamentos de toda a equipa, não só os meus.
         const { data, error } = await supabase
           .from('agendamentos')
-          .select('*')
+          .select('*, clientes:cliente_id ( telefone )')
           .order('hora', { ascending: true });
 
         if (!error && data) {

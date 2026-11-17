@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2, UserX, MapPin, ExternalLink } from 'lucide-react';
+import { CalendarX, Sparkles, Pencil, Trash2, Euro, CheckCircle2, UserX, MapPin, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { parseMoeda, formatarHora, agendamentoEDomicilio, linkGoogleMaps, cn, formatarEuro } from '@/lib/utils';
 import { supabase } from '../supabase';
 import { confirmar } from './ConfirmDialog';
-import { LEMBRETES_WHATSAPP_ATIVOS } from '@/hooks/usePlano';
+import BotaoWhatsApp from './BotaoWhatsApp';
 import RegistoPagamentoRapido, { type AgendamentoParaPagar } from './RegistoPagamentoRapido';
 
 interface Appointment {
@@ -21,6 +21,11 @@ interface Appointment {
   procedimento?: string;
   procedure?: string;
   telefone?: string;
+  telefone_cliente?: string | null;
+  data?: string;
+  confirmacao_token?: string | null;
+  /** Ficha da cliente (telefone guardado), quando vem junto com o agendamento. */
+  clientes?: { telefone?: string | null } | null;
   pago?: boolean;
   cliente_id?: string;
   usuario_id?: string;
@@ -106,23 +111,6 @@ const ListaAgendamentos = ({
       { totalRendimento: 0, totalCusto: 0, totalLucro: 0 }
     );
   }, [appointments]);
-
-  // Função para enviar o lembrete via WhatsApp
-  const enviarLembreteWhatsApp = (appt: Appointment) => {
-    const nomeCliente = appt.cliente || appt.clientName || 'Cliente';
-    const horario = formatarHora(appt.hora || appt.time) || 'horário agendado';
-    const procedimento = appt.procedimento || appt.procedure || 'atendimento';
-
-    const texto = `Olá, ${nomeCliente}! 👋 Passando para lembrar do seu agendamento de *${procedimento}* hoje às *${horario}*. Podemos confirmar? ✨`;
-    const mensagemEncoded = encodeURIComponent(texto);
-
-    const numeroTelefone = appt.telefone ? appt.telefone.replace(/\D/g, '') : '';
-    const url = numeroTelefone
-      ? `https://wa.me/${numeroTelefone}?text=${mensagemEncoded}`
-      : `https://wa.me/?text=${mensagemEncoded}`;
-
-    window.open(url, '_blank');
-  };
 
   // Marca como falta: guarda o estado num campo próprio, sem apagar o valor
   // original nem mexer no texto do procedimento — dá para desfazer depois.
@@ -340,18 +328,18 @@ const ListaAgendamentos = ({
                   )
                 )}
 
-                {LEMBRETES_WHATSAPP_ATIVOS && (
-                  <Button
-                    onClick={() => enviarLembreteWhatsApp(appt)}
-                    size="sm"
-                    variant="outline"
-                    className="h-7 gap-1 border-emerald-500/30 px-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
-                    title="Enviar lembrete pelo WhatsApp"
-                  >
-                    <MessageCircle size={12} />
-                    Lembrete
-                  </Button>
-                )}
+                {/* Mensagem pronta no WhatsApp (não depende do robô automático) */}
+                <BotaoWhatsApp
+                  marcacao={{
+                    cliente: appt.cliente || appt.clientName,
+                    procedimento: appt.procedimento || appt.procedure,
+                    data: appt.data,
+                    hora: appt.hora || appt.time,
+                    local: appt.ponto_atendimento || appt.pontoAtendimento,
+                    confirmacaoToken: appt.confirmacao_token,
+                    telefone: appt.telefone_cliente || appt.clientes?.telefone || appt.telefone,
+                  }}
+                />
 
                 {onEdit && (
                   <Button

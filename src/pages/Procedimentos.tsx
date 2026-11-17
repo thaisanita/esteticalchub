@@ -1,3 +1,4 @@
+import BotaoWhatsApp from '@/components/BotaoWhatsApp';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -37,6 +38,10 @@ interface Atendimento {
   local_tipo?: 'estudio' | 'domicilio' | null;
   faltou?: boolean;
   agenda_id?: string;
+  telefone_cliente?: string | null;
+  confirmacao_token?: string | null;
+  /** Ficha da cliente (telefone guardado), vem junto com o agendamento. */
+  clientes?: { telefone?: string | null } | null;
 }
 
 const Procedimentos = () => {
@@ -68,7 +73,7 @@ const Procedimentos = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('agendamentos')
-      .select('*')
+      .select('*, clientes:cliente_id ( telefone )')
       .eq('data', dataSelecionada)
       .order('hora', { ascending: true });
 
@@ -255,6 +260,17 @@ const Procedimentos = () => {
                   </div>
 
                   <div className="flex items-center gap-1">
+                    <BotaoWhatsApp
+                      marcacao={{
+                        cliente: item.cliente,
+                        procedimento: item.procedimento,
+                        data: item.data,
+                        hora: item.hora,
+                        local: localAtendimento,
+                        confirmacaoToken: item.confirmacao_token,
+                        telefone: item.telefone_cliente || item.clientes?.telefone,
+                      }}
+                    />
                     {isFalta ? (
                       <button
                         onClick={() => desfazerFalta(item.id)}

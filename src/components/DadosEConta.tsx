@@ -35,6 +35,7 @@ const TABELAS_EXPORTAVEIS = [
   'fila_notificacoes',
   'paginas_publicas',
   'configuracoes_usuario',
+  'modelos_mensagem',
 ];
 
 export default function DadosEConta() {

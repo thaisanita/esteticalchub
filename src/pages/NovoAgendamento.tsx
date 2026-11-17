@@ -31,6 +31,7 @@ import {
   Home,
 } from 'lucide-react';
 import { URL_PUBLICO } from '@/lib/empresa';
+import BotaoWhatsApp from '@/components/BotaoWhatsApp';
 import { isoDia, totaisDoMes, totalCustosFixosMensais, type CustoFixo } from '@/lib/lucro';
 import {
   Select,
@@ -73,6 +74,8 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   const [clienteId, setClienteId] = useState<string | null>(null);
   const [temProntuario, setTemProntuario] = useState<boolean | null>(null);
   const [telefoneCliente, setTelefoneCliente] = useState('');
+  // Só na edição: para o link de confirmação na mensagem do WhatsApp.
+  const [tokenConfirmacaoEdicao, setTokenConfirmacaoEdicao] = useState<string | null>(null);
   const [emailCliente, setEmailCliente] = useState('');
   const [procedimento, setProcedimento] = useState('');
   const [horaInicio, setHoraInicio] = useState('09:00');
@@ -383,6 +386,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
             setClienteId(data.cliente_id || null);
             setTelefoneCliente(data.telefone_cliente || '');
             setEmailCliente(data.email_cliente || '');
+            setTokenConfirmacaoEdicao(data.confirmacao_token || null);
             setProcedimento(data.procedimento || '');
             setPreco(
               data.preco !== undefined && data.preco !== null
@@ -760,8 +764,25 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
             Defina os detalhes do atendimento e configure os lembretes do cliente
           </p>
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
-          {idParaEditar ? <Pencil size={18} /> : <Calendar size={18} />}
+        <div className="flex items-center gap-2">
+          {/* Resumo da marcação: enviar a mensagem pronta pelo WhatsApp */}
+          {idParaEditar && (
+            <BotaoWhatsApp
+              variante="texto"
+              marcacao={{
+                cliente: nomeCliente || cliente,
+                procedimento,
+                data: dataAgendamento,
+                hora: horaInicio,
+                local: localTexto,
+                confirmacaoToken: tokenConfirmacaoEdicao,
+                telefone: telefoneCliente,
+              }}
+            />
+          )}
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
+            {idParaEditar ? <Pencil size={18} /> : <Calendar size={18} />}
+          </div>
         </div>
       </div>
 

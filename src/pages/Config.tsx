@@ -22,10 +22,12 @@ import {
   ShieldCheck,
   Users,
   Megaphone,
+  MessageCircle,
 } from 'lucide-react';
 import { textosConfig, obterIdiomaAtual, type Idioma } from '@/lib/i18n';
 import ConectarWhatsAppBot from '@/components/ConectarWhatsAppBot';
 import PaginaPublicaConfig from '@/components/PaginaPublicaConfig';
+import MensagensAutomaticas from '@/components/MensagensAutomaticas';
 import TrafegoPagoConfig from '@/components/TrafegoPagoConfig';
 import DadosEConta from '@/components/DadosEConta';
 import { LEMBRETES_WHATSAPP_ATIVOS } from '@/hooks/usePlano';
@@ -137,6 +139,23 @@ export default function Config() {
           <ConectarWhatsAppBot />
         </div>
       )}
+
+      {/* Mensagens automáticas: texto do botão do WhatsApp em cada marcação */}
+      <div id="mensagens-automaticas" className="mb-3 rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
+        <div className="flex items-start gap-3.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 mt-0.5">
+            <MessageCircle size={18} className="text-emerald-500" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-foreground">Mensagens automáticas</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              O texto que aparece já escrito quando carregas no botão do WhatsApp de uma marcação. Os dados de cada marcação entram nas variáveis.
+            </div>
+          </div>
+        </div>
+
+        <MensagensAutomaticas />
+      </div>
 
       {/* Página Pública (captação de leads via anúncios) */}
       <div className="mb-3 rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
