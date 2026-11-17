@@ -4,6 +4,8 @@
 // BOT_SECRET estiverem configurados — ver whatsapp-bot/README.md).
 //
 // É chamada a cada poucos minutos pelo pg_cron (ver NOTIFICACOES_AUTOMATICAS.md).
+// ATENÇÃO: no Supabase esta função está publicada com o nome "super-action"
+// (é esse o URL que o cron chama), não "processar-fila".
 // Fluxo, por canal:
 //   1. reivindicar_notificacoes(canal) devolve um lote já trancado
 //   2. para cada linha: resolve o destino, respeita opt-out, envia
@@ -14,13 +16,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-// Remetente FIXO no codigo (nao usa secret, para nao arriscar formato invalido).
-// Em modo de teste, a Resend so entrega para o email dono da conta Resend.
-// Depois de verificar um dominio proprio em resend.com/domains, trocar esta
-// linha por: "Agenda Estetica <lembretes@seudominio.com>"
-const FROM_EMAIL = "onboarding@resend.dev";
+// Remetente FIXO no código (não usa secret). O domínio esteticalchub.pt está
+// verificado na Resend (conta suporte.esteticalchub@gmail.com).
+const FROM_EMAIL = "EstetiCalcHub <lembretes@esteticalchub.pt>";
 const CRON_SECRET = Deno.env.get("CRON_SECRET")!;
-const APP_URL = Deno.env.get("APP_URL") ?? "https://esteticalchub.pages.dev";
+const APP_URL = Deno.env.get("APP_URL") ?? "https://esteticalchub.pt";
 
 // Robô de WhatsApp: opcional. Enquanto não estiverem definidos, as linhas de
 // canal 'whatsapp' ficam paradas na fila (não são tocadas nem dão erro).
@@ -85,19 +85,32 @@ function montarMensagem(ag: Agendamento, antecedencia: string) {
   );
 }
 
+function escaparHtml(texto: string) {
+  return texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/**
+ * Envia um email pela Resend. O remetente é sempre o EstetiCalcHub; o nome
+ * da profissional vai no texto ("Enviado por …") e as respostas da cliente
+ * vão para o email da profissional (reply_to), não para lembretes@.
+ */
 async function enviarEmail(
   para: string,
   assunto: string,
   texto: string,
   optOutUrl: string,
   conviteICS: string | null,
+  profissional: { nome: string; email: string | null },
 ) {
+  const assinatura = `Enviado por ${profissional.nome} através do EstetiCalcHub.`;
+  const textoCompleto = `${texto}\n\n${assinatura}`;
   const html =
     `<div style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:15px;line-height:1.6;color:#1e1b2e">` +
     texto.replace(/\n/g, "<br>") +
     (conviteICS
       ? `<p style="font-size:13px;color:#4b4458">📅 Convite de calendário anexado — abra para adicionar à sua agenda.</p>`
       : "") +
+    `<p style="font-size:13px;color:#4b4458;margin-top:20px">Enviado por <strong>${escaparHtml(profissional.nome)}</strong> através do EstetiCalcHub.</p>` +
     `<hr style="border:none;border-top:1px solid #e5e0ef;margin:20px 0">` +
     `<p style="font-size:12px;color:#8a83a3">Não quer mais receber estes lembretes? ` +
     `<a href="${optOutUrl}" style="color:#8a83a3">Cancelar</a>.</p></div>`;
@@ -118,7 +131,15 @@ async function enviarEmail(
       Authorization: `Bearer ${RESEND_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ from: FROM_EMAIL, to: [para], subject: assunto, text: texto, html, attachments }),
+    body: JSON.stringify({
+      from: FROM_EMAIL,
+      to: [para],
+      ...(profissional.email ? { reply_to: profissional.email } : {}),
+      subject: assunto,
+      text: textoCompleto,
+      html,
+      attachments,
+    }),
   });
 
   const body = await resp.json().catch(() => ({}));
@@ -165,14 +186,29 @@ async function buscarAgendamento(agendamentoId: string): Promise<Agendamento | n
 
 const cacheOrganizador = new Map<string, { nome: string; email: string | null }>();
 
-/** Nome/email da profissional dona do agendamento, para o campo ORGANIZER do convite. */
+/**
+ * Nome/email da profissional dona do agendamento: vai no texto do email
+ * ("Enviado por …"), no reply_to e no campo ORGANIZER do convite.
+ * Nome: o do perfil (como na barra de cima da app); senão o nome do negócio
+ * da página pública; senão "a sua profissional". Nunca mostra o email.
+ */
 async function buscarOrganizador(usuarioId: string): Promise<{ nome: string; email: string | null }> {
   const emCache = cacheOrganizador.get(usuarioId);
   if (emCache) return emCache;
 
   const { data } = await admin.auth.admin.getUserById(usuarioId);
+  const meta = data?.user?.user_metadata ?? {};
+  let nome = String(meta.full_name || meta.name || "").trim();
+  if (!nome) {
+    const { data: pagina } = await admin
+      .from("paginas_publicas")
+      .select("nome_negocio")
+      .eq("usuario_id", usuarioId)
+      .maybeSingle();
+    nome = String(pagina?.nome_negocio || "").trim();
+  }
   const info = {
-    nome: (data?.user?.user_metadata?.full_name as string | undefined) || "a sua profissional",
+    nome: nome || "a sua profissional",
     email: data?.user?.email ?? null,
   };
   cacheOrganizador.set(usuarioId, info);
@@ -321,6 +357,38 @@ Deno.serve(async (req) => {
     return new Response("não autorizado", { status: 401 });
   }
 
+  // Email de teste: { "teste_para": "...", "teste_usuario_id": "..." } envia UM
+  // email com o mesmo remetente e formato dos lembretes, e não toca na fila
+  // nem em nenhum dado. Usado só para confirmar a configuração da Resend.
+  const pedido = await req.json().catch(() => ({})) as { teste_para?: string; teste_usuario_id?: string };
+  if (pedido.teste_para) {
+    const para = String(pedido.teste_para).trim();
+    if (!para.includes("@")) {
+      return new Response(JSON.stringify({ erro: "teste_para inválido" }), { status: 400 });
+    }
+    try {
+      const profissional = pedido.teste_usuario_id
+        ? await buscarOrganizador(pedido.teste_usuario_id)
+        : { nome: "a sua profissional", email: null };
+      const id = await enviarEmail(
+        para,
+        "Teste: lembretes do EstetiCalcHub",
+        "Olá! Este é um email de teste dos lembretes do EstetiCalcHub.\nSe o recebeste, o envio de lembretes por email está a funcionar.",
+        `${APP_URL}/opt-out`,
+        null,
+        profissional,
+      );
+      return new Response(JSON.stringify({ teste: "enviado", id, de: FROM_EMAIL }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ teste: "falhou", erro: e instanceof Error ? e.message : String(e) }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
   const resultado: Record<string, unknown> = {};
 
   resultado.email = await processarCanal("email", async (linha, ag, cli, texto) => {
@@ -337,7 +405,7 @@ Deno.serve(async (req) => {
     const organizador = await buscarOrganizador(linha.usuario_id);
     const conviteICS = gerarConviteICS(ag, linha.agendamento_id, email, organizador);
 
-    const providerId = await enviarEmail(email, assunto, texto, optOutUrl, conviteICS);
+    const providerId = await enviarEmail(email, assunto, texto, optOutUrl, conviteICS, organizador);
     await finalizar(linha, {
       status: "enviado",
       enviado_em: new Date().toISOString(),

@@ -45,9 +45,8 @@ supabase link --project-ref <PROJECT_REF>
 # segredos (só ficam no servidor, nunca no frontend)
 supabase secrets set \
   RESEND_API_KEY=re_xxx \
-  NOTIF_FROM_EMAIL="Agenda Estética <lembretes@seudominio.com>" \
   CRON_SECRET=$(openssl rand -hex 24) \
-  APP_URL=https://esteticalchub.pages.dev
+  APP_URL=https://esteticalchub.pt
 
 # a função é chamada pelo cron (não por utilizadores), por isso sem verificação de JWT
 supabase functions deploy processar-fila --no-verify-jwt

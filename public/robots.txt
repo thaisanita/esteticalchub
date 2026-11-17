@@ -9,4 +9,4 @@ Disallow: /opt-out
 Disallow: /reset-password
 Disallow: /auth/
 
-Sitemap: https://esteticalchub.pages.dev/sitemap.xml
+Sitemap: https://esteticalchub.pt/sitemap.xml

@@ -566,7 +566,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     // ficar guardado.
     if (!idParaEditar && emailCliente.trim()) {
       const linkConfirmacao = confirmacaoToken
-        ? `https://esteticalchub.pt/confirmacao/${confirmacaoToken}`
+        ? `${URL_PUBLICO}/confirmacao/${confirmacaoToken}`
         : '';
 
       // Se esta consulta falhar, "data" fica undefined e nomeNegocio vazio —

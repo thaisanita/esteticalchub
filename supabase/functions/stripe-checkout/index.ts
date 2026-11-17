@@ -13,7 +13,7 @@ import Stripe from "https://esm.sh/stripe@17?target=deno";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY")!;
-const APP_URL = Deno.env.get("APP_URL") ?? "https://esteticalchub.pages.dev";
+const APP_URL = Deno.env.get("APP_URL") ?? "https://esteticalchub.pt";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
