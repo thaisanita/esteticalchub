@@ -6,7 +6,7 @@ import { EVENTO_PAGAMENTO_REGISTADO } from '@/lib/eventos';
 import { confirmar } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { textosProcedimentos, obterIdiomaAtual } from '@/lib/i18n';
-import { parseMoeda, formatarHora, atendeDomicilio, linkGoogleMaps } from '@/lib/utils';
+import { parseMoeda, formatarHora, agendamentoEDomicilio, linkGoogleMaps } from '@/lib/utils';
 import {
   Clock,
   User,
@@ -34,6 +34,7 @@ interface Atendimento {
   preco?: number | string;
   ponto_atendimento?: string;
   pontoAtendimento?: string;
+  local_tipo?: 'estudio' | 'domicilio' | null;
   faltou?: boolean;
   agenda_id?: string;
 }
@@ -230,7 +231,7 @@ const Procedimentos = () => {
                     <p className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
                       <MapPin size={11} className="mt-0.5 shrink-0" />
                       <span className={moradasAbertas.has(item.id) ? '' : 'truncate'}>{localAtendimento}</span>
-                      {item.agenda_id && atendeDomicilio(tipoPorAgenda[item.agenda_id]) && (
+                      {agendamentoEDomicilio(item, item.agenda_id ? tipoPorAgenda[item.agenda_id] : null) && (
                         <a
                           href={linkGoogleMaps(localAtendimento)}
                           target="_blank"

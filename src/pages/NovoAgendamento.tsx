@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '../supabase';
-import { getErrorMessage, parseMoeda, atendeDomicilio } from '@/lib/utils';
+import { getErrorMessage, parseMoeda, atendeDomicilio, moradaCompleta } from '@/lib/utils';
+import { confirmar } from '@/components/ConfirmDialog';
+import CamposMorada from '@/components/CamposMorada';
+import { normalizarCodigoPostal } from '@/hooks/useCodigoPostal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LEMBRETES_WHATSAPP_ATIVOS } from '@/hooks/usePlano';
@@ -23,7 +26,9 @@ import {
   FileHeart,
   Wand2,
   Package,
-  Target
+  Target,
+  Building2,
+  Home,
 } from 'lucide-react';
 import { URL_PUBLICO } from '@/lib/empresa';
 import {
@@ -33,6 +38,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
+type MoradaCliente = { morada: string | null; codigo_postal: string | null; localidade: string | null };
+type ClienteDb = { id: string; nome: string; telefone: string | null; email: string | null } & MoradaCliente;
+const VAZIA: MoradaCliente = { morada: null, codigo_postal: null, localidade: null };
+
+const limpo = (v: string | null | undefined) => (v || '').trim().replace(/\s+/g, ' ').toLowerCase();
+/** Mesma morada nos três campos (ignora maiúsculas e espaços a mais). */
+function mesmaMorada(a: MoradaCliente, b: MoradaCliente): boolean {
+  return (
+    limpo(a.morada) === limpo(b.morada) &&
+    limpo(normalizarCodigoPostal(a.codigo_postal || '') ?? a.codigo_postal) ===
+      limpo(normalizarCodigoPostal(b.codigo_postal || '') ?? b.codigo_postal) &&
+    limpo(a.localidade) === limpo(b.localidade)
+  );
+}
 
 interface NovoAgendamentoProps {
   setAgendamentos?: (novosDados: unknown[]) => void;
@@ -57,12 +77,23 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   const [horaInicio, setHoraInicio] = useState('09:00');
   const [horaFim, setHoraFim] = useState('10:00');
   const [preco, setPreco] = useState('');
+  // "Onde é o atendimento?" — escolhido em cada agendamento (já não na agenda).
+  // Estúdio: usa o campo Espaço / Local. Domicílio: usa a morada (rua, código
+  // postal, localidade), que pode vir da ficha da cliente.
+  const [localTipo, setLocalTipo] = useState<'estudio' | 'domicilio'>('estudio');
   const [pontoAtendimento, setPontoAtendimento] = useState('');
+  const [moradaDom, setMoradaDom] = useState('');
+  const [codigoPostalDom, setCodigoPostalDom] = useState('');
+  const [localidadeDom, setLocalidadeDom] = useState('');
+  // Muda sempre que a morada é preenchida pela app (ficha da cliente ou
+  // agendamento a editar), para o CamposMorada não substituir a localidade
+  // guardada pela do código postal.
+  const [chaveMorada, setChaveMorada] = useState(0);
   // Em que agenda este agendamento fica guardado (TimeTree-style: várias
   // agendas possíveis, Principal por omissão).
   const [agendaId, setAgendaId] = useState<string>('');
   const [agendas, setAgendas] = useState<
-    { id: string; nome: string; cor: string; principal: boolean; tipo_atendimento?: 'estudio' | 'domicilio' | 'ambos' }[]
+    { id: string; nome: string; cor: string; principal: boolean }[]
   >([]);
   
   // Configurações de Notificação
@@ -90,18 +121,42 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   const [historicoProcedimento, setHistoricoProcedimento] = useState<{ vezes: number; produtos: { nome: string; vezes: number }[] } | null>(null);
   const [custosFixosMes, setCustosFixosMes] = useState<number | null>(null);
   const [faturamentoMesAtual, setFaturamentoMesAtual] = useState<number>(0);
-  const [clientesDb, setClientesDb] = useState<
-    { id: string; nome: string; telefone: string | null; email: string | null; morada: string | null }[]
-  >([]);
-  // Morada guardada na cliente selecionada, para comparar com o que está no
-  // campo "Espaço/Local" e oferecer "Guardar como morada desta cliente".
-  const [moradaClienteAtual, setMoradaClienteAtual] = useState<string | null>(null);
-  const [guardarMoradaCliente, setGuardarMoradaCliente] = useState(false);
+  const [clientesDb, setClientesDb] = useState<ClienteDb[]>([]);
+  // Morada guardada na ficha da cliente selecionada: preenche os campos de
+  // domicílio e serve para perguntar se a ficha deve ser atualizada.
+  const [moradaClienteAtual, setMoradaClienteAtual] = useState<MoradaCliente | null>(null);
+  // Morada com que o agendamento a editar foi aberto: guardar sem lhe mexer
+  // não volta a perguntar pela ficha da cliente.
+  const [moradaCarregada, setMoradaCarregada] = useState<MoradaCliente | null>(null);
 
   // Nome completo, combinado a partir dos dois campos, usado para guardar
   // e comparar com o resto do site (Clientes, Prontuário, etc. continuam a
   // guardar um único campo "nome").
   const cliente = `${nomeCliente} ${apelidoCliente}`.trim();
+
+  const moradaDoAtendimento: MoradaCliente = {
+    morada: moradaDom.trim() || null,
+    codigo_postal: normalizarCodigoPostal(codigoPostalDom) ?? (codigoPostalDom.trim() || null),
+    localidade: localidadeDom.trim() || null,
+  };
+  // Texto do local usado nos lembretes, no email de confirmação e guardado em
+  // ponto_atendimento (o .ics e o Google Calendar leem daí).
+  const localTexto =
+    localTipo === 'domicilio' ? moradaCompleta(moradaDoAtendimento) : pontoAtendimento.trim();
+
+  const preencherMoradaDaCliente = (m: MoradaCliente | null) => {
+    if (!m || !moradaCompleta(m)) return;
+    setMoradaDom(m.morada || '');
+    setCodigoPostalDom(m.codigo_postal || '');
+    setLocalidadeDom(m.localidade || '');
+    setChaveMorada((k) => k + 1);
+  };
+  const camposDomicilioVazios = !moradaDom.trim() && !codigoPostalDom.trim() && !localidadeDom.trim();
+
+  const escolherLocal = (tipo: 'estudio' | 'domicilio') => {
+    setLocalTipo(tipo);
+    if (tipo === 'domicilio' && camposDomicilioVazios) preencherMoradaDaCliente(moradaClienteAtual);
+  };
 
 
   // Atualiza a hora de fim automaticamente ao alterar o início
@@ -121,7 +176,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
 
     supabase
       .from('clientes')
-      .select('id, nome, telefone, email, morada')
+      .select('id, nome, telefone, email, morada, codigo_postal, localidade')
       .order('nome', { ascending: true })
       .then(({ data }) => setClientesDb(data || []));
   }, []);
@@ -139,22 +194,17 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     setApelidoCliente(partes.slice(1).join(' '));
   };
 
-  const selecionarClienteExistente = (c: {
-    id: string;
-    nome: string;
-    telefone: string | null;
-    email: string | null;
-    morada: string | null;
-  }) => {
+  const selecionarClienteExistente = (c: ClienteDb) => {
     preencherNomeCompleto(c.nome);
     setClienteId(c.id);
     if (c.telefone) setTelefoneCliente(c.telefone);
     if (c.email) setEmailCliente(c.email);
-    setMoradaClienteAtual(c.morada);
-    setGuardarMoradaCliente(false);
-    // Só preenche se o campo ainda estiver vazio — não apaga nada que já
-    // tenha sido escrito à mão para este atendimento em concreto.
-    if (c.morada && !pontoAtendimento.trim()) setPontoAtendimento(c.morada);
+    const m = { morada: c.morada, codigo_postal: c.codigo_postal, localidade: c.localidade };
+    setMoradaClienteAtual(m);
+    // Só no domicílio, e só se os campos ainda estiverem vazios — não apaga
+    // nada escrito à mão para este atendimento. O Espaço / Local do estúdio
+    // nunca é preenchido com a morada da cliente.
+    if (localTipo === 'domicilio' && camposDomicilioVazios) preencherMoradaDaCliente(m);
   };
 
   // Sugestão inteligente: procura o último atendimento com o mesmo
@@ -303,7 +353,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     const buscarAgendas = async () => {
       const { data } = await supabase
         .from('agendas')
-        .select('id, nome, cor, principal, tipo_atendimento')
+        .select('id, nome, cor, principal')
         .order('principal', { ascending: false })
         .order('nome', { ascending: true });
       if (data) {
@@ -340,7 +390,41 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
                 ? String(data.valor)
                 : ''
             );
-            setPontoAtendimento(data.ponto_atendimento || data.pontoAtendimento || '');
+            const localGuardado: string = data.ponto_atendimento || data.pontoAtendimento || '';
+            let eDomicilio = data.local_tipo === 'domicilio';
+            if (!data.local_tipo && data.agenda_id) {
+              // Agendamento antigo (sem local_tipo): segue o tipo da agenda, como antes.
+              const { data: ag } = await supabase
+                .from('agendas')
+                .select('tipo_atendimento')
+                .eq('id', data.agenda_id)
+                .maybeSingle();
+              eDomicilio = atendeDomicilio(ag?.tipo_atendimento);
+            }
+            setLocalTipo(eDomicilio ? 'domicilio' : 'estudio');
+            if (eDomicilio) {
+              // Antigos só têm o texto em ponto_atendimento: vai para "Rua e número".
+              const carregada: MoradaCliente = {
+                morada: (data.local_tipo ? data.morada : localGuardado) || null,
+                codigo_postal: data.codigo_postal || null,
+                localidade: data.localidade || null,
+              };
+              setMoradaCarregada(carregada);
+              setMoradaDom(carregada.morada || '');
+              setCodigoPostalDom(carregada.codigo_postal || '');
+              setLocalidadeDom(carregada.localidade || '');
+              setChaveMorada((k) => k + 1);
+            } else {
+              setPontoAtendimento(localGuardado);
+            }
+            if (data.cliente_id) {
+              const { data: cli } = await supabase
+                .from('clientes')
+                .select('morada, codigo_postal, localidade')
+                .eq('id', data.cliente_id)
+                .maybeSingle();
+              if (cli) setMoradaClienteAtual(cli);
+            }
             if (data.agenda_id) setAgendaId(data.agenda_id);
             setDataAgendamento(data.data || '');
             setHoraInicio(data.hora || '09:00');
@@ -366,7 +450,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     const quando = antecedencia === '1_dia' ? 'amanhã' : 'hoje';
     const primeiroNome = (nomeCliente || cliente).split(' ')[0] || 'tudo bem';
     const dataFmt = new Date(`${dataAgendamento}T00:00:00`).toLocaleDateString('pt-BR');
-    const local = pontoAtendimento.trim() ? ` Local: ${pontoAtendimento.trim()}.` : '';
+    const local = localTexto ? ` Local: ${localTexto}.` : '';
     const mensagem =
       `Olá, ${primeiroNome}! Passando para lembrar do seu agendamento de ` +
       `${procedimento.trim() || 'atendimento'} ${quando} (${dataFmt}) às ${horaInicio}.${local} ` +
@@ -380,7 +464,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   const construirConfirmacaoAgendamento = (linkConfirmacao: string, nomeNegocio: string) => {
     const primeiroNome = (nomeCliente || cliente).split(' ')[0] || 'tudo bem';
     const dataFmt = new Date(`${dataAgendamento}T00:00:00`).toLocaleDateString('pt-BR');
-    const local = pontoAtendimento.trim() ? ` Local: ${pontoAtendimento.trim()}.` : '';
+    const local = localTexto ? ` Local: ${localTexto}.` : '';
     const comQuem = nomeNegocio ? ` com ${nomeNegocio}` : '';
     const confirmacao = linkConfirmacao ? `\n\nConfirmar presença: ${linkConfirmacao}` : '';
     const mensagem =
@@ -530,18 +614,23 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
 
       // Resolve a cliente: usa a selecionada, ou encontra por nome igual, ou cria uma nova.
       // Assim, mesmo digitando o nome à mão, o agendamento fica sempre ligado por ID.
+      const eDomicilio = localTipo === 'domicilio';
+      const temMoradaDom = eDomicilio && !!moradaCompleta(moradaDoAtendimento);
+
       let clienteIdFinal = clienteId;
+      // Morada na ficha da cliente existente (null = cliente nova).
+      let moradaNaFicha: MoradaCliente | null = clienteId ? moradaClienteAtual ?? VAZIA : null;
       if (!clienteIdFinal && cliente.trim()) {
         const { data: existente } = await supabase
           .from('clientes')
-          .select('id')
+          .select('id, morada, codigo_postal, localidade')
           .ilike('nome', cliente.trim())
           .maybeSingle();
 
         if (existente) {
           clienteIdFinal = existente.id;
+          moradaNaFicha = existente;
         } else {
-          const agendaSelecionada = agendas.find((a) => a.id === agendaId);
           const { data: novaCliente, error: erroNovaCliente } = await supabase
             .from('clientes')
             .insert([{
@@ -549,16 +638,41 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
               telefone: telefoneCliente.trim() || null,
               email: emailCliente.trim() || null,
               agenda_id: agendaId || null,
-              morada: atendeDomicilio(agendaSelecionada?.tipo_atendimento) ? pontoAtendimento.trim() || null : null,
+              // Cliente nova num atendimento ao domicílio: a morada fica logo na ficha.
+              ...(temMoradaDom ? moradaDoAtendimento : {}),
             }])
             .select('id')
             .single();
           if (!erroNovaCliente) clienteIdFinal = novaCliente.id;
         }
-      } else if (clienteIdFinal && guardarMoradaCliente && pontoAtendimento.trim()) {
-        // Cliente existente: só grava se a profissional marcou a opção
-        // "Guardar como morada desta cliente" — não sobrescreve sem pedir.
-        await supabase.from('clientes').update({ morada: pontoAtendimento.trim() }).eq('id', clienteIdFinal);
+      }
+
+      // Cliente existente com morada diferente da ficha: pergunta antes de mexer
+      // na ficha — mas só se a morada foi mudada aqui (não ao reabrir para editar).
+      const moradaMudouAqui = !(moradaCarregada && mesmaMorada(moradaCarregada, moradaDoAtendimento));
+      if (
+        temMoradaDom &&
+        clienteIdFinal &&
+        moradaNaFicha &&
+        moradaMudouAqui &&
+        !mesmaMorada(moradaNaFicha, moradaDoAtendimento)
+      ) {
+        const fichaTemMorada = !!moradaCompleta(moradaNaFicha);
+        const atualizar = await confirmar({
+          titulo: fichaTemMorada ? 'Atualizar a ficha da cliente?' : 'Guardar a morada na ficha?',
+          descricao: fichaTemMorada
+            ? `A morada deste atendimento é diferente da que está na ficha de ${cliente.trim()} (${moradaCompleta(moradaNaFicha)}). Queres atualizar a ficha com a nova morada?`
+            : `${cliente.trim()} ainda não tem morada na ficha. Queres guardar esta morada na ficha dela?`,
+          textoConfirmar: fichaTemMorada ? 'Atualizar ficha' : 'Guardar na ficha',
+          textoCancelar: 'Só neste atendimento',
+        });
+        if (atualizar) {
+          const { error: erroFicha } = await supabase
+            .from('clientes')
+            .update(moradaDoAtendimento)
+            .eq('id', clienteIdFinal);
+          if (erroFicha) toast.error('Não foi possível atualizar a morada na ficha: ' + getErrorMessage(erroFicha));
+        }
       }
 
       const dadosParaEnviar = {
@@ -572,7 +686,11 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
         hora_fim: horaFim,
         preco: valorFormatado,
         valor: valorFormatado,
-        ponto_atendimento: pontoAtendimento.trim(),
+        ponto_atendimento: localTexto,
+        local_tipo: localTipo,
+        morada: eDomicilio ? moradaDoAtendimento.morada : null,
+        codigo_postal: eDomicilio ? moradaDoAtendimento.codigo_postal : null,
+        localidade: eDomicilio ? moradaDoAtendimento.localidade : null,
         agenda_id: agendaId || null,
         usuario_id: user.id,
         canal_notificacao: canalNotificacao,
@@ -608,7 +726,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
 
       salvarHistorico('hist_clientes', cliente);
       salvarHistorico('hist_procedimentos', procedimento);
-      salvarHistorico('hist_pontos', pontoAtendimento);
+      if (!eDomicilio) salvarHistorico('hist_pontos', pontoAtendimento);
       toast.success(idParaEditar ? 'Agendamento atualizado.' : 'Agendamento criado.');
 
       // Redireciona de volta para a lista de procedimentos na data do agendamento
@@ -649,6 +767,33 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
       <form onSubmit={manipularSalvar} className="space-y-4">
         {/* Bloco 1: Quando, Onde e Quem */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-lg shadow-black/10 space-y-4">
+          <div className="space-y-1.5" role="group" aria-labelledby="pergunta-local">
+            <p id="pergunta-local" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <MapPin size={13} className="text-primary" />
+              Onde é o atendimento?
+            </p>
+            <div className="flex gap-2">
+              {([
+                { valor: 'estudio', texto: 'Estúdio', Icone: Building2 },
+                { valor: 'domicilio', texto: 'Domicílio', Icone: Home },
+              ] as const).map(({ valor, texto, Icone }) => (
+                <button
+                  key={valor}
+                  type="button"
+                  aria-pressed={localTipo === valor}
+                  onClick={() => escolherLocal(valor)}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
+                    localTipo === valor
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground hover:border-primary/30'
+                  }`}
+                >
+                  <Icone size={14} /> {texto}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -706,48 +851,55 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <MapPin size={13} className="text-primary" />
-                Espaço / Local
-              </label>
-              <Input
-                type="text"
-                value={pontoAtendimento}
-                onChange={(e) => setPontoAtendimento(e.target.value)}
-                placeholder="Ex: Studio Central"
-                className="h-10 bg-background/50 border-border"
-              />
-              {sugestoesPonto.length > 0 && !pontoAtendimento && (
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {sugestoesPonto.map((item, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setPontoAtendimento(item)}
-                      className="text-[10px] font-medium bg-background hover:bg-primary/10 hover:text-primary text-muted-foreground px-2 py-0.5 rounded-md border border-border transition-colors flex items-center gap-1"
-                    >
-                      <History size={10} />
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {clienteId &&
-                atendeDomicilio(agendas.find((a) => a.id === agendaId)?.tipo_atendimento) &&
-                pontoAtendimento.trim() &&
-                pontoAtendimento.trim() !== (moradaClienteAtual || '').trim() && (
-                  <label className="mt-1.5 flex cursor-pointer items-start gap-2 text-[11px] text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={guardarMoradaCliente}
-                      onChange={(e) => setGuardarMoradaCliente(e.target.checked)}
-                      className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-primary"
-                    />
-                    Guardar como morada desta cliente
-                  </label>
+            {localTipo === 'estudio' ? (
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <MapPin size={13} className="text-primary" />
+                  Espaço / Local
+                </label>
+                <Input
+                  type="text"
+                  value={pontoAtendimento}
+                  onChange={(e) => setPontoAtendimento(e.target.value)}
+                  placeholder="Ex: Sala 1"
+                  className="h-10 bg-background/50 border-border"
+                />
+                {sugestoesPonto.length > 0 && !pontoAtendimento && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {sugestoesPonto.map((item, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setPontoAtendimento(item)}
+                        className="text-[10px] font-medium bg-background hover:bg-primary/10 hover:text-primary text-muted-foreground px-2 py-0.5 rounded-md border border-border transition-colors flex items-center gap-1"
+                      >
+                        <History size={10} />
+                        {item}
+                      </button>
+                    ))}
+                  </div>
                 )}
-            </div>
+              </div>
+            ) : (
+              <div className="space-y-1.5 sm:col-span-2">
+                <CamposMorada
+                  key={chaveMorada}
+                  titulo="Morada do atendimento"
+                  classeInput="h-10 bg-background/50 border-border"
+                  codigoPostal={codigoPostalDom}
+                  onCodigoPostalChange={setCodigoPostalDom}
+                  morada={moradaDom}
+                  onMoradaChange={setMoradaDom}
+                  localidade={localidadeDom}
+                  onLocalidadeChange={setLocalidadeDom}
+                />
+                {!clienteId && camposDomicilioVazios && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Se escolheres uma cliente já registada (mais abaixo), a morada da ficha dela é preenchida aqui.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="border-t border-border pt-4 space-y-4">

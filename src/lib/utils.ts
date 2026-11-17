@@ -62,8 +62,39 @@ export function formatarHora(hora: string | null | undefined): string {
 }
 
 /** true quando a agenda atende fora do estúdio (domicílio ou ambos). */
+/**
+ * Tipo de atendimento da AGENDA (coluna antiga, já não editável na app).
+ * Só serve para interpretar agendamentos antigos — ver agendamentoEDomicilio.
+ */
 export function atendeDomicilio(tipoAtendimento?: string | null): boolean {
   return tipoAtendimento === 'domicilio' || tipoAtendimento === 'ambos';
+}
+
+/**
+ * Morada completa de uma cliente numa só linha: "Rua e número, 0000-000 Localidade".
+ * Clientes antigas só têm `morada` (texto livre) — aparece tal como foi escrita.
+ */
+export function moradaCompleta(c: {
+  morada?: string | null;
+  codigo_postal?: string | null;
+  localidade?: string | null;
+}): string {
+  const linha2 = [c.codigo_postal, c.localidade].map((v) => (v || '').trim()).filter(Boolean).join(' ');
+  return [(c.morada || '').trim(), linha2].filter(Boolean).join(', ');
+}
+
+/**
+ * Este agendamento é ao domicílio? Agendamentos novos guardam a resposta em
+ * `local_tipo`. Os antigos (sem `local_tipo`) seguem o tipo da agenda onde
+ * ficaram, como funcionava antes — assim continuam a aparecer igual.
+ */
+export function agendamentoEDomicilio(
+  ag: { local_tipo?: string | null },
+  tipoAtendimentoAgenda?: string | null,
+): boolean {
+  if (ag.local_tipo === 'domicilio') return true;
+  if (ag.local_tipo === 'estudio') return false;
+  return atendeDomicilio(tipoAtendimentoAgenda);
 }
 
 /** Link do Google Maps para abrir uma morada/local diretamente. */

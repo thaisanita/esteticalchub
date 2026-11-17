@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { CalendarX, MessageCircle, Sparkles, Pencil, Trash2, Euro, CheckCircle2, UserX, MapPin, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { parseMoeda, formatarHora, atendeDomicilio, linkGoogleMaps, cn } from '@/lib/utils';
+import { parseMoeda, formatarHora, agendamentoEDomicilio, linkGoogleMaps, cn } from '@/lib/utils';
 import { supabase } from '../supabase';
 import { confirmar } from './ConfirmDialog';
 import { LEMBRETES_WHATSAPP_ATIVOS } from '@/hooks/usePlano';
@@ -28,6 +28,7 @@ interface Appointment {
   faltou?: boolean;
   ponto_atendimento?: string;
   pontoAtendimento?: string;
+  local_tipo?: 'estudio' | 'domicilio' | null;
 }
 
 interface AgendaInfo {
@@ -273,8 +274,7 @@ const ListaAgendamentos = ({
                         <span className={appt.id && moradasAbertas.has(appt.id) ? '' : 'truncate'}>
                           {appt.ponto_atendimento || appt.pontoAtendimento}
                         </span>
-                        {appt.agenda_id &&
-                          atendeDomicilio(mapaAgendas?.get(appt.agenda_id)?.tipo_atendimento) && (
+                        {agendamentoEDomicilio(appt, appt.agenda_id ? mapaAgendas?.get(appt.agenda_id)?.tipo_atendimento : null) && (
                             <a
                               href={linkGoogleMaps((appt.ponto_atendimento || appt.pontoAtendimento)!)}
                               target="_blank"

@@ -4,8 +4,10 @@ import { toast } from 'sonner';
 import { supabase } from '../supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getErrorMessage, cn, atendeDomicilio, linkGoogleMaps } from '@/lib/utils';
+import { getErrorMessage, cn, linkGoogleMaps, moradaCompleta } from '@/lib/utils';
 import { confirmar } from '@/components/ConfirmDialog';
+import CamposMorada from '@/components/CamposMorada';
+import { normalizarCodigoPostal } from '@/hooks/useCodigoPostal';
 import {
   Select,
   SelectContent,
@@ -35,7 +37,10 @@ interface Cliente {
   notas: string | null;
   retorno_previsto: string | null;
   agenda_id: string | null;
+  /** Rua e número. Nas clientes antigas, a morada completa em texto livre. */
   morada: string | null;
+  codigo_postal: string | null;
+  localidade: string | null;
 }
 
 interface AgendaInfo {
@@ -97,6 +102,8 @@ export default function Clientes() {
   const [notas, setNotas] = useState('');
   const [retornoPrevisto, setRetornoPrevisto] = useState('');
   const [morada, setMorada] = useState('');
+  const [codigoPostal, setCodigoPostal] = useState('');
+  const [localidade, setLocalidade] = useState('');
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const painelRef = useRef<HTMLFormElement>(null);
@@ -130,7 +137,7 @@ export default function Clientes() {
 
     const { data: dataClientes, error: erroClientes } = await supabase
       .from('clientes')
-      .select('id, nome, telefone, email, notas, retorno_previsto, agenda_id, morada')
+      .select('id, nome, telefone, email, notas, retorno_previsto, agenda_id, morada, codigo_postal, localidade')
       .order('nome', { ascending: true });
 
     if (erroClientes) {
@@ -209,6 +216,8 @@ export default function Clientes() {
     setNotas('');
     setRetornoPrevisto('');
     setMorada('');
+    setCodigoPostal('');
+    setLocalidade('');
     setEditandoId(null);
     setPainelAberto(false);
     const principal = agendas.find((a) => a.principal);
@@ -228,6 +237,9 @@ export default function Clientes() {
       retorno_previsto: retornoPrevisto || null,
       agenda_id: agendaId || null,
       morada: morada.trim() || null,
+      // Código incompleto é guardado como foi escrito, para não se perder.
+      codigo_postal: normalizarCodigoPostal(codigoPostal) ?? (codigoPostal.trim() || null),
+      localidade: localidade.trim() || null,
     };
 
     const { error } = editandoId
@@ -252,6 +264,8 @@ export default function Clientes() {
     setNotas(c.notas || '');
     setRetornoPrevisto(c.retorno_previsto || '');
     setMorada(c.morada || '');
+    setCodigoPostal(c.codigo_postal || '');
+    setLocalidade(c.localidade || '');
     if (c.agenda_id) setAgendaId(c.agenda_id);
     setPainelAberto(true);
   };
@@ -430,19 +444,16 @@ export default function Clientes() {
                 </Select>
               </div>
             )}
-            {atendeDomicilio(mapaAgendas.get(agendaId)?.tipo_atendimento) && (
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                  <MapPin size={12} className="text-primary" />
-                  Morada (para atendimento ao domicílio)
-                </label>
-                <Input
-                  placeholder="Rua, número, código postal"
-                  value={morada}
-                  onChange={(e) => setMorada(e.target.value)}
-                />
-              </div>
-            )}
+            <CamposMorada
+              key={editandoId ?? 'nova'}
+              titulo="Morada (opcional)"
+              codigoPostal={codigoPostal}
+              onCodigoPostalChange={setCodigoPostal}
+              morada={morada}
+              onMoradaChange={setMorada}
+              localidade={localidade}
+              onLocalidadeChange={setLocalidade}
+            />
           </div>
           <textarea
             placeholder="Observações (alergias, preferências, notas...)"
@@ -507,6 +518,7 @@ export default function Clientes() {
             </thead>
             <tbody>
               {clientesCompletas.map((c, i) => {
+                const moradaTexto = moradaCompleta(c);
                 const dias = diasDesde(c.ultimaVisita);
                 const inativa = dias !== null && dias >= DIAS_INATIVA;
                 const atencao = dias !== null && dias >= DIAS_ATENCAO && dias < DIAS_INATIVA;
@@ -537,7 +549,7 @@ export default function Clientes() {
                         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
                           <Users size={13} />
                         </div>
-                        {c.morada ? (
+                        {moradaTexto ? (
                           <button
                             type="button"
                             onClick={() => alternarMorada(c.id)}
@@ -573,14 +585,14 @@ export default function Clientes() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                       {c.telefone || '—'}
-                      {c.morada && atendeDomicilio(mapaAgendas.get(c.agenda_id || '')?.tipo_atendimento) && (
+                      {moradaTexto && (
                         <span className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground/70">
                           <MapPin size={10} className="shrink-0" />
                           <span className={moradasAbertas.has(c.id) ? 'whitespace-normal' : 'max-w-[140px] truncate'}>
-                            {c.morada}
+                            {moradaTexto}
                           </span>
                           <a
-                            href={linkGoogleMaps(c.morada)}
+                            href={linkGoogleMaps(moradaTexto)}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}

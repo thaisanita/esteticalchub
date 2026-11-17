@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn, getErrorMessage, parseMoeda } from '@/lib/utils';
+import { cn, getErrorMessage, parseMoeda, agendamentoEDomicilio } from '@/lib/utils';
 import {
   Calculator,
   CheckCircle2,
@@ -30,6 +30,8 @@ interface AgendamentoPorc {
   valor?: number | string;
   preco?: number | string;
   faltou?: boolean;
+  agenda_id?: string;
+  local_tipo?: 'estudio' | 'domicilio' | null;
 }
 
 const MESES = [
@@ -76,6 +78,18 @@ const Porcentagem = () => {
   const [loading, setLoading] = useState(false);
   const [diasDisponiveis, setDiasDisponiveis] = useState<string[]>([]);
   const [diasJaSalvos, setDiasJaSalvos] = useState<string[]>([]);
+  // Tipo de atendimento de cada agenda: só serve para reconhecer os
+  // agendamentos antigos ao domicílio (os novos guardam local_tipo).
+  const [tipoPorAgenda, setTipoPorAgenda] = useState<Record<string, string | null>>({});
+
+  useEffect(() => {
+    supabase
+      .from('agendas')
+      .select('id, tipo_atendimento')
+      .then(({ data }) => {
+        if (data) setTipoPorAgenda(Object.fromEntries(data.map((a) => [a.id, a.tipo_atendimento])));
+      });
+  }, []);
 
   // Carrega os dias com atendimento e fechamentos salvos para o Mês/Ano selecionados
   useEffect(() => {
@@ -148,23 +162,31 @@ const Porcentagem = () => {
     buscarAgendamentosDoDia();
   }, [dataParaFechamento]);
 
+  // Atendimentos ao domicílio não são num espaço parceiro: o "local" deles é a
+  // morada da cliente, por isso ficam fora da comissão por espaço.
+  const agendamentosNoEspaco = useMemo(
+    () => agendamentos.filter((ag) => !agendamentoEDomicilio(ag, ag.agenda_id ? tipoPorAgenda[ag.agenda_id] : null)),
+    [agendamentos, tipoPorAgenda],
+  );
+  const totalDomicilio = agendamentos.length - agendamentosNoEspaco.length;
+
   const locaisUnicos = useMemo(() => {
-    const locais = agendamentos
+    const locais = agendamentosNoEspaco
       .map((ag) => ag.ponto_atendimento || ag.pontoAtendimento)
       .filter(Boolean) as string[];
     return [...new Set(locais)];
-  }, [agendamentos]);
+  }, [agendamentosNoEspaco]);
 
   const totalBrutoLocal = useMemo(() => {
     if (!pontoSelecionado) return 0;
-    return agendamentos
+    return agendamentosNoEspaco
       .filter((ag) => (ag.ponto_atendimento || ag.pontoAtendimento) === pontoSelecionado && !ag.faltou)
       .reduce((sum, ag) => {
         const valorRaw = ag.valor ?? ag.preco ?? 0;
         const valor = parseMoeda(valorRaw);
         return sum + valor;
       }, 0);
-  }, [pontoSelecionado, agendamentos]);
+  }, [pontoSelecionado, agendamentosNoEspaco]);
 
   const valorParaEspaco = (totalBrutoLocal * (Number(taxaEspaco) / 100)).toFixed(2);
   const meuLucroReal = (totalBrutoLocal - Number(valorParaEspaco)).toFixed(2);
@@ -364,6 +386,13 @@ const Porcentagem = () => {
                 );
               })}
             </div>
+          )}
+          {totalDomicilio > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              {totalDomicilio === 1
+                ? '1 atendimento ao domicílio neste dia não entra na comissão por espaço.'
+                : `${totalDomicilio} atendimentos ao domicílio neste dia não entram na comissão por espaço.`}
+            </p>
           )}
         </div>
 
