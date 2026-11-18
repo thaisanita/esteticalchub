@@ -28,6 +28,7 @@ import { textosConfig, obterIdiomaAtual, type Idioma } from '@/lib/i18n';
 import ConectarWhatsAppBot from '@/components/ConectarWhatsAppBot';
 import PaginaPublicaConfig from '@/components/PaginaPublicaConfig';
 import MensagensAutomaticas from '@/components/MensagensAutomaticas';
+import EmailsAutomaticos from '@/components/EmailsAutomaticos';
 import TrafegoPagoConfig from '@/components/TrafegoPagoConfig';
 import DadosEConta from '@/components/DadosEConta';
 import { LEMBRETES_WHATSAPP_ATIVOS } from '@/hooks/usePlano';
@@ -149,12 +150,17 @@ export default function Config() {
           <div>
             <div className="text-sm font-bold text-foreground">Mensagens automáticas</div>
             <div className="mt-0.5 text-xs text-muted-foreground">
-              O texto que aparece já escrito quando carregas no botão do WhatsApp de uma marcação. Os dados de cada marcação entram nas variáveis.
+              As mensagens às clientes: o texto do botão do WhatsApp de cada marcação e os emails que saem sozinhos. Os dados de cada marcação entram nas variáveis.
             </div>
           </div>
         </div>
 
         <MensagensAutomaticas />
+
+        <div className="border-t border-border pt-4">
+          <p className="mb-2 text-sm font-semibold text-foreground">Emails automáticos</p>
+          <EmailsAutomaticos />
+        </div>
       </div>
 
       {/* Página Pública (captação de leads via anúncios) */}

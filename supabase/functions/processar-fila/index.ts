@@ -49,9 +49,16 @@ type Fila = {
   mensagem: string | null;
   assunto: string | null;
   destino: string | null;
+  tipo?: string | null;
 };
 
 type Agendamento = {
+  usuario_id?: string;
+  cliente_id?: string | null;
+  faltou?: boolean | null;
+  confirmacao_status?: string | null;
+  retoque_dias?: number | null;
+  confirmacao_token?: string | null;
   cliente?: string;
   procedimento?: string;
   data?: string;
@@ -177,6 +184,7 @@ async function buscarAgendamento(agendamentoId: string): Promise<Agendamento | n
     .from("agendamentos")
     .select(
       "cliente, procedimento, data, hora, hora_fim, ponto_atendimento, email_cliente, telefone_cliente, cliente_id, " +
+        "usuario_id, faltou, confirmacao_status, retoque_dias, confirmacao_token, " +
         "clientes:cliente_id ( email, telefone, aceita_lembretes, opt_out_token )",
     )
     .eq("id", agendamentoId)
@@ -301,6 +309,120 @@ function gerarConviteICS(
   return linhas.map(dobrarLinhaICS).join("\r\n") + "\r\n";
 }
 
+// ---------------------------------------------------------------------------
+// Emails automáticos com modelo (Configurações → Mensagens automáticas)
+// ---------------------------------------------------------------------------
+
+/** Emails pós-atendimento: criados pela função agendar_emails_pos_atendimento(). */
+const TIPOS_POS = new Set(["email_cuidados", "email_avaliacao", "email_retoque"]);
+
+/** Textos por omissão — iguais aos de src/lib/mensagens.ts (há um teste que confirma). */
+const EMAILS_PADRAO: Record<string, { assunto: string; texto: string }> = {
+  email_confirmacao: {
+    assunto: "Agendamento marcado — {procedimento} em {dia}",
+    texto: "Olá, {cliente}! O seu agendamento ficou marcado: {procedimento}, dia {dia} às {hora}.\nLocal: {local}\n\nConfirmar presença: {link_confirmacao}",
+  },
+  email_cuidados: {
+    assunto: "Cuidados depois de {procedimento}",
+    texto: "Olá, {cliente}! Obrigada pela visita.\nPara o resultado de {procedimento} durar mais, nas próximas 24 a 48 horas:\n• evite molhar e tocar na zona tratada;\n• não aplique maquilhagem nem cremes na zona;\n• evite sol direto, sauna e piscina.\nSe notar alguma reação, responda a este email.",
+  },
+  email_avaliacao: {
+    assunto: "Como correu o atendimento de {procedimento}?",
+    texto: "Olá, {cliente}! Espero que tenha gostado do atendimento de {procedimento}.\nA sua opinião ajuda muito o meu trabalho. Pode deixar uma avaliação aqui (demora 1 minuto):\n{link_avaliacao}\nObrigada! {profissional}",
+  },
+  email_retoque: {
+    assunto: "Está na altura do retoque de {procedimento}",
+    texto: "Olá, {cliente}! Já passaram algumas semanas desde o atendimento de {procedimento} ({dia}).\nEstá na altura ideal para o retoque. Responda a este email para marcarmos.\nAté breve! {profissional}",
+  },
+};
+
+type Modelo = { assunto: string | null; texto: string; ativo: boolean; link_avaliacao: string | null };
+
+/** Igual a preencherModelo (src/lib/whatsapp.ts): linha com variável vazia desaparece. */
+function preencherModelo(modelo: string, valores: Record<string, string>): string {
+  const linhas = modelo.split("\n").flatMap((linha) => {
+    let vazia = false;
+    const preenchida = linha.replace(/\{(\w+)\}/g, (inteiro, chave: string) => {
+      if (!(chave in valores)) return inteiro;
+      const v = (valores[chave] ?? "").trim();
+      if (!v) vazia = true;
+      return v;
+    });
+    return vazia ? [] : [preenchida];
+  });
+  return linhas.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/** "2026-11-21" → "21/11/2026" (sem depender do idioma do servidor). */
+function dataPT(iso?: string | null) {
+  if (!iso) return "";
+  const [a, m, d] = iso.slice(0, 10).split("-");
+  return `${d}/${m}/${a}`;
+}
+
+function valoresDoAgendamento(ag: Agendamento, profissional: string, linkAvaliacao: string | null) {
+  return {
+    cliente: String(ag.cliente ?? "").trim().split(/\s+/)[0] || "",
+    procedimento: String(ag.procedimento ?? "").trim() || "atendimento",
+    dia: dataPT(ag.data),
+    hora: String(ag.hora ?? "").slice(0, 5),
+    local: String(ag.ponto_atendimento ?? "").trim(),
+    link_confirmacao: ag.confirmacao_token ? `${APP_URL}/confirmacao/${ag.confirmacao_token}` : "",
+    profissional,
+    link_avaliacao: String(linkAvaliacao ?? "").trim(),
+  };
+}
+
+async function buscarModelo(usuarioId: string, tipo: string): Promise<Modelo | null> {
+  const { data } = await admin
+    .from("modelos_mensagem")
+    .select("assunto, texto, ativo, link_avaliacao")
+    .eq("usuario_id", usuarioId)
+    .eq("tipo", tipo)
+    .maybeSingle();
+  return (data as Modelo) ?? null;
+}
+
+/**
+ * Prepara um email pós-atendimento no momento do envio. Volta a confirmar
+ * tudo: se a cliente faltou, recusou, se a profissional desligou o email, ou
+ * (no retoque) se a cliente já marcou outra vez o mesmo procedimento, cancela.
+ */
+async function prepararPosAtendimento(
+  linha: Fila,
+  ag: Agendamento,
+): Promise<{ cancelar: string } | { texto: string; assunto: string }> {
+  if (ag.faltou) return { cancelar: "a cliente faltou" };
+  if (ag.confirmacao_status === "recusado") return { cancelar: "a cliente recusou a marcação" };
+  const tipo = String(linha.tipo);
+  const modelo = await buscarModelo(linha.usuario_id, tipo);
+  if (!modelo || !modelo.ativo) return { cancelar: "email desligado pela profissional" };
+
+  if (tipo === "email_retoque") {
+    if (!(Number(ag.retoque_dias) > 0)) return { cancelar: "retoque desligado nesta marcação" };
+    let pedido = admin
+      .from("agendamentos")
+      .select("id")
+      .eq("usuario_id", linha.usuario_id)
+      .ilike("procedimento", String(ag.procedimento ?? ""))
+      .gt("data", String(ag.data))
+      .limit(1);
+    pedido = ag.cliente_id ? pedido.eq("cliente_id", ag.cliente_id) : pedido.eq("cliente", String(ag.cliente ?? ""));
+    const { data: outra } = await pedido;
+    if (outra && outra.length) return { cancelar: "a cliente já tem nova marcação deste procedimento" };
+  }
+  if (tipo === "email_avaliacao" && modelo.texto.includes("{link_avaliacao}") && !modelo.link_avaliacao?.trim()) {
+    return { cancelar: "sem link de avaliação" };
+  }
+
+  const organizador = await buscarOrganizador(linha.usuario_id);
+  const valores = valoresDoAgendamento(ag, organizador.nome, modelo.link_avaliacao);
+  return {
+    texto: preencherModelo(modelo.texto, valores),
+    assunto: preencherModelo(modelo.assunto || EMAILS_PADRAO[tipo]?.assunto || "Mensagem", valores),
+  };
+}
+
 type ResultadoEnvio = "enviado" | "cancelado";
 
 /** Processa um lote de um canal (email ou whatsapp). Devolve as contagens. */
@@ -340,7 +462,19 @@ async function processarCanal(
         continue;
       }
 
-      const texto = linha.mensagem?.trim() || montarMensagem(ag, linha.antecedencia);
+      let texto: string;
+      if (TIPOS_POS.has(String(linha.tipo)) && !linha.mensagem?.trim()) {
+        const preparado = await prepararPosAtendimento(linha, ag);
+        if ("cancelar" in preparado) {
+          await finalizar(linha, { status: "cancelado", ultimo_erro: preparado.cancelar });
+          contagem.cancelados++;
+          continue;
+        }
+        texto = preparado.texto;
+        linha.assunto = preparado.assunto;
+      } else {
+        texto = linha.mensagem?.trim() || montarMensagem(ag, linha.antecedencia);
+      }
       const resultado = await enviar(linha, ag, cli, texto);
       if (resultado === "cancelado") contagem.cancelados++;
       else contagem.enviados++;
@@ -374,7 +508,7 @@ Deno.serve(async (req) => {
   // Email de teste: { "teste_para": "...", "teste_usuario_id": "..." } envia UM
   // email com o mesmo remetente e formato dos lembretes, e não toca na fila
   // nem em nenhum dado. Usado só para confirmar a configuração da Resend.
-  const pedido = await req.json().catch(() => ({})) as { teste_para?: string; teste_usuario_id?: string };
+  const pedido = await req.json().catch(() => ({})) as { teste_para?: string; teste_usuario_id?: string; teste_tipo?: string };
   if (pedido.teste_para) {
     const para = String(pedido.teste_para).trim();
     if (!para.includes("@")) {
@@ -384,6 +518,30 @@ Deno.serve(async (req) => {
       const profissional = pedido.teste_usuario_id
         ? await buscarOrganizador(pedido.teste_usuario_id)
         : { nome: "a sua profissional", email: null };
+
+      // Teste de um email com modelo: usa o modelo guardado da profissional
+      // (ou o texto por omissão) com uma marcação de exemplo.
+      if (pedido.teste_tipo && EMAILS_PADRAO[pedido.teste_tipo]) {
+        const tipo = pedido.teste_tipo;
+        const modelo = pedido.teste_usuario_id ? await buscarModelo(pedido.teste_usuario_id, tipo) : null;
+        const amanha = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+        const exemplo: Agendamento = {
+          cliente: "Ana Exemplo",
+          procedimento: "Pestanas",
+          data: amanha,
+          hora: "10:00",
+          ponto_atendimento: "Sala 1",
+          confirmacao_token: "exemplo",
+        };
+        const valores = valoresDoAgendamento(exemplo, profissional.nome, modelo?.link_avaliacao || "https://g.page/r/exemplo");
+        const assunto = `[Teste] ${preencherModelo(modelo?.assunto || EMAILS_PADRAO[tipo].assunto, valores)}`;
+        const texto = preencherModelo(modelo?.texto || EMAILS_PADRAO[tipo].texto, valores);
+        const id = await enviarEmail(para, assunto, texto, `${APP_URL}/opt-out`, null, profissional);
+        return new Response(JSON.stringify({ teste: "enviado", tipo, id, modelo: modelo ? "guardado" : "por omissão" }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
       const id = await enviarEmail(
         para,
         "Teste: lembretes do EstetiCalcHub",
@@ -417,7 +575,8 @@ Deno.serve(async (req) => {
       : `${APP_URL}/opt-out`;
 
     const organizador = await buscarOrganizador(linha.usuario_id);
-    const conviteICS = gerarConviteICS(ag, linha.agendamento_id, email, organizador);
+    // Convite de calendário só antes do atendimento (lembretes e confirmação).
+    const conviteICS = TIPOS_POS.has(String(linha.tipo)) ? null : gerarConviteICS(ag, linha.agendamento_id, email, organizador);
 
     const providerId = await enviarEmail(email, assunto, texto, optOutUrl, conviteICS, organizador);
     await finalizar(linha, {

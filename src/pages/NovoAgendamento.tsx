@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '../supabase';
@@ -32,6 +32,8 @@ import {
 } from 'lucide-react';
 import { URL_PUBLICO } from '@/lib/empresa';
 import BotaoWhatsApp from '@/components/BotaoWhatsApp';
+import { preencherModelo } from '@/lib/whatsapp';
+import { definicaoEmail, modeloEfetivo, valoresEmail, type ModeloGuardado } from '@/lib/mensagens';
 import { isoDia, totaisDoMes, totalCustosFixosMensais, type CustoFixo } from '@/lib/lucro';
 import {
   Select,
@@ -103,6 +105,17 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   // Configurações de Notificação
   const [lembrete1Dia, setLembrete1Dia] = useState(true);
   const [lembrete1Hora, setLembrete1Hora] = useState(true);
+
+  // Email de retoque desta marcação. Só aparece se o email de retoque estiver
+  // ligado em Configurações → Mensagens automáticas. Sugere a última escolha
+  // feita para o mesmo procedimento (ligado/desligado e dias).
+  const [retoqueModeloAtivo, setRetoqueModeloAtivo] = useState(false);
+  const [retoqueDiasOmissao, setRetoqueDiasOmissao] = useState(30);
+  const [retoqueLigado, setRetoqueLigado] = useState(false);
+  const [retoqueDias, setRetoqueDias] = useState('30');
+  const [retoqueSugestao, setRetoqueSugestao] = useState<string | null>(null);
+  const [retoqueDaMarcacao, setRetoqueDaMarcacao] = useState<number | null>(null);
+  const retoqueMexido = useRef(false);
   const [canalNotificacao, setCanalNotificacao] = useState<'whatsapp' | 'email'>('whatsapp');
 
   // Se o canal escolhido ficar sem contacto (ex: apagou o telefone), muda
@@ -137,6 +150,11 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   // e comparar com o resto do site (Clientes, Prontuário, etc. continuam a
   // guardar um único campo "nome").
   const cliente = `${nomeCliente} ${apelidoCliente}`.trim();
+  // Retoque: a opção aparece se o email de retoque estiver ligado, ou se esta
+  // marcação já tiver retoque ligado (para o poder desligar).
+  const mostrarRetoque = retoqueModeloAtivo || (retoqueDaMarcacao ?? 0) > 0;
+  const diasRetoqueNum = parseInt(retoqueDias, 10);
+  const diasRetoqueValidos = Number.isFinite(diasRetoqueNum) && diasRetoqueNum >= 1 && diasRetoqueNum <= 365 ? diasRetoqueNum : 0;
 
   const moradaDoAtendimento: MoradaCliente = {
     morada: moradaDom.trim() || null,
@@ -291,6 +309,57 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
     return () => clearTimeout(atraso);
   }, [procedimento]);
 
+  // Email de retoque: está ligado? quantos dias por omissão?
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('modelos_mensagem')
+        .select('ativo, espera_dias')
+        .eq('usuario_id', user.id)
+        .eq('tipo', 'email_retoque')
+        .maybeSingle();
+      const dias = data?.espera_dias ?? definicaoEmail('email_retoque').espera_dias ?? 30;
+      setRetoqueModeloAtivo(!!data?.ativo);
+      setRetoqueDiasOmissao(dias);
+      if (!retoqueMexido.current) setRetoqueDias(String(dias));
+    })();
+  }, []);
+
+  // Sugestão: a última escolha de retoque para o mesmo procedimento.
+  useEffect(() => {
+    if (idParaEditar || retoqueMexido.current || !procedimento.trim()) {
+      setRetoqueSugestao(null);
+      return;
+    }
+    const atraso = setTimeout(async () => {
+      const { data } = await supabase
+        .from('agendamentos')
+        .select('retoque_dias, data')
+        .ilike('procedimento', procedimento.trim())
+        .not('retoque_dias', 'is', null)
+        .order('data', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (retoqueMexido.current) return;
+      if (data && data.retoque_dias !== null) {
+        setRetoqueLigado(data.retoque_dias > 0);
+        setRetoqueDias(String(data.retoque_dias > 0 ? data.retoque_dias : retoqueDiasOmissao));
+        setRetoqueSugestao(
+          data.retoque_dias > 0
+            ? `Como da última vez neste procedimento: retoque ligado, ${data.retoque_dias} dias.`
+            : 'Como da última vez neste procedimento: sem retoque.',
+        );
+      } else {
+        setRetoqueLigado(false);
+        setRetoqueDias(String(retoqueDiasOmissao));
+        setRetoqueSugestao(null);
+      }
+    }, 500);
+    return () => clearTimeout(atraso);
+  }, [procedimento, idParaEditar, retoqueDiasOmissao]);
+
   // Ponto de equilíbrio: quanto está marcado este mês (Previsto, sem faltas)
   // e quanto falta para cobrir os custos fixos (equivalente mensal).
   useEffect(() => {
@@ -387,6 +456,12 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
             setTelefoneCliente(data.telefone_cliente || '');
             setEmailCliente(data.email_cliente || '');
             setTokenConfirmacaoEdicao(data.confirmacao_token || null);
+            if (data.retoque_dias !== null && data.retoque_dias !== undefined) {
+              retoqueMexido.current = true;
+              setRetoqueDaMarcacao(data.retoque_dias);
+              setRetoqueLigado(data.retoque_dias > 0);
+              if (data.retoque_dias > 0) setRetoqueDias(String(data.retoque_dias));
+            }
             setProcedimento(data.procedimento || '');
             setPreco(
               data.preco !== undefined && data.preco !== null
@@ -582,6 +657,35 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
         .maybeSingle();
       const nomeNegocio = pagina?.nome_negocio?.trim() || '';
 
+      // Modelo de confirmação guardado em Mensagens automáticas: se estiver
+      // desligado, não envia; se existir, usa o texto dele; senão, o de sempre.
+      const { data: modeloConfirmacao } = await supabase
+        .from('modelos_mensagem')
+        .select('tipo, assunto, texto, ativo, espera_horas, espera_dias, hora_envio, link_avaliacao')
+        .eq('usuario_id', userId)
+        .eq('tipo', 'email_confirmacao')
+        .maybeSingle();
+      if (modeloConfirmacao && !modeloConfirmacao.ativo) return;
+
+      let textoConfirmacao = construirConfirmacaoAgendamento(linkConfirmacao, nomeNegocio);
+      if (modeloConfirmacao) {
+        const m = modeloEfetivo('email_confirmacao', modeloConfirmacao as ModeloGuardado);
+        const { data: { user: eu } } = await supabase.auth.getUser();
+        const valores = valoresEmail({
+          cliente: nomeCliente || cliente,
+          procedimento,
+          data: dataAgendamento,
+          hora: horaInicio,
+          local: localTexto,
+          linkConfirmacao,
+          profissional: String(eu?.user_metadata?.full_name || eu?.user_metadata?.name || nomeNegocio || '').trim(),
+        });
+        textoConfirmacao = {
+          mensagem: preencherModelo(m.texto, valores),
+          assunto: preencherModelo(m.assunto, valores),
+        };
+      }
+
       const { error: erroConfirmacao } = await supabase.from('fila_notificacoes').insert([{
         agendamento_id: agendamentoId,
         usuario_id: userId,
@@ -592,7 +696,7 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
         data_disparo: new Date().toISOString(),
         status: 'pendente',
         destino: emailCliente.trim(),
-        ...construirConfirmacaoAgendamento(linkConfirmacao, nomeNegocio),
+        ...textoConfirmacao,
       }]);
 
       if (erroConfirmacao) {
@@ -604,6 +708,10 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
   const manipularSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (salvando) return;
+    if (mostrarRetoque && retoqueLigado && !diasRetoqueValidos) {
+      toast.error('Indica em quantos dias deve sair o email de retoque (de 1 a 365).');
+      return;
+    }
     setSalvando(true);
 
     try {
@@ -701,6 +809,8 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
         canal_notificacao: canalNotificacao,
         lembrete_1dia: lembrete1Dia,
         lembrete_1hora: lembrete1Hora,
+        // Retoque: 0 = desligado, N = dias. Se a opção não aparece, não mexe.
+        ...(mostrarRetoque ? { retoque_dias: retoqueLigado ? diasRetoqueValidos : 0 } : {}),
       };
 
       let agendamentoId = idParaEditar;
@@ -1164,6 +1274,47 @@ const NovoAgendamento: React.FC<NovoAgendamentoProps> = () => {
               </div>
             );
           })()}
+
+          {mostrarRetoque && (
+            <div className="space-y-2 rounded-xl border border-border bg-background/50 p-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <input
+                  type="checkbox"
+                  checked={retoqueLigado}
+                  onChange={(e) => {
+                    retoqueMexido.current = true;
+                    setRetoqueSugestao(null);
+                    setRetoqueLigado(e.target.checked);
+                  }}
+                  className="h-4 w-4 accent-[hsl(var(--primary))]"
+                />
+                Lembrar o retoque por email
+              </label>
+              {retoqueLigado && (
+                <div className="flex items-center gap-2 text-sm text-foreground">
+                  <span>daqui a</span>
+                  <Input
+                    aria-label="Dias até ao email de retoque"
+                    inputMode="numeric"
+                    value={retoqueDias}
+                    onChange={(e) => {
+                      retoqueMexido.current = true;
+                      setRetoqueSugestao(null);
+                      setRetoqueDias(e.target.value.replace(/\D/g, '').slice(0, 3));
+                    }}
+                    className="h-8 w-16 bg-background/50 text-center"
+                  />
+                  <span>dias depois do atendimento</span>
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                {retoqueSugestao ??
+                  (emailCliente.trim()
+                    ? 'O email sai à hora definida em Configurações → Mensagens automáticas.'
+                    : 'Esta cliente não tem email: o lembrete de retoque só sai se acrescentares o email dela.')}
+              </p>
+            </div>
+          )}
 
           <div className="border-t border-border pt-4 space-y-3">
           <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
